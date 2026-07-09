@@ -291,10 +291,12 @@ def charger_donnees():
                 prep.setdefault("fiches_methode", [])
                 prep.setdefault("additifs", [])
                 prep.setdefault("base_rals", [])
+                # COMPARTIMENTS PAR DÉFAUT
+                prep.setdefault("compartiments", ["résine", "peinture"])
                 return donnees
         except Exception:
             pass
-    return {"creation_processus": {}, "preparation_melanges": {"couleurs": [], "melanges": [], "fiches_methode": [], "additifs": [], "base_rals": []}}
+    return {"creation_processus": {}, "preparation_melanges": {"couleurs": [], "melanges": [], "fiches_methode": [], "additifs": [], "base_rals": [], "compartiments": ["résine", "peinture"]}}
 
 def sauvegarder_donnees():
     with open(FICHIER_SAUVEGARDE, "w", encoding="utf-8") as f:
@@ -332,7 +334,7 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
     img_path = "Logo-Beraudy-rectangle.png"
     if os.path.exists(img_path):
         from reportlab.platypus import Image as RLImage
-        img_rl = RLImage(img_path, width=210, height=59)
+        img_rl = RLImage(img_path, width=215, height=56)
         img_rl.hAlign = 'LEFT'
         header_table._cellvalues[0][0] = img_rl
 
@@ -656,6 +658,8 @@ def ouvrir_details_element(element):
     st.markdown(f"### 🧪 {element.get('nom')} ({element.get('code')})")
     st.markdown(f"**Désignation :** {element.get('designation', '-')}")
     st.markdown(f"**Fournisseur :** {element.get('fournisseur', '-')}")
+    comps = element.get('compartiments', [])
+    st.markdown(f"**Compartiments :** {', '.join(comps) if comps else 'Aucun'}")
     st.markdown(f"**Nature (FT) :** {element.get('nature', '-')}")
     danger_val = element.get('danger', '-')
     st.markdown(f"**Risque / Danger :** {danger_val}" + (f" - {element.get('danger_texte', '')}" if danger_val == 'Oui' else ""))
@@ -839,15 +843,42 @@ def ouvrir_fenetre_aide():
 
     with onglets[3]:
         st.markdown("### ❓ Foire Aux Questions (FAQ)")
+        
+        # Questions existantes
         with st.expander("▶ Pourquoi mon PDF d'export ne s'ouvre pas ?"):
             st.write("Assurez-vous qu'un lecteur PDF est installé sur votre poste, ou vérifiez que votre navigateur (Chrome/Edge) n'a pas bloqué le téléchargement automatique (icône en haut à droite de la barre d'adresse).")
+            
         with st.expander("▶ Comment modifier une Fiche Technique existante ?"):
             st.write("Cliquez sur l'icône ✏️ (Modifier) de l'élément concerné. Activez le bouton '📝 Gérer la Fiche Technique (FT)' si ce n'est pas déjà fait, puis modifiez les champs souhaités avant de mettre à jour.")
+            
         with st.expander("▶ Où sont sauvegardées les données de BOS2 ?"):
             st.write(f"Toutes vos données sont sauvegardées en temps réel dans un fichier local sécurisé (`{FICHIER_SAUVEGARDE}`). La base de données est mise à jour à chaque clic sur 'Enregistrer' ou 'Mettre à jour'.")
+            
         with st.expander("▶ Peut-on supprimer une couleur sans risque ?"):
-            st.write("Oui. Cliquez sur l'icône 🗑️ dans le tableau, un message de confirmation apparaîtra. **Attention :** Si cette couleur est utilisée dans un mélange, il est conseillé de modifier le mélange en conséquence.")
+            st.write("Oui. Cliquez sur l'icône 🗑️ dans le tableau, un message de confirmation apparaîtra. **Attention :** Si cette couleur est utilisée dans un mélange actif, il est conseillé de modifier la formulation du mélange en conséquence.")
 
+        # --- NOUVELLES QUESTIONS AJOUTÉES ---
+        with st.expander("▶ Pourquoi certains éléments ou mélanges n'apparaissent pas dans mon tableau ?"):
+            st.write("Pour garantir une fluidité maximale de l'interface et éviter les ralentissements (système anti-lag), l'affichage est limité aux 50 premiers résultats. Si vous ne trouvez pas un produit, utilisez simplement les filtres de recherche (par Nom, Référence, Emplacement) situés juste au-dessus du tableau pour affiner les résultats.")
+
+        with st.expander("▶ Que signifie la pastille rouge 🔴 à côté d'un nom dans les tableaux ?"):
+            st.write("La pastille rouge est une alerte visuelle pour l'atelier. Elle indique soit : 1) Que l'élément présente un 'Risque / Danger' d'après sa fiche technique (ex: produit corrosif ou inflammable). 2) Que l'état du mélange ou de la couleur a été configuré sur 'Vérifier' par le laboratoire, signalant qu'une modification ou une validation est requise.")
+
+        with st.expander("▶ Comment fonctionne la vérification automatique du code RAL ?"):
+            st.write("Lorsque vous ajoutez ou modifiez une couleur, saisissez son numéro à 4 chiffres (ex: 5015) dans le champ 'Code RAL' et cliquez sur 'Vérifier RAL'. Si le code est répertorié dans le nuancier officiel RAL CLASSIC intégré, le système appliquera automatiquement la nuance exacte. Dans le cas contraire, vous pouvez ajuster la teinte manuellement avec la pipette.")
+
+        with st.expander("▶ Comment lier deux blocs entre eux dans une Fiche Méthode ?"):
+            st.write("Dans la section 'Fiches Méthode', utilisez l'encadré de droite intitulé 'Lier des blocs'. Sélectionnez le bloc d'origine dans le champ 'De :', le bloc de destination dans le champ 'Vers :', puis cliquez sur le bouton 'Lier les blocs'. Une flèche directionnelle reliant les deux étapes apparaîtra instantanément sur le schéma dynamique.")
+
+        with st.expander("▶ Comment exporter l'intégralité de mes données pour faire des statistiques ?"):
+            st.write("Au-dessus de chaque tableau principal (Nuancier, Catalogue, Formulations), vous trouverez un bouton '📥 Exporter Excel'. En cliquant dessus, l'application génère et télécharge instantanément un fichier tableur complet (.xlsx ou .csv) contenant toutes les données actuellement visibles ou filtrées.")
+
+        with st.expander("▶ À quoi sert le mode 'Basculer Grand Écran' dans le module des processus ?"):
+            st.write("Ce mode masque les menus d'édition, de création et de suppression pour afficher les fiches d'instructions (SOP) en grand format visuel et textuel. Il est spécialement optimisé pour la lecture sur les écrans ou tablettes tactiles installés directement sur les lignes de production et les postes de l'atelier.")
+            
+        with st.expander("▶ Peut-on utiliser un mélange existant comme base dans une nouvelle formulation ?"):
+            st.write("Oui, tout à fait. Lors de la création ou de la modification d'un mélange, la section 'Ajouter des composants' vous présente une catégorie appelée '⚗️ Mélanges existants (Bases)'. Cochez le mélange souhaité et définissez son dosage. Cela permet de créer des formulations complexes par étapes (ex: vernis teinté sur base de liant).")
+   
     with onglets[4]:
         st.markdown("### ⚠ Dépannage des erreurs fréquentes")
         st.error("""
@@ -1273,7 +1304,11 @@ elif G_ACTIF == "preparation_melanges":
                     else:
                         if c_d.button("Oui", key=f"d_col_y_{idx_c}", type="primary"):
                             st.session_state.processus_db["preparation_melanges"]["couleurs"].pop(idx_c)
+                            st.session_state[key_del_c] = False
                             sauvegarder_donnees()
+                            st.rerun()
+                        if c_d.button("Non", key=f"d_col_n_{idx_c}"):
+                            st.session_state[key_del_c] = False
                             st.rerun()
                             
                     if c_data.get("has_ft"):
@@ -1290,6 +1325,15 @@ elif G_ACTIF == "preparation_melanges":
             e_statut = st.radio("État de l'élément :", ["Pas vérifié", "Vérifier"], index=0, horizontal=True)
 
             activer_ft = st.toggle("📝 Créer la Fiche Technique (FT)", value=False)
+            
+            # --- NOUVEAU : CHOIX DES COMPARTIMENTS ---
+            st.markdown("##### 🗂️ Classification des compartiments")
+            liste_compartiments = st.session_state.processus_db["preparation_melanges"].setdefault("compartiments", ["résine", "peinture"])
+            e_compartiments = st.multiselect("Classer dans (plusieurs possibles) :", liste_compartiments, default=[])
+            nouveau_comp = st.text_input("➕ Ou créer un nouveau compartiment :")
+            st.markdown("<br>", unsafe_allow_html=True)
+            # -----------------------------------------
+
             e_fourn, e_art, e_des_ach, e_nat, e_dang, e_dang_txt, e_manip, e_comm_glob = "", "", "", "Liquide", "-", "", "", ""
             ft_redacteur = OPTIONS_REDACTEURS[0]
 
@@ -1298,8 +1342,7 @@ elif G_ACTIF == "preparation_melanges":
                 e_fourn = st.text_input("Fournisseur")
                 e_art = st.text_input("Code Article Achat")
                 e_des_ach = st.text_input("Désignation Achat")
-                e_nat = st.selectbox("Nature", ["Liquide", "Poudre", "Granulé", "Gel", "Autre"])
-                
+                e_nat = st.selectbox("Nature", ["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"])         
                 e_dang = st.radio("Risque / Danger ?", ["-", "Non", "Oui"], index=0, horizontal=True)
                 if e_dang == "Oui":
                     e_dang_txt = st.text_area("Préciser le risque / danger")
@@ -1310,9 +1353,17 @@ elif G_ACTIF == "preparation_melanges":
 
             if st.button("Enregistrer l'élément", type="primary"):
                 if e_nom:
+                    # --- NOUVEAU : LOGIQUE D'AJOUT DYNAMIQUE ---
+                    comps_finaux = list(e_compartiments)
+                    if nouveau_comp.strip() and nouveau_comp.strip() not in liste_compartiments:
+                        st.session_state.processus_db["preparation_melanges"]["compartiments"].append(nouveau_comp.strip())
+                        comps_finaux.append(nouveau_comp.strip())
+                    # -------------------------------------------
+
                     today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
                     st.session_state.processus_db["preparation_melanges"]["additifs"].append({
                         "nom": e_nom, "code": e_code, "designation": e_des, "statut": e_statut,
+                        "compartiments": comps_finaux,
                         "fournisseur": e_fourn, "code_article": e_art, "designation_achat": e_des_ach,
                         "nature": e_nat, "danger": e_dang, "danger_texte": e_dang_txt, "manipulation": e_manip,
                         "commentaire": e_comm, "commentaire_global": e_comm_glob, "has_ft": activer_ft,
@@ -1328,6 +1379,16 @@ elif G_ACTIF == "preparation_melanges":
             m_des = st.text_input("Désignation", value=data.get("designation", ""))
             m_comm = st.text_input("Commentaire court (Formulation)", value=data.get("commentaire", ""))
             m_statut = st.radio("État de l'élément :", ["Pas vérifié", "Vérifier"], index=["Pas vérifié", "Vérifier"].index(data.get("statut", "Pas vérifié")), horizontal=True)
+
+            # --- NOUVEAU : CHOIX DES COMPARTIMENTS ---
+            st.markdown("##### 🗂️ Classification des compartiments")
+            liste_compartiments = st.session_state.processus_db["preparation_melanges"].setdefault("compartiments", ["résine", "peinture"])
+            comps_actuels = data.get("compartiments", [])
+            def_comps = [c for c in comps_actuels if c in liste_compartiments]
+            m_compartiments = st.multiselect("Classer dans (plusieurs possibles) :", liste_compartiments, default=def_comps)
+            nouveau_comp_m = st.text_input("➕ Ou créer un nouveau compartiment :")
+            st.markdown("<br>", unsafe_allow_html=True)
+            # -----------------------------------------
 
             has_ft_init = data.get("has_ft", False)
             activer_ft = st.toggle("📝 Gérer la Fiche Technique (FT)", value=has_ft_init)
@@ -1353,7 +1414,7 @@ elif G_ACTIF == "preparation_melanges":
                 m_fourn = st.text_input("Fournisseur", value=m_fourn)
                 m_art = st.text_input("Code Article Achat", value=m_art)
                 m_des_ach = st.text_input("Désignation Achat", value=m_des_ach)
-                m_nat = st.selectbox("Nature", ["Liquide", "Poudre", "Granulé", "Gel", "Autre"], index=["Liquide", "Poudre", "Granulé", "Gel", "Autre"].index(m_nat))
+                m_nat = st.selectbox("Nature", ["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"], index=["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"].index(m_nat))
                 
                 m_dang = st.radio("Risque / Danger ?", ["-", "Non", "Oui"], index=["-", "Non", "Oui"].index(m_dang), horizontal=True)
                 if m_dang == "Oui":
@@ -1364,11 +1425,19 @@ elif G_ACTIF == "preparation_melanges":
                 m_redacteur = st.selectbox("Rédacteur / Modifié par :", OPTIONS_REDACTEURS, index=idx_redacteur)
 
             if st.button("Mettre à jour l'élément", type="primary"):
+                # --- NOUVEAU : LOGIQUE D'AJOUT DYNAMIQUE ---
+                comps_finaux = list(m_compartiments)
+                if nouveau_comp_m.strip() and nouveau_comp_m.strip() not in liste_compartiments:
+                    st.session_state.processus_db["preparation_melanges"]["compartiments"].append(nouveau_comp_m.strip())
+                    comps_finaux.append(nouveau_comp_m.strip())
+                # -------------------------------------------
+
                 today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
                 d_crea, d_der, d_av = gerer_historique_dates(ft_old, today_str)
 
                 st.session_state.processus_db["preparation_melanges"]["additifs"][index] = {
                     "nom": m_nom, "code": m_code, "designation": m_des, "statut": m_statut,
+                    "compartiments": comps_finaux,
                     "fournisseur": m_fourn, "code_article": m_art, "designation_achat": m_des_ach,
                     "nature": m_nat, "danger": m_dang, "danger_texte": m_dang_txt if m_dang == "Oui" else "",
                     "manipulation": m_manip, "commentaire": m_comm, "commentaire_global": m_comm_glob, "has_ft": activer_ft,
@@ -1382,15 +1451,26 @@ elif G_ACTIF == "preparation_melanges":
 
         if liste_additifs:
             with st.expander("🔍 Outils de filtrage et de tri des éléments", expanded=True):
-                e_f1, e_f2, e_f3, e_f4 = st.columns([2, 2, 2, 1])
+                liste_compartiments = st.session_state.processus_db["preparation_melanges"].setdefault("compartiments", ["résine", "peinture"])
+                e_f1, e_f2, e_f_comp, e_f3, e_f4 = st.columns([1.5, 1.5, 1.5, 1.5, 1])
                 with e_f1: filtre_e_nom = st.text_input("Filtrer par Nom", "")
                 with e_f2: filtre_e_emp = st.text_input("Filtrer par Code", "")
+                with e_f_comp: filtre_e_comp = st.multiselect("Filtrer par Compartiment", liste_compartiments)
                 with e_f3: tri_e_colonne = st.selectbox("Trier par :", ["Nom", "Code", "Fournisseur"])
                 with e_f4: sens_e_tri = st.selectbox("Ordre :", ["Croissant ⬆️", "Décroissant ⬇️"], key="sens_e")
 
             elements_filtres = []
             for idx, a in enumerate(liste_additifs):
-                if (filtre_e_nom.lower() in a.get("nom", "").lower()) and (filtre_e_emp.lower() in a.get("code", "").lower()):
+                match_nom = filtre_e_nom.lower() in a.get("nom", "").lower()
+                match_code = filtre_e_emp.lower() in a.get("code", "").lower()
+                
+                # Vérification du filtre compartiment
+                match_comp = True
+                if filtre_e_comp:
+                    element_comps = a.get("compartiments", [])
+                    match_comp = any(c in element_comps for c in filtre_e_comp)
+
+                if match_nom and match_code and match_comp:
                     elements_filtres.append({"index_origine": idx, "data": a})
             
             tri_cle = {"Nom": "nom", "Code": "code", "Fournisseur": "fournisseur"}[tri_e_colonne]
@@ -1411,13 +1491,14 @@ elif G_ACTIF == "preparation_melanges":
                 st.warning(f"⚠️ Affichage limité aux {MAX_LIGNES_AFFICHAGE} premiers résultats. Utilisez les filtres.")
             elements_a_afficher = elements_filtres[:MAX_LIGNES_AFFICHAGE]
 
-            thead = st.columns([1.5, 1, 2, 1.5, 2, 2])
+            thead = st.columns([1.5, 1, 1.5, 1.5, 1.5, 1.5, 1.5])
             thead[0].markdown("**Nom**")
             thead[1].markdown("**Code**")
             thead[2].markdown("**Désignation**")
             thead[3].markdown("**Fournisseur**")
-            thead[4].markdown("**Commentaire**")
-            thead[5].markdown("**Actions**")
+            thead[4].markdown("**Compartiments**")
+            thead[5].markdown("**Commentaire**")
+            thead[6].markdown("**Actions**")
             st.markdown("<hr style='margin:4px 0px; border-width:2px; border-color:black;'>", unsafe_allow_html=True)
 
             for item in elements_a_afficher:
@@ -1427,16 +1508,20 @@ elif G_ACTIF == "preparation_melanges":
                 is_verified = a_data.get("statut") == "Vérifier"
                 txt_style = "color: #CC0605; font-weight: bold;" if is_verified else "color: inherit;"
                 
-                row = st.columns([1.5, 1, 2, 1.5, 2, 2])
+                row = st.columns([1.5, 1, 1.5, 1.5, 1.5, 1.5, 1.5])
                 
                 pastille = "🔴 " if is_verified else ""
                 row[0].markdown(f'<span style="{txt_style}">{pastille}{str(a_data.get("nom", "-")).title()}</span>', unsafe_allow_html=True)
                 row[1].write(str(a_data.get("code", "-")).upper())
                 row[2].write(str(a_data.get("designation", "-")).title())
                 row[3].write(str(a_data.get("fournisseur", "-") if a_data.get("fournisseur") else "-").upper())
-                row[4].write(str(a_data.get("commentaire", "-")))
                 
-                c_v, c_edit, c_del, c_ft = row[5].columns([1, 1, 1, 1.5])
+                comps = a_data.get("compartiments", [])
+                row[4].write(", ".join(comps) if comps else "-")
+                
+                row[5].write(str(a_data.get("commentaire", "-")))
+                
+                c_v, c_edit, c_del, c_ft = row[6].columns([1, 1, 1, 1.5])
                 if c_v.button("👁️", key=f"v_add_{idx_a}"):
                     ouvrir_details_element(a_data)
                 
@@ -1452,7 +1537,11 @@ elif G_ACTIF == "preparation_melanges":
                 else:
                     if c_del.button("Oui", key=f"d_add_y_{idx_a}", type="primary"):
                         st.session_state.processus_db["preparation_melanges"]["additifs"].pop(idx_a)
+                        st.session_state[key_del_a] = False
                         sauvegarder_donnees()
+                        st.rerun()
+                    if c_del.button("Non", key=f"d_add_n_{idx_a}"):
+                        st.session_state[key_del_a] = False
                         st.rerun()
                 
                 if a_data.get("has_ft"):
@@ -1486,7 +1575,6 @@ elif G_ACTIF == "preparation_melanges":
         rals_filtres = [r for r in catalogue_complet_ral if (filtre_r_code in r["code"]) and (filtre_r_nom.lower() in r["nom"].lower())]
         rals_filtres.sort(key=lambda x: int(x["code"]) if x["code"].isdigit() else x["code"], reverse=(sens_r_tri == "Décroissant ⬇️"))
 
-        # --- LIMITATION ANTI-LAG POUR RAL ---
         if len(rals_filtres) > MAX_LIGNES_AFFICHAGE:
             st.warning(f"⚠️ Affichage limité aux {MAX_LIGNES_AFFICHAGE} premiers résultats. Utilisez les filtres.")
         rals_a_afficher = rals_filtres[:MAX_LIGNES_AFFICHAGE]
@@ -1542,11 +1630,9 @@ elif G_ACTIF == "preparation_melanges":
 
             if "tmp_form_state" not in st.session_state: st.session_state.tmp_form_state = {}
 
-            # Conteneur pour afficher d'abord les éléments déjà sélectionnés
             st.markdown("---")
             container_selection = st.container()
 
-            # Sélection des nouveaux éléments via des callbacks (pas de double clic nécessaire)
             st.markdown("#### ➕ Ajouter des composants")
             recherche_filtre_c = st.text_input("🔍 Filtrer les composants (Nom, Réf, Code RAL, Élément existant) :").strip()
 
@@ -1592,7 +1678,6 @@ elif G_ACTIF == "preparation_melanges":
                         st.checkbox(f"Élément : {a['nom']}", value=False, key=f"chk_add_add_{idx}_{a['nom']}",
                                     on_change=add_tmp_item, args=("tmp_form_state", key_a, {"type": "additif", "ref": a['nom'], "nom": a['nom'], "dosage": "10g", "commentaire_composant": ""}))
 
-            # Affichage en haut des éléments déjà choisis (grâce au container Streamlit)
             with container_selection:
                 st.markdown("### 🛠️ Composants de ce mélange :")
                 cles_existantes = list(st.session_state.tmp_form_state.keys())
@@ -1824,7 +1909,6 @@ elif G_ACTIF == "preparation_melanges":
 
             def afficher_tableau_melanges(liste_m_categorie, identifiant_unique):
                 if liste_m_categorie:
-                    # --- AFFICHAGE LIMITÉ ANTI-LAG ---
                     if len(liste_m_categorie) > MAX_LIGNES_AFFICHAGE:
                         st.warning(f"⚠️ Affichage limité aux {MAX_LIGNES_AFFICHAGE} premiers résultats. Utilisez les filtres.")
                     liste_a_afficher = liste_m_categorie[:MAX_LIGNES_AFFICHAGE]

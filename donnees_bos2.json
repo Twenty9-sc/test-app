@@ -62,7 +62,16 @@
                 "ral": "???",
                 "societe": "B",
                 "type": "Translucide",
-                "visuel": "#3B82F6"
+                "visuel": "#3B82F6",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "08/07/2026 - 16:01",
+                    "date_derniere_maj": "08/07/2026 - 16:01",
+                    "date_avant_derniere_maj": "-",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "ref": "2",
@@ -864,6 +873,24 @@
                 "societe": "",
                 "type": "Opaque",
                 "visuel": "#f0f0f0"
+            },
+            {
+                "ref": "/",
+                "nom_actuel": "rouge (3063)",
+                "nom_futur": "",
+                "ral": "",
+                "societe": "",
+                "type": "Opaque",
+                "visuel": "#ec0000",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "08/07/2026 - 16:00",
+                    "date_derniere_maj": "08/07/2026 - 16:00",
+                    "date_avant_derniere_maj": "-",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                }
             }
         ],
         "melanges": [
@@ -3888,6 +3915,243 @@
                     "redacteur": "Labo / R&D"
                 },
                 "image_rendu": null
+            },
+            {
+                "ref": "/",
+                "nom": "Beige club de la presse",
+                "categorie_choisie": "Mélange Couleurs",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "couleurs_associees": [
+                    {
+                        "ref": "RAL 9001",
+                        "nom": "RAL 9001",
+                        "dosage": "110g",
+                        "commentaire_composant": "",
+                        "type": "ral_officiel",
+                        "visuel": "#FDF4E3"
+                    },
+                    {
+                        "ref": "RAL 1021",
+                        "nom": "RAL 1021",
+                        "dosage": "10g",
+                        "commentaire_composant": "",
+                        "type": "ral_officiel",
+                        "visuel": "#F5D033"
+                    },
+                    {
+                        "ref": "RAL 8001",
+                        "nom": "RAL 8001",
+                        "dosage": "25g",
+                        "commentaire_composant": "",
+                        "type": "ral_officiel",
+                        "visuel": "#9C6634"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "08/07/2026 - 15:57",
+                    "date_derniere_maj": "08/07/2026 - 15:57",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "ph": "",
+                    "cov": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                }
+            },
+            {
+                "ref": "/",
+                "nom": "Fraise",
+                "categorie_choisie": "Mélange Couleurs",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "couleurs_associees": [
+                    {
+                        "ref": "609",
+                        "nom": "rose 3015 CO",
+                        "dosage": "150g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#E4A0A5"
+                    },
+                    {
+                        "ref": "/",
+                        "nom": "rouge (3063)",
+                        "dosage": "700g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#ec0000"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "08/07/2026 - 16:02",
+                    "date_derniere_maj": "08/07/2026 - 16:02",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "ph": "",
+                    "cov": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                }
+            },
+            {
+                "ref": "/",
+                "nom": "mauve tr martineau",
+                "categorie_choisie": "Mélange Couleurs",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "couleurs_associees": [
+                    {
+                        "ref": "RAL 4002",
+                        "nom": "RAL 4002",
+                        "dosage": "300g",
+                        "commentaire_composant": "",
+                        "type": "ral_officiel",
+                        "visuel": "#6D3F5B"
+                    },
+                    {
+                        "ref": "RAL 4007",
+                        "nom": "RAL 4007",
+                        "dosage": "10g",
+                        "commentaire_composant": "",
+                        "type": "ral_officiel",
+                        "visuel": "#4A1F45"
+                    },
+                    {
+                        "ref": "RAL 3002",
+                        "nom": "RAL 3002",
+                        "dosage": "10g",
+                        "commentaire_composant": "",
+                        "type": "ral_officiel",
+                        "visuel": "#A2231D"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "08/07/2026 - 16:05",
+                    "date_derniere_maj": "08/07/2026 - 16:05",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "ph": "",
+                    "cov": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                }
+            },
+            {
+                "ref": "/",
+                "nom": "Orange brique",
+                "categorie_choisie": "Mélange Couleurs",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "couleurs_associees": [
+                    {
+                        "ref": "453",
+                        "nom": "orange 2001 CO",
+                        "dosage": "300g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#C93C20"
+                    },
+                    {
+                        "ref": "4",
+                        "nom": "Blanc 9010 CO",
+                        "dosage": "50g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#ffffff"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "08/07/2026 - 16:07",
+                    "date_derniere_maj": "08/07/2026 - 16:07",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "ph": "",
+                    "cov": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                }
+            },
+            {
+                "ref": "/",
+                "nom": "rouge croix hospitalière",
+                "categorie_choisie": "Mélange Couleurs",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "couleurs_associees": [
+                    {
+                        "ref": "415",
+                        "nom": "rouge 3000 CO",
+                        "dosage": "12g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#B32821"
+                    },
+                    {
+                        "ref": "472",
+                        "nom": "marron 8015 CO",
+                        "dosage": "12g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#633A34"
+                    },
+                    {
+                        "ref": "20 ",
+                        "nom": "orange 2003 CO",
+                        "dosage": "100g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#ff5600"
+                    },
+                    {
+                        "ref": "4",
+                        "nom": "Blanc 9010 CO",
+                        "dosage": "3g",
+                        "commentaire_composant": "",
+                        "type": "couleur",
+                        "visuel": "#ffffff"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "08/07/2026 - 16:09",
+                    "date_derniere_maj": "08/07/2026 - 16:09",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "ph": "",
+                    "cov": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                }
             }
         ],
         "fiches_methode": [
@@ -3961,258 +4225,1221 @@
         "additifs": [
             {
                 "nom": "zébraline",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:46",
+                    "date_derniere_maj": "09/07/2026 - 10:46",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "cire cédar",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:45",
+                    "date_derniere_maj": "09/07/2026 - 10:45",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "résine",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "Moulage"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:49",
+                    "date_derniere_maj": "09/07/2026 - 10:49",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "styrène",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:48",
+                    "date_derniere_maj": "09/07/2026 - 10:48",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "cobalt",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:46",
+                    "date_derniere_maj": "09/07/2026 - 10:46",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "poudre légère",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:50",
+                    "date_derniere_maj": "09/07/2026 - 10:50",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "colorant blanc",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:46",
+                    "date_derniere_maj": "09/07/2026 - 10:46",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "carbonate",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:43",
+                    "date_derniere_maj": "09/07/2026 - 10:43",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "teinte colorex chêne doré n°200",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:48",
+                    "date_derniere_maj": "09/07/2026 - 10:48",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "teinte colorex Noyer n°213",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:47",
+                    "date_derniere_maj": "09/07/2026 - 10:47",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Diluant Celliose S D I 1009D",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:56",
+                    "date_derniere_maj": "09/07/2026 - 10:56",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "cire d'abeille",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:44",
+                    "date_derniere_maj": "09/07/2026 - 10:44",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "cire d'abeille orange",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:45",
+                    "date_derniere_maj": "09/07/2026 - 10:45",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "vernis",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:47",
+                    "date_derniere_maj": "09/07/2026 - 10:47",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Diluant 3042",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:56",
+                    "date_derniere_maj": "09/07/2026 - 10:56",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Durcisseur 3600",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:54",
+                    "date_derniere_maj": "09/07/2026 - 10:54",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "vernis polypol",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:47",
+                    "date_derniere_maj": "09/07/2026 - 10:47",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Durcisseur",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "peinture",
+                    "Moulage",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:53",
+                    "date_derniere_maj": "09/07/2026 - 10:53",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Merisier n°169",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:51",
+                    "date_derniere_maj": "09/07/2026 - 10:51",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Diluant",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs",
+                    "peinture",
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:57",
+                    "date_derniere_maj": "09/07/2026 - 10:57",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Vernis polypol H C",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:47",
+                    "date_derniere_maj": "09/07/2026 - 10:47",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "marron brun n°1",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:52",
+                    "date_derniere_maj": "09/07/2026 - 10:52",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Diluant n°21",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:55",
+                    "date_derniere_maj": "09/07/2026 - 10:55",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Durcisseur n°21",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "Moulage",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:53",
+                    "date_derniere_maj": "09/07/2026 - 10:53",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "durcisseur H C ",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:54",
+                    "date_derniere_maj": "09/07/2026 - 10:54",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "eau",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "Moulage",
+                    "peinture",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:53",
+                    "date_derniere_maj": "09/07/2026 - 10:53",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "mericier n°181",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:51",
+                    "date_derniere_maj": "09/07/2026 - 10:51",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Chêne doré n°200",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:46",
+                    "date_derniere_maj": "09/07/2026 - 10:46",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "cire orange",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:45",
+                    "date_derniere_maj": "09/07/2026 - 10:45",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Produit colorant brun",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:49",
+                    "date_derniere_maj": "09/07/2026 - 10:49",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "carrelets",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:57",
+                    "date_derniere_maj": "09/07/2026 - 10:57",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "noix",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:50",
+                    "date_derniere_maj": "09/07/2026 - 10:50",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "diluant T L 401  P R Vernis E",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:55",
+                    "date_derniere_maj": "09/07/2026 - 10:55",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Durcisseur (HP 100)",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:54",
+                    "date_derniere_maj": "09/07/2026 - 10:54",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Poudre photoluminescente",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage",
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:49",
+                    "date_derniere_maj": "09/07/2026 - 10:49",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "poudre de bronze",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:50",
+                    "date_derniere_maj": "09/07/2026 - 10:50",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "satin",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:48",
+                    "date_derniere_maj": "09/07/2026 - 10:48",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "mat",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:51",
+                    "date_derniere_maj": "09/07/2026 - 10:51",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "ivoire",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:52",
+                    "date_derniere_maj": "09/07/2026 - 10:52",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "orange",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs",
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:50",
+                    "date_derniere_maj": "09/07/2026 - 10:50",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "rose",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:49",
+                    "date_derniere_maj": "09/07/2026 - 10:49",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "bleu",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:42",
+                    "date_derniere_maj": "09/07/2026 - 10:42",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "noir",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:50",
+                    "date_derniere_maj": "09/07/2026 - 10:50",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "argenté",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:42",
+                    "date_derniere_maj": "09/07/2026 - 10:42",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "cire",
-                "emplacement": "",
-                "commentaire": ""
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:45",
+                    "date_derniere_maj": "09/07/2026 - 10:45",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "vernis (440g)",
-                "emplacement": "",
-                "commentaire": "voir formule dans: Formulations d'atelier > Autres mélanges"
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "voir formule dans: Formulations d'atelier > Autres mélanges",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:47",
+                    "date_derniere_maj": "09/07/2026 - 10:47",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "Couleur",
-                "emplacement": "",
-                "commentaire": "La couleur à utiliser"
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "couleurs"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "La couleur à utiliser",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:56",
+                    "date_derniere_maj": "09/07/2026 - 10:56",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Labo / R&D"
+                }
             },
             {
                 "nom": "1",
                 "code": "65",
                 "designation": "rose ",
                 "statut": "Vérifier",
+                "compartiments": [
+                    "résine"
+                ],
                 "fournisseur": "PIA GAZIL",
                 "code_article": "362",
                 "designation_achat": "résine 6s85",
-                "nature": "Autre",
-                "danger": "Oui",
-                "danger_texte": "Corrosif",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
                 "manipulation": "afazrfzzcacz e",
                 "commentaire": "adzdafrgev ",
                 "commentaire_global": "zfzfagregopt  afazfzf tez ",
                 "has_ft": true,
                 "fiche_technique": {
                     "date_creation": "06/07/2026",
-                    "date_derniere_maj": "08/07/2026 - 10:17",
-                    "date_avant_derniere_maj": "07/07/2026 - 11:14",
+                    "date_derniere_maj": "09/07/2026 - 10:41",
+                    "date_avant_derniere_maj": "08/07/2026 - 10:17",
                     "redacteur": "Atelier: résine"
                 }
             },
@@ -4243,6 +5470,9 @@
                 "code": "101799",
                 "designation": "celnitro rouge RAL 3020",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
                 "fournisseur": "PIA GAZIL",
                 "code_article": "",
                 "designation_achat": "",
@@ -4255,8 +5485,8 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "07/07/2026 - 11:34",
-                    "date_derniere_maj": "07/07/2026 - 11:34",
-                    "date_avant_derniere_maj": "-",
+                    "date_derniere_maj": "09/07/2026 - 10:44",
+                    "date_avant_derniere_maj": "07/07/2026 - 11:34",
                     "redacteur": "Labo / R&D"
                 }
             },
@@ -4265,9 +5495,13 @@
                 "code": "",
                 "designation": "",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
                 "fournisseur": "",
                 "code_article": "",
                 "designation_achat": "",
+                "nature": "Liquide",
                 "danger": "Non",
                 "danger_texte": "",
                 "manipulation": "",
@@ -4276,8 +5510,8 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "07/07/2026 - 16:30",
-                    "date_derniere_maj": "07/07/2026 - 16:30",
-                    "date_avant_derniere_maj": "-",
+                    "date_derniere_maj": "09/07/2026 - 10:50",
+                    "date_avant_derniere_maj": "07/07/2026 - 16:30",
                     "redacteur": "Labo / R&D"
                 }
             },
@@ -4286,9 +5520,13 @@
                 "code": "",
                 "designation": "",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
                 "fournisseur": "",
                 "code_article": "",
                 "designation_achat": "",
+                "nature": "Liquide",
                 "danger": "Non",
                 "danger_texte": "",
                 "manipulation": "",
@@ -4297,8 +5535,8 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "07/07/2026 - 16:32",
-                    "date_derniere_maj": "07/07/2026 - 16:32",
-                    "date_avant_derniere_maj": "-",
+                    "date_derniere_maj": "09/07/2026 - 10:52",
+                    "date_avant_derniere_maj": "07/07/2026 - 16:32",
                     "redacteur": "Labo / R&D"
                 }
             },
@@ -4307,6 +5545,10 @@
                 "code": "",
                 "designation": "",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine",
+                    "Moulage"
+                ],
                 "fournisseur": "",
                 "code_article": "",
                 "designation_achat": "",
@@ -4319,8 +5561,8 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "08/07/2026 - 10:44",
-                    "date_derniere_maj": "08/07/2026 - 10:44",
-                    "date_avant_derniere_maj": "-",
+                    "date_derniere_maj": "09/07/2026 - 10:43",
+                    "date_avant_derniere_maj": "08/07/2026 - 10:44",
                     "redacteur": "Labo / R&D"
                 }
             },
@@ -4329,6 +5571,10 @@
                 "code": "",
                 "designation": "",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage",
+                    "résine"
+                ],
                 "fournisseur": "",
                 "code_article": "",
                 "designation_achat": "",
@@ -4341,8 +5587,8 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "08/07/2026 - 11:01",
-                    "date_derniere_maj": "08/07/2026 - 11:01",
-                    "date_avant_derniere_maj": "-",
+                    "date_derniere_maj": "09/07/2026 - 10:48",
+                    "date_avant_derniere_maj": "08/07/2026 - 11:01",
                     "redacteur": "Labo / R&D"
                 }
             },
@@ -4373,6 +5619,10 @@
                 "code": "",
                 "designation": "",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "couleurs",
+                    "résine"
+                ],
                 "fournisseur": "",
                 "code_article": "",
                 "designation_achat": "",
@@ -4385,8 +5635,8 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "08/07/2026 - 12:05",
-                    "date_derniere_maj": "08/07/2026 - 12:05",
-                    "date_avant_derniere_maj": "-",
+                    "date_derniere_maj": "09/07/2026 - 10:46",
+                    "date_avant_derniere_maj": "08/07/2026 - 12:05",
                     "redacteur": "Labo / R&D"
                 }
             },
@@ -4395,6 +5645,9 @@
                 "code": "",
                 "designation": "",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
                 "fournisseur": "",
                 "code_article": "",
                 "designation_achat": "",
@@ -4407,8 +5660,8 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "08/07/2026 - 12:05",
-                    "date_derniere_maj": "08/07/2026 - 12:05",
-                    "date_avant_derniere_maj": "-",
+                    "date_derniere_maj": "09/07/2026 - 10:42",
+                    "date_avant_derniere_maj": "08/07/2026 - 12:05",
                     "redacteur": "Labo / R&D"
                 }
             },
@@ -4417,6 +5670,9 @@
                 "code": "",
                 "designation": "",
                 "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
                 "fournisseur": "",
                 "code_article": "",
                 "designation_achat": "",
@@ -4429,7 +5685,32 @@
                 "has_ft": false,
                 "fiche_technique": {
                     "date_creation": "08/07/2026 - 12:07",
-                    "date_derniere_maj": "08/07/2026 - 12:07",
+                    "date_derniere_maj": "09/07/2026 - 10:55",
+                    "date_avant_derniere_maj": "08/07/2026 - 12:07",
+                    "redacteur": "Labo / R&D"
+                }
+            },
+            {
+                "nom": "Cire Starwax",
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "résine"
+                ],
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": false,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 10:58",
+                    "date_derniere_maj": "09/07/2026 - 10:58",
                     "date_avant_derniere_maj": "-",
                     "redacteur": "Labo / R&D"
                 }
@@ -4535,6 +5816,12 @@
                     "redacteur": "Labo / R&D"
                 }
             }
+        ],
+        "compartiments": [
+            "résine",
+            "peinture",
+            "Moulage",
+            "couleurs"
         ]
     }
 }
