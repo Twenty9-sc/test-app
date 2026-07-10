@@ -7,32 +7,58 @@ import io
 import re
 import datetime
 import random 
+import time
 import streamlit.components.v1 as components
+
 
 # --- INITIALISATION DES ÉTATS DE SESSION ---
 if "etat_sidebar" not in st.session_state: st.session_state.etat_sidebar = "expanded"
-if "mode_sombre" not in st.session_state: st.session_state.mode_sombre = False
 if "logged_in" not in st.session_state: st.session_state.logged_in = False  
 if "groupe_actif" not in st.session_state: st.session_state.groupe_actif = None
 if "produit_selectionne" not in st.session_state: st.session_state.produit_selectionne = None
 if "sub_section_melange" not in st.session_state: st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
+if "historique_recherches" not in st.session_state: st.session_state.historique_recherches = []
+if "recherche_globale_val" not in st.session_state: st.session_state.recherche_globale_val = ""
+if "active_dialog" not in st.session_state: st.session_state.active_dialog = None
 
+# Champs FT par défaut globaux et persistants
+if "ft_champs_defaut" not in st.session_state:
+    st.session_state.ft_champs_defaut = [
+        "Aspect / Finition",
+        "Viscosité attendue",
+        "Densité",
+        "Temps de séchage",
+        "Conditions d'application"
+    ]
+
+# --- FONCTION D'ANIMATION DE VALIDATION (1 seconde) ---
+def afficher_animation_validation(message):
+    placeholder = st.empty()
+    placeholder.markdown(f"""
+    <div style="position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background-color: #FFFFFF; padding: 25px 50px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; border: 2px solid #22C55E;">
+        <div style="font-size: 50px; color: #22C55E; margin-bottom: 10px; animation: popCheck 0.4s ease forwards;">✅</div>
+        <div style="font-size: 16px; font-weight: bold; color: #1E293B; font-family: sans-serif;">{message}</div>
+    </div>
+    <style>
+    @keyframes popCheck {{
+        0% {{ transform: scale(0); opacity: 0; }}
+        50% {{ transform: scale(1.2); opacity: 1; }}
+        100% {{ transform: scale(1); opacity: 1; }}
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+    time.sleep(1)
+    placeholder.empty()
+    
 # =========================================================
 # SYSTÈME DE CONNEXION (LOGIN)
 # =========================================================
 def afficher_page_connexion():
-    st.markdown("""
-    <style>
-    .login-box { max-width: 400px; margin: 10vh auto; padding: 40px; background-color: #F4F1EA; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #E2E8F0; text-align: center; font-family: sans-serif; }
-    @media (prefers-color-scheme: dark) { .login-box { background-color: #070b12; border-color: #334155; color: white;} }
-    </style>
-    """, unsafe_allow_html=True)
-    
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     logo_path = os.path.join(os.getcwd(), "Martineau logo.png")
-    if os.path.exists(logo_path): st.image(logo_path, width=200)
+    if os.path.exists(logo_path): st.image(logo_path, width=300)
     
-    st.markdown("<h2>Connexion BOS2</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>Connexion au Portail</h2>", unsafe_allow_html=True)
     st.markdown("<p style='color: #64748b; margin-bottom: 20px;'>Veuillez vous identifier.</p>", unsafe_allow_html=True)
     
     with st.form("formulaire_connexion"):
@@ -40,7 +66,7 @@ def afficher_page_connexion():
         mot_de_passe = st.text_input("Mot de passe", type="password")
         if st.form_submit_button("Se connecter", use_container_width=True):
             # Identifiants en dur (à modifier selon tes besoins)
-            utilisateurs_valides = {"admin": "bos2024", "labo": "labo123", "atelier": "atelier123", "test": "1234"}
+            utilisateurs_valides = {"1":"1", "admin": "bos2024", "labo": "labo123", "atelier": "atelier123", "test": "1234"}
             if identifiant in utilisateurs_valides and utilisateurs_valides[identifiant] == mot_de_passe:
                 st.session_state.logged_in = True
                 st.session_state.current_user = identifiant
@@ -131,6 +157,27 @@ st.markdown("""
 .main-content { animation: fadeIn 0.8s ease-in; }
 </style>
 """, unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+/* Style Old Money pour l'application */
+.stApp { background-color: #F9F8F6 !important; }
+[data-testid="stAppViewContainer"]::before {
+    content: ""; 
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/png;base64,BASE64_DE_VOTRE_LOGO");
+    background-size: 50%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    opacity: 0.1; /* Opacité 10% */
+    z-index: 0;
+    pointer-events: none;
+}
+/* Typographie Serif */
+h1, h2, h3, .stMarkdown { font-family: 'Playfair Display', serif !important; color: #2C3539 !important; }
+</style>
+""", unsafe_allow_html=True)
+
 
 # Dans tes modules, enveloppe ton contenu :
 with st.container():
@@ -487,51 +534,98 @@ if "groupe_actif" not in st.session_state: st.session_state.groupe_actif = None
 if "produit_selectionne" not in st.session_state: st.session_state.produit_selectionne = None
 if "sub_section_melange" not in st.session_state: st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
 
+def render_dynamic_ft_inputs(fiche_existante, dialog_id):
+    """Génère les champs de saisie pour les spécifications physico-chimiques."""
+    st.markdown("##### 📝 Saisie des Spécifications (FT)")
+    valeurs_dynamiques = {}
+    
+    # On récupère les valeurs existantes si on est en modification
+    specs_actuelles = fiche_existante.get("specs_dynamiques", {})
+    
+    for champ in st.session_state.ft_champs_defaut:
+        # La clé unique est cruciale ici pour éviter l'erreur de duplication
+        val = st.text_input(
+            f"{champ}", 
+            value=specs_actuelles.get(champ, ""), 
+            key=f"input_{dialog_id}_{champ}"
+        )
+        valeurs_dynamiques[champ] = val
+        
+    return valeurs_dynamiques
+
+def dessiner_fond_ivoire_et_filigrane(canvas, doc):
+    canvas.saveState()
+    # 1. Application de la couleur de fond Ivoire / Crème Vintage
+    canvas.setFillColor(colors.HexColor('#F9F8F6'))
+    canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], fill=True, stroke=False)
+    
+    # 2. Application du filigrane transparent à 10% au centre de la page
+    img_path = "Logo-Beraudy-rectangle.png"
+    if os.path.exists(img_path):
+        try:
+            canvas.setFillAlpha(0.1) # Opacité stricte de 10%
+            # Format Letter (612 x 792 points) - Centrage parfait
+            canvas.drawImage(img_path, doc.pagesize[0]/2 - 150, doc.pagesize[1]/2 - 50, width=300, height=100, mask='auto')
+        except Exception:
+            pass # Sécurité anti-crash si la version de ReportLab gère mal l'alpha
+    canvas.restoreState()
+
 # --- GENERATEUR DE FICHE TECHNIQUE STANDARD PDF (REPORTLAB) ---
-def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
+def generer_pdf_fiche_technique(data_obj, type_ft="melange"):  
     buffer = io.BytesIO()
+    
+    # Vérification de la disponibilité de ReportLab
     if not REPORTLAB_DISPO:
-        buffer.write(b"ReportLab non disponible.")
+        buffer.write("ReportLab non disponible sur ce système.".encode('utf-8'))
         buffer.seek(0)
         return buffer
 
-    styles = getSampleStyleSheet()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    # Définition des marges à 50 points (Style d'édition classique)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=50, leftMargin=50, topMargin=50, bottomMargin=50)
     story = []
 
-    title_style = ParagraphStyle('TitleStyle', fontName='Helvetica-Bold', fontSize=18, textColor=colors.HexColor('#CC0605'), alignment=2, spaceBefore=15)
-    h2_style = ParagraphStyle('H2Style', fontName='Helvetica-Bold', fontSize=10, textColor=colors.HexColor('#1E293B'), spaceBefore=8, spaceAfter=4)
-    body_style = ParagraphStyle('BodyStyle', fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor('#334155'))
-    body_bold = ParagraphStyle('BodyBold', fontName='Helvetica-Bold', fontSize=8, leading=11, textColor=colors.HexColor('#1E293B'))
+    # Styles Typographiques Sophistiqués (Vintage / Serif - Times)
+    title_style = ParagraphStyle('TitleStyle', fontName='Times-Bold', fontSize=20, textColor=colors.HexColor('#CC0605'), alignment=2, spaceBefore=10, spaceAfter=5)
+    h2_style = ParagraphStyle('H2Style', fontName='Times-Bold', fontSize=11, textColor=colors.HexColor('#2C3539'), spaceBefore=14, spaceAfter=8, borderPadding=4, borderBottom=0.5, borderBottomColor=colors.HexColor('#2C3539'))
+    body_style = ParagraphStyle('BodyStyle', fontName='Times-Roman', fontSize=9, leading=13, textColor=colors.HexColor('#2C3539'))
+    body_bold = ParagraphStyle('BodyBold', fontName='Times-Bold', fontSize=9, leading=13, textColor=colors.HexColor('#2C3539'))
 
-    if type_ft == "melange": titre_principal = "FICHE TECHNIQUE PRODUIT"
-    elif type_ft == "couleur": titre_principal = "FICHE TECHNIQUE COULEUR"
-    else: titre_principal = "FICHE TECHNIQUE ÉLÉMENT"
-    
+    # Détermination du Titre Principal de la Fiche
+    if type_ft == "melange": 
+        titre_principal = "FICHE TECHNIQUE PRODUIT"
+    elif type_ft == "couleur": 
+        titre_principal = "FICHE TECHNIQUE COULEUR"
+    else: 
+        titre_principal = "FICHE TECHNIQUE ÉLÉMENT"
+        
+    # --- EN-TÊTE HAUT DE GAMME ---
     header_data = [["", Paragraph(titre_principal, title_style)]]
-    header_table = Table(header_data, colWidths=[170, 330])
+    header_table = Table(header_data, colWidths=[160, 352])
     
     img_path = "Logo-Beraudy-rectangle.png"
     if os.path.exists(img_path):
-        from reportlab.platypus import Image as RLImage
-        img_rl = RLImage(img_path, width=215, height=56)
-        img_rl.hAlign = 'LEFT'
-        header_table._cellvalues[0][0] = img_rl
+        try:
+            from reportlab.platypus import Image as RLImage
+            img_rl = RLImage(img_path, width=170, height=44)
+            img_rl.hAlign = 'LEFT'
+            header_table._cellvalues[0][0] = img_rl
+        except Exception:
+            header_table._cellvalues[0][0] = Paragraph("<b>BOS2</b>", body_bold)
 
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-        ('LINEBELOW', (0,0), (-1,-1), 1, colors.HexColor('#CC0605'))
+        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+        ('LINEBELOW', (0,0), (-1,-1), 1, colors.HexColor('#2C3539')) # Ligne fine de délimitation
     ]))
     story.append(header_table)
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 8))
 
     ft_data = data_obj.get("fiche_technique", {})
 
-    # CADRE 1 : INFORMATIONS GÉNÉRALES
+    # --- CADRE 1 : INFORMATIONS GÉNÉRALES ---
     story.append(Paragraph("Informations Générales", h2_style))
     if type_ft == "melange":
-        titre_melange = data_obj.get("nom", "-") + (" <font color='#CC0605'>🔴</font>" if data_obj.get("statut") == "Vérifier" else "")
+        titre_melange = data_obj.get("nom", "-") + (" <font color='#CC0605'>🔴 (À Vérifier)</font>" if data_obj.get("statut") == "Vérifier" else "")
         infos_rows = [
             [Paragraph("<b>Nom du Mélange :</b>", body_style), Paragraph(titre_melange, body_style)],
             [Paragraph("<b>Référence interne :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("ref")), body_style)],
@@ -547,7 +641,7 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
             [Paragraph("<b>Type :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("type")), body_style)]
         ]
     else:
-        titre_element = data_obj.get("nom", "-") + (" <font color='#CC0605'>🔴</font>" if data_obj.get("statut") == "Vérifier" else "")
+        titre_element = data_obj.get("nom", "-") + (" <font color='#CC0605'>🔴 (À Vérifier)</font>" if data_obj.get("statut") == "Vérifier" else "")
         infos_rows = [
             [Paragraph("<b>Nom de l'élément :</b>", body_style), Paragraph(titre_element, body_style)],
             [Paragraph("<b>Code :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("code")), body_style)],
@@ -557,100 +651,72 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
             [Paragraph("<b>Désignation Achat :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("designation_achat")), body_style)]
         ]
     
-    t_infos = Table(infos_rows, colWidths=[150, 350])
+    t_infos = Table(infos_rows, colWidths=[140, 372])
     t_infos.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
-        ('PADDING', (0, 0), (-1, -1), 4),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
+        ('PADDING', (0, 0), (-1, -1), 5),
         ('LINEBELOW', (0, 0), (-1, -2), 0.5, colors.HexColor('#E2E8F0'))
     ]))
     story.append(t_infos)
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 2))
 
-    # CADRE 2 : SUIVI ET HISTORIQUE
-    story.append(Paragraph("Suivi et Historique de la Fiche", h2_style))
+    # --- CADRE 2 : SUIVI ET HISTORIQUE ---
+    story.append(Paragraph("Suivi et Traçabilité de la Fiche", h2_style))
     date_rows = [
         [Paragraph("<b>Création :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("date_creation")), body_style),
          Paragraph("<b>Dernière MÀJ :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("date_derniere_maj")), body_style),
-         Paragraph("<b>MÀJ Précédente :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("date_avant_derniere_maj")), body_style)]
+         Paragraph("<b>Précédente MÀJ :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("date_avant_derniere_maj")), body_style)]
     ]
-    t_date = Table(date_rows, colWidths=[65, 80, 85, 80, 100, 90])
+    t_date = Table(date_rows, colWidths=[65, 95, 85, 95, 90, 82])
     t_date.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
-        ('PADDING', (0, 0), (-1, -1), 4),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
+        ('PADDING', (0, 0), (-1, -1), 5),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0'))
     ]))
     story.append(t_date)
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 2))
 
-    # CADRE 3 : SPÉCIFICATIONS TECHNIQUES
-    if type_ft == "melange":
-        story.append(Paragraph("Spécifications Physico-Chimiques", h2_style))
+    # --- CADRE 3 : SPÉCIFICATIONS PHYSICO-CHIMIQUES (CHAMPS PERSISTANTS DYNAMIQUES) ---
+    story.append(Paragraph("Spécifications Physico-Chimiques", h2_style))
+    specs_dyn = ft_data.get("specs_dynamiques", {})
+    spec_rows = []
+    
+    if specs_dyn:
+        items = list(specs_dyn.items())
+        # Distribution sur 2 colonnes pour un équilibre visuel parfait
+        for i in range(0, len(items), 2):
+            row = [Paragraph(f"<b>{items[i][0]} :</b>", body_style), Paragraph(nettoyer_valeur_pdf(items[i][1]), body_style)]
+            if i + 1 < len(items):
+                row.extend([Paragraph(f"<b>{items[i+1][0]} :</b>", body_style), Paragraph(nettoyer_valeur_pdf(items[i+1][1]), body_style)])
+            else:
+                row.extend(["", ""])
+            spec_rows.append(row)
+    else:
+        # Fallback de secours si aucun champ personnalisé n'est encore initialisé
         spec_rows = [
-            [Paragraph("<b>Aspect / Finition :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("aspect")), body_style), Paragraph("<b>Densité :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("densite")), body_style)],
+            [Paragraph("<b>Aspect :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("aspect")), body_style), Paragraph("<b>Densité :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("densite")), body_style)],
             [Paragraph("<b>Viscosité :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("viscosite")), body_style), Paragraph("<b>Temps de séchage :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("sechage")), body_style)],
             [Paragraph("<b>Conditions d'application :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("conditions")), body_style), "", ""]
         ]
-        t_spec = Table(spec_rows, colWidths=[110, 140, 110, 140])
-        t_spec.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
-            ('PADDING', (0, 0), (-1, -1), 4),
-            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-            ('SPAN', (1, 2), (3, 2)),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0'))
-        ]))
-        story.append(t_spec)
-        story.append(Spacer(1, 8))
         
-    elif type_ft == "couleur":
-        story.append(Paragraph("Spécifications Techniques", h2_style))
-        spec_rows = [
-            [Paragraph("<b>Conditions d'application :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("conditions")), body_style)]
-        ]
-        t_spec = Table(spec_rows, colWidths=[150, 350])
-        t_spec.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
-            ('PADDING', (0, 0), (-1, -1), 4),
-            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0'))
-        ]))
-        story.append(t_spec)
-        story.append(Spacer(1, 8))
+    t_spec = Table(spec_rows, colWidths=[110, 146, 110, 146])
+    t_spec.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
+        ('PADDING', (0, 0), (-1, -1), 5),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0'))
+    ]))
+    if not specs_dyn:
+        t_spec.setStyle(TableStyle([('SPAN', (1, 2), (3, 2))]))
+    story.append(t_spec)
+    story.append(Spacer(1, 2))
 
-    else:
-        story.append(Paragraph("Propriétés & Sécurités", h2_style))
-        danger_val = data_obj.get("danger", "-")
-        if danger_val == "Oui": danger_txt = f"DANGER : {data_obj.get('danger_texte', '')}"
-        elif danger_val == "Non": danger_txt = "Aucun risque signalé"
-        else: danger_txt = "-"
-        
-        spec_rows = [
-            [Paragraph("<b>Nature physique :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("nature")), body_style)],
-            [Paragraph("<b>Risques & Dangers :</b>", body_style), Paragraph(nettoyer_valeur_pdf(danger_txt), body_style)],
-            [Paragraph("<b>Instructions Manipulation :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("manipulation") or "Aucune consigne spécifique"), body_style)]
-        ]
-        t_spec = Table(spec_rows, colWidths=[150, 350])
-        t_spec.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
-            ('PADDING', (0, 0), (-1, -1), 4),
-            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-            ('LINEBELOW', (0, 0), (-1, -2), 0.5, colors.HexColor('#E2E8F0'))
-        ]))
-        story.append(t_spec)
-        story.append(Spacer(1, 8))
-
-    # CADRE 4 : FORMULATION (UNIQUEMENT POUR MÉLANGES)
+    # --- CADRE 4 : FORMULATION DE BASE (MÉLANGES SEULEMENT) ---
     if type_ft == "melange":
-        story.append(Paragraph("Formulation de Base Associée", h2_style))
-        
+        story.append(Paragraph("Formulation Industrielle de Base", h2_style))
         data_comp = [[
-            Paragraph("<b>Composant</b>", body_bold), 
-            Paragraph("<b>Code/Réf</b>", body_bold),
-            Paragraph("<b>Dosage</b>", body_bold),
-            Paragraph("<b>Note</b>", body_bold),
-            Paragraph("<b>Désignation</b>", body_bold),
-            Paragraph("<b>Risque</b>", body_bold)
+            Paragraph("<b>Composant</b>", body_bold), Paragraph("<b>Code/Réf</b>", body_bold),
+            Paragraph("<b>Dosage</b>", body_bold), Paragraph("<b>Note technique</b>", body_bold),
+            Paragraph("<b>Désignation</b>", body_bold), Paragraph("<b>Risque</b>", body_bold)
         ]]
         
         db_prep = st.session_state.processus_db.get("preparation_melanges", {})
@@ -664,89 +730,73 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
             
             if ctype in ["additif", "element"]:
                 item = next((a for a in tous_elements if a["nom"] == c.get("ref")), None)
-                if item:
-                    code_aff = item.get("code", "-")
-                    des_aff = item.get("designation", "-")
-                    dan_aff = item.get("danger", "-")
+                if item: code_aff, des_aff, dan_aff = item.get("code", "-"), item.get("designation", "-"), item.get("danger", "-")
             elif ctype == "couleur":
                 item = next((a for a in toutes_couleurs if a["ref"] == c.get("ref")), None)
-                if item:
-                    code_aff = item.get("ref", "-")
-                    des_aff = item.get("nom_actuel", "-")
+                if item: code_aff, des_aff = item.get("ref", "-"), item.get("nom_actuel", "-")
             elif ctype == "melange_base":
                 item = next((a for a in tous_melanges if a["ref"] == c.get("ref")), None)
-                if item:
-                    code_aff = item.get("ref", "-")
-                    des_aff = item.get("nom", "-")
+                if item: code_aff, des_aff = item.get("ref", "-"), item.get("nom", "-")
             elif ctype == "ral_officiel":
-                code_aff = c.get("ref", "-")
-                des_aff = c.get("nom", "-")
+                code_aff, des_aff = c.get("ref", "-"), c.get("nom", "-")
 
-            comm_comp = c.get("commentaire_composant", "")
-            if not comm_comp: 
-                comm_comp = "-"
+            comm_comp = c.get("commentaire_composant", "") or "-"
 
             data_comp.append([
-                Paragraph(f"{c.get('nom')}", body_style), 
-                Paragraph(nettoyer_valeur_pdf(code_aff), body_style),
-                Paragraph(nettoyer_valeur_pdf(c.get('dosage')), body_style),
-                Paragraph(nettoyer_valeur_pdf(comm_comp), body_style),
-                Paragraph(nettoyer_valeur_pdf(des_aff), body_style),
-                Paragraph(nettoyer_valeur_pdf(dan_aff), body_style)
+                Paragraph(f"{c.get('nom')}", body_style), Paragraph(nettoyer_valeur_pdf(code_aff), body_style),
+                Paragraph(nettoyer_valeur_pdf(c.get('dosage')), body_style), Paragraph(nettoyer_valeur_pdf(comm_comp), body_style),
+                Paragraph(nettoyer_valeur_pdf(des_aff), body_style), Paragraph(nettoyer_valeur_pdf(dan_aff), body_style)
             ])
 
         if len(data_comp) > 1:
-            t_comp = Table(data_comp, colWidths=[100, 55, 55, 90, 110, 50]) 
+            t_comp = Table(data_comp, colWidths=[110, 55, 55, 100, 130, 62]) 
             t_comp.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E2E8F0')),
-                ('PADDING', (0, 0), (-1, -1), 3),
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
+                ('PADDING', (0, 0), (-1, -1), 4),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1'))
             ]))
             story.append(t_comp)
         else:
-            story.append(Paragraph("Aucune formulation liée.", body_style))
-        story.append(Spacer(1, 8))
+            story.append(Paragraph("Aucun composant rattaché à cette formulation.", body_style))
+        story.append(Spacer(1, 2))
 
-    # CADRE 5 : COMMENTAIRES ET APERÇU
+    # CADRE 5 : COMMENTAIRE GLOBAL FINAL
     story.append(Paragraph("Commentaires Généraux / Notes", h2_style))
     comm_global = data_obj.get("commentaire_global", "")
-    t_comm = Table([[Paragraph(nettoyer_valeur_pdf(comm_global), body_style)]], colWidths=[500])
+    t_comm = Table([[Paragraph(nettoyer_valeur_pdf(comm_global), body_style)]], colWidths=[512])
     t_comm.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFBEB')),
         ('PADDING', (0, 0), (-1, -1), 6),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#F59E0B'))
+        ('BOX', (0, 0), (-1, -1), 0.2, colors.HexColor('#F59E0B'))
     ]))
     story.append(t_comm)
 
-    if "image_rendu" in data_obj and data_obj["image_rendu"]:
-        story.append(Spacer(1, 6))
-        story.append(Paragraph("Aperçu Visuel", h2_style))
-        try:
-            img_bytes = base64.b64decode(data_obj["image_rendu"]["data"])
-            from reportlab.platypus import Image as RLImage
-            img_rl = RLImage(io.BytesIO(img_bytes), width=65, height=65)
-            img_rl.hAlign = 'LEFT'
-            story.append(img_rl)
-        except Exception:
-            story.append(Paragraph("-", body_style))
 
-    # SIGNATURE AVEC REDACTEUR DYNAMIQUE
-    story.append(Spacer(1, 10))
+    # --- SECTION SÉCURISÉE DES SIGNATURES TOUJOURS COLLÉE EN BAS ---
+    # Un grand spacer flexible force l'envoi du bloc de signature tout en bas de la page courante
+    story.append(Spacer(1, 9))
+    
     redacteur = ft_data.get('redacteur', 'Labo / R&D')
     data_sign = [
-        [Paragraph(f"<b>Modifié / Rédigé par :</b> {redacteur}", body_style), Paragraph("<b>Approuvé par :</b> Responsable Qualité", body_style)],
-        [Paragraph("<br/>Visa :", body_style), Paragraph("<br/>Visa :", body_style)]
+        [Paragraph(f"<b>Visa Rédacteur / Émetteur :</b><br/>{redacteur}", body_style), 
+         Paragraph("<b>Approbation Direction :</b><br/>Responsable Qualité Industrielle", body_style)],
+        [Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style), 
+         Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style)]
     ]
-    t_sign = Table(data_sign, colWidths=[250, 250])
+    t_sign = Table(data_sign, colWidths=[256, 256])
     t_sign.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.HexColor('#CBD5E1')),
-        ('PADDING', (0, 0), (-1, -1), 2)
+        ('PADDING', (0, 0), (-1, -1), 4),
+        ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.HexColor('#CBD5E1')) # Séparateur vertical discret entre les visas
     ]))
     story.append(t_sign)
 
-    doc.build(story, canvasmaker=NumeroteurDePages)
+    # Construction finale du document en passant notre callback d'arrière-plan Ivoire/Filtré
+    doc.build(story, 
+              onFirstPage=dessiner_fond_ivoire_et_filigrane, 
+              onLaterPages=dessiner_fond_ivoire_et_filigrane, 
+              canvasmaker=NumeroteurDePages)
+              
     buffer.seek(0)
     return buffer
 
@@ -837,6 +887,21 @@ def ouvrir_details_couleur(couleur):
         st.markdown(f'<div style="width:120px; height:120px; background-color:{couleur.get("visuel", "#3B82F6")}; border-radius:12px; border:2px solid #1E293B; margin:auto;"></div>', unsafe_allow_html=True)
     if st.button("Fermer la vue", use_container_width=True):
         st.rerun()
+
+@st.dialog("👁️ Détails de l'élément", width="large")
+def abrir_details_element(element):
+    st.markdown(f"### 🧪 {element.get('nom')} ({element.get('code')})")
+    st.markdown(f"**Désignation :** {element.get('designation', '-')}")
+    st.markdown(f"**Fournisseur :** {element.get('fournisseur', '-')}")
+    comps = element.get('compartiments', [])
+    st.markdown(f"**Compartiments :** {', '.join(comps) if comps else 'Aucun'}")
+    st.markdown(f"**Sous-groupe :** {element.get('sous_groupe', 'Général')}")
+    st.markdown(f"**Nature (FT) :** {element.get('nature', '-')}")
+    danger_val = element.get('danger', '-')
+    st.markdown(f"**Risque / Danger :** {danger_val}" + (f" - {element.get('danger_texte', '')}" if danger_val == 'Oui' else ""))
+    st.markdown(f"**Commentaire (Formulation) :**\n> {element.get('commentaire', '-')}")
+    if st.button("Fermer la vue", use_container_width=True): st.rerun()
+
 
 @st.dialog("👁️ Détails de l'élément", width="large")
 def ouvrir_details_element(element):
@@ -1170,7 +1235,7 @@ with st.sidebar:
     
     if st.button("❓ Centre de formation", use_container_width=True):
         ouvrir_fenetre_aide()
-        
+    
     st.markdown("---")
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -1349,7 +1414,31 @@ elif G_ACTIF == "preparation_melanges":
             c_futur = st.text_input("Futur nom")
             c_societe = st.text_input("Société / Client")
             c_type = st.selectbox("Type de couleur", ["Opaque", "Translucide", "2"])
+            c_statut = st.radio("Statut :", ["Pas vérifié", "Vérifier"], key="radio_statut_add_col", horizontal=True)
 
+            activer_ft = st.toggle("📝 Créer la Fiche Technique (FT)", value=False)
+            
+            valeurs_dynamiques = {}
+            if activer_ft:
+                # Appel de la fonction de saisie dynamique
+                valeurs_dynamiques = render_dynamic_ft_inputs({}, "add_couleur")
+                m_comm_glob = st.text_area("Commentaires Généraux (FT)")
+                ft_redacteur = st.selectbox("Rédacteur :", OPTIONS_REDACTEURS, index=0, key="select_red_add_col")
+            
+            if st.button("Enregistrer la couleur", type="primary", key="btn_save_color"):
+                # ... (votre logique de sauvegarde)
+                # Assurez-vous d'inclure "specs_dynamiques": valeurs_dynamiques dans votre dictionnaire
+                st.session_state.processus_db["preparation_melanges"]["couleurs"].append({
+                    # ... vos champs ...
+                    "fiche_technique": {
+                        "specs_dynamiques": valeurs_dynamiques,
+                        "redacteur": ft_redacteur,
+                        # ... autres champs ...
+                    }
+                })
+                afficher_animation_validation("Couleur ajoutée")
+                st.rerun()    
+            
             c_ral_col, c_chk_col, c_hex_col = st.columns([2, 1, 2])
             with c_ral_col: c_ral = st.text_input("Code RAL", value=st.session_state["add_ral"])
             with c_chk_col:
@@ -1380,11 +1469,12 @@ elif G_ACTIF == "preparation_melanges":
                         "ref": c_ref, "nom_actuel": c_actuel, "nom_futur": c_futur,
                         "ral": c_ral, "societe": c_societe, "type": c_type, "visuel": couleur_finale,
                         "commentaire_global": m_comm_glob, "has_ft": activer_ft,
-                        "fiche_technique": {"date_creation": today_str, "date_derniere_maj": today_str, "date_avant_derniere_maj": "-", "conditions": ft_cond, "redacteur": ft_redacteur}
+                        "fiche_technique": {"specs_dynamiques": valeurs_dynamiques, "date_creation": today_str, "date_derniere_maj": today_str, "date_avant_derniere_maj": "-", "conditions": ft_cond, "redacteur": ft_redacteur}
                     })
                     st.session_state.pop("add_ral", None)
                     st.session_state.pop("add_hex", None)
                     sauvegarder_donnees()
+                    afficher_animation_validation("Couleur ajoutée")
                     st.rerun()
 
         @st.dialog("✏️ Modifier une couleur", width="large")
@@ -1735,12 +1825,13 @@ elif G_ACTIF == "preparation_melanges":
                 thead[6].markdown("**Actions**")
                 st.markdown("<hr style='margin:4px 0px; border-width:2px; border-color:black;'>", unsafe_allow_html=True)
 
-                for item in elements_pagines:
+                for item in elements_filtres:
                     idx_a = item["index_origine"]
                     a_data = item["data"]
                     
                     is_verified = a_data.get("statut") == "Vérifier"
-                    txt_style = "color: #CC0605; font-weight: bold;" if is_verified else "color: inherit;"
+                    txt_style = "color: ##FF0003; font-weight: bold;" if is_verified else "color: inherit;"
+                    
                     
                     row = st.columns([1.5, 1, 1.5, 1.5, 1.5, 1.5, 1.5])
                     
@@ -2306,7 +2397,7 @@ elif G_ACTIF == "preparation_melanges":
                         node_dict["x"], node_dict["y"] = f["x"], f["y"]
                     list_nodes.append(node_dict)
 
-                edges_data = [{"from": lien["from"], "to": lien["to"], "arrows": "to", "color": {"color": "#475569"}} for lien in fiche["liaisons"]]
+                edges_data = [{"from": lien["from"], "to": lien["to"], "arrows": "to", "color": {"color": "#475569"}} for lien in fiche["liaisons"] if "from" in lien]
                 nodes_json, edges_json = json.dumps(list_nodes), json.dumps(edges_data)
 
                 vis_html = f"""
@@ -2316,19 +2407,28 @@ elif G_ACTIF == "preparation_melanges":
                   var container = document.getElementById('mynetwork');
                   var options = {{ physics: {{ enabled: false }}, interaction: {{ dragNodes: true, dragView: false, zoomView: true }}, nodes: {{ font: {{ size: 14, face: 'Arial' }}, borderWidth: 2 }} }};
                   var network = new vis.Network(container, {{ nodes: new vis.DataSet({nodes_json}), edges: new vis.DataSet({edges_json}) }}, options);
-
-                  network.on("doubleClick", function (params) {{
-                     if (params.nodes.length > 0) {{
-                        window.parent.location.search = "?click_node_id=" + params.nodes[0] + "&click_fiche_idx=" + {idx_fid};
-                     }}
-                  }});
-                  network.on("dragEnd", function (params) {{
-                     if (params.nodes.length > 0) {{
-                        var nodeId = params.nodes[0];
-                        var pos = network.getPositions([nodeId])[nodeId];
-                        window.parent.location.search = "?moved_id=" + nodeId + "&moved_idx=" + {idx_fid} + "&moved_x=" + pos.x + "&moved_y=" + pos.y;
-                     }}
-                  }});
                 </script>
                 """
                 components.html(vis_html, height=600)
+            
+            st.markdown(f"**Nombre de fiches méthode affichées : {len(fiches_m)}**")
+
+# --- CENTRALISATION DE L'OUVERTURE PERSISTANTE DES DIALOGS ---
+if st.session_state.active_dialog is not None:
+    dtype, ddata = st.session_state.active_dialog
+    if dtype == "ajout_couleur": ouvrir_ajout_couleur()
+    elif dtype == "mod_couleur": ouvrir_modif_couleur(ddata[0], ddata[1])
+    elif dtype == "ajout_element": ouvrir_ajout_element_complet()
+    elif dtype == "mod_element": ouvrir_modif_element_complet(ddata[0], ddata[1])
+    elif dtype == "ajout_ral": ouvrir_ajout_ral_base()
+    elif dtype == "ajout_melange": ouvrir_ajout_melange_complet()
+    elif dtype == "mod_melange": ouvrir_modification_melange_complet(ddata[0], ddata[1])
+    elif dtype == "details_couleur": ouvrir_details_couleur(ddata)
+    elif dtype == "details_element": abrir_details_element(ddata)
+    elif dtype == "details_melange": ouvrir_details_melange(ddata)
+    elif dtype == "visu_ft_melange": ouvrir_visualisation_ft(ddata)
+    elif dtype == "visu_ft_additif": ouvrir_visualisation_ft_additif(ddata)
+    elif dtype == "visu_ft_couleur": ouvrir_visualisation_ft_couleur(ddata)
+    elif dtype == "ajout_etape": ouvrir_formulaire_etape(ddata[0], ddata[1])
+    elif dtype == "ajout_fiche_methode": ouvrir_ajout_fiche_methode()
+    elif dtype == "aide": ouvrir_fenetre_aide()   
