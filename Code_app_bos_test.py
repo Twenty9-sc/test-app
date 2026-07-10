@@ -9,6 +9,52 @@ import datetime
 import random 
 import streamlit.components.v1 as components
 
+# --- INITIALISATION DES ÉTATS DE SESSION ---
+if "etat_sidebar" not in st.session_state: st.session_state.etat_sidebar = "expanded"
+if "mode_sombre" not in st.session_state: st.session_state.mode_sombre = False
+if "logged_in" not in st.session_state: st.session_state.logged_in = False  
+if "groupe_actif" not in st.session_state: st.session_state.groupe_actif = None
+if "produit_selectionne" not in st.session_state: st.session_state.produit_selectionne = None
+if "sub_section_melange" not in st.session_state: st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
+
+# =========================================================
+# SYSTÈME DE CONNEXION (LOGIN)
+# =========================================================
+def afficher_page_connexion():
+    st.markdown("""
+    <style>
+    .login-box { max-width: 400px; margin: 10vh auto; padding: 40px; background-color: #F4F1EA; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #E2E8F0; text-align: center; font-family: sans-serif; }
+    @media (prefers-color-scheme: dark) { .login-box { background-color: #070b12; border-color: #334155; color: white;} }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    logo_path = os.path.join(os.getcwd(), "Martineau logo.png")
+    if os.path.exists(logo_path): st.image(logo_path, width=200)
+    
+    st.markdown("<h2>Connexion BOS2</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; margin-bottom: 20px;'>Veuillez vous identifier.</p>", unsafe_allow_html=True)
+    
+    with st.form("formulaire_connexion"):
+        identifiant = st.text_input("Identifiant")
+        mot_de_passe = st.text_input("Mot de passe", type="password")
+        if st.form_submit_button("Se connecter", use_container_width=True):
+            # Identifiants en dur (à modifier selon tes besoins)
+            utilisateurs_valides = {"admin": "bos2024", "labo": "labo123", "atelier": "atelier123", "test": "1234"}
+            if identifiant in utilisateurs_valides and utilisateurs_valides[identifiant] == mot_de_passe:
+                st.session_state.logged_in = True
+                st.session_state.current_user = identifiant
+                st.rerun()
+            else:
+                st.error("Identifiant ou mot de passe incorrect.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# 🛑 LE VIDEUR : Stoppe le script si non connecté
+if not st.session_state.logged_in:
+    afficher_page_connexion()
+    st.stop()
+
+
 st.markdown("""
 <style>
 /* 1. Typographie Raffinée */
