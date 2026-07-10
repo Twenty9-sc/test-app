@@ -3633,13 +3633,11 @@
                 "has_ft": true,
                 "fiche_technique": {
                     "date_creation": "07/07/2026 - 14:59",
-                    "date_derniere_maj": "08/07/2026 - 10:21",
-                    "date_avant_derniere_maj": "07/07/2026 - 14:59",
+                    "date_derniere_maj": "09/07/2026 - 16:51",
+                    "date_avant_derniere_maj": "08/07/2026 - 10:21",
                     "aspect": "\"hrb",
                     "viscosite": "",
                     "densite": "",
-                    "ph": "",
-                    "cov": "",
                     "sechage": "3000h",
                     "conditions": "qzettyuiob",
                     "redacteur": "Atelier: moulage"
@@ -4151,6 +4149,238 @@
                     "sechage": "",
                     "conditions": "",
                     "redacteur": "Labo / R&D"
+                }
+            },
+            {
+                "ref": "/",
+                "nom": "élasto de moule traditionnel",
+                "categorie_choisie": "Autre Mélange",
+                "emplacement": "",
+                "commentaire": "C'est-à-dire en deux parties",
+                "commentaire_global": "",
+                "couleurs_associees": [
+                    {
+                        "ref": "Silicone SILASTIC RTV-3481",
+                        "nom": "Silicone SILASTIC RTV-3481",
+                        "dosage": "95%",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "Catalyseur CARTV 281",
+                        "nom": "Catalyseur CARTV 281",
+                        "dosage": "5%",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:58",
+                    "date_derniere_maj": "09/07/2026 - 13:58",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Atelier: moulage"
+                },
+                "image_rendu": null
+            },
+            {
+                "ref": "/",
+                "nom": "élasto chaussette",
+                "categorie_choisie": "Autre Mélange",
+                "emplacement": "",
+                "commentaire": "en un seul tenant",
+                "commentaire_global": "Toujours en cours d'expérimentation. Les valeurs des dosages sont approximatives.",
+                "couleurs_associees": [
+                    {
+                        "ref": "Silicone SILASTIC RTV-3481",
+                        "nom": "Silicone SILASTIC RTV-3481",
+                        "dosage": "80%",
+                        "commentaire_composant": "En test",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "Huile  de silicione",
+                        "nom": "Huile  de silicione",
+                        "dosage": "20%",
+                        "commentaire_composant": "En test",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "Catalyseur CARTV 281",
+                        "nom": "Catalyseur CARTV 281",
+                        "dosage": "5%",
+                        "commentaire_composant": "5% du poids total du mélange des deux premiers composants",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 14:05",
+                    "date_derniere_maj": "09/07/2026 - 14:05",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Atelier: moulage"
+                },
+                "image_rendu": null
+            },
+            {
+                "ref": "/",
+                "nom": "Fibre de verre",
+                "categorie_choisie": "Autre Mélange",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "Possibilité d'ajouter + 1% du poids total du mélange en retardateur (A1 retarder). +/- 20 minutes de temps de travail supplémentaires avant durcissement. + Rouleau de toile pour fibre de verre que l'on coupe.",
+                "couleurs_associees": [
+                    {
+                        "ref": "A1 L P01 Liquid",
+                        "nom": "A1 L P01 Liquid",
+                        "dosage": "1 pot",
+                        "commentaire_composant": "1 pot de A1LPO1 liquid pour 2 pots de A1LPO1 powder",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "A1 L P01 Powder",
+                        "nom": "A1 L P01 Powder",
+                        "dosage": "2 pots",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "A1 retarder",
+                        "nom": "A1 retarder",
+                        "dosage": "~",
+                        "commentaire_composant": "Possibilité d'en ajouter",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 14:26",
+                    "date_derniere_maj": "09/07/2026 - 14:26",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Labo / R&D"
+                },
+                "image_rendu": null
+            },
+            {
+                "ref": "/",
+                "nom": "Fillite (dosage)",
+                "categorie_choisie": "Autre Mélange",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "couleurs_associees": [
+                    {
+                        "ref": "Résine (moules)",
+                        "nom": "Résine (moules)",
+                        "dosage": "1 volume",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "Durcisseur résine (moules)",
+                        "nom": "Durcisseur résine (moules)",
+                        "dosage": "1 volume",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "Poudre fillite",
+                        "nom": "Poudre fillite",
+                        "dosage": "2-3 volumes",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 14:31",
+                    "date_derniere_maj": "09/07/2026 - 14:31",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "ph": "",
+                    "cov": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "ref": "/",
+                "nom": "Plâtre (Dosage)",
+                "categorie_choisie": "Autre Mélange",
+                "emplacement": "",
+                "commentaire": "",
+                "commentaire_global": "Mélange à proportions égales des plâtres + de l'eau.",
+                "couleurs_associees": [
+                    {
+                        "ref": "Plâtre multiusages",
+                        "nom": "Plâtre multiusages",
+                        "dosage": "-",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "Plâtre fin de Paris",
+                        "nom": "Plâtre fin de Paris",
+                        "dosage": "-",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    },
+                    {
+                        "ref": "eau",
+                        "nom": "eau",
+                        "dosage": "-",
+                        "commentaire_composant": "",
+                        "type": "additif",
+                        "visuel": "#E2E8F0"
+                    }
+                ],
+                "statut": "Pas vérifié",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 14:45",
+                    "date_derniere_maj": "09/07/2026 - 14:45",
+                    "date_avant_derniere_maj": "-",
+                    "aspect": "",
+                    "viscosite": "",
+                    "densite": "",
+                    "sechage": "",
+                    "conditions": "",
+                    "redacteur": "Atelier: moulage"
                 }
             }
         ],
@@ -5343,31 +5573,6 @@
                 }
             },
             {
-                "nom": "cire",
-                "code": "",
-                "designation": "",
-                "statut": "Pas vérifié",
-                "compartiments": [
-                    "résine"
-                ],
-                "fournisseur": "",
-                "code_article": "",
-                "designation_achat": "",
-                "nature": "Liquide",
-                "danger": "-",
-                "danger_texte": "",
-                "manipulation": "",
-                "commentaire": "",
-                "commentaire_global": "",
-                "has_ft": false,
-                "fiche_technique": {
-                    "date_creation": "09/07/2026 - 10:45",
-                    "date_derniere_maj": "09/07/2026 - 10:45",
-                    "date_avant_derniere_maj": "-",
-                    "redacteur": "Labo / R&D"
-                }
-            },
-            {
                 "nom": "vernis (440g)",
                 "code": "",
                 "designation": "",
@@ -5426,6 +5631,7 @@
                 "compartiments": [
                     "résine"
                 ],
+                "sous_groupe": "Général",
                 "fournisseur": "PIA GAZIL",
                 "code_article": "362",
                 "designation_achat": "résine 6s85",
@@ -5714,6 +5920,290 @@
                     "date_avant_derniere_maj": "-",
                     "redacteur": "Labo / R&D"
                 }
+            },
+            {
+                "nom": "A1 L P01 Liquid",
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "Active Composites",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Liquide",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:28",
+                    "date_derniere_maj": "09/07/2026 - 13:28",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "A1 L P01 Powder",
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Poudre",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:30",
+                    "date_derniere_maj": "09/07/2026 - 13:30",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "A1 retarder",
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [],
+                "sous_groupe": "Général",
+                "fournisseur": "Active Composites",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:32",
+                    "date_derniere_maj": "09/07/2026 - 13:32",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Résine (moules)",
+                "code": "6446",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "Altropol ",
+                "code_article": "",
+                "designation_achat": "Neukadur Multicast 2 ",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:35",
+                    "date_derniere_maj": "09/07/2026 - 13:35",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Durcisseur résine (moules)",
+                "code": "6447",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "Altropol ",
+                "code_article": "",
+                "designation_achat": "Neukadur Hordener ISO2",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:38",
+                    "date_derniere_maj": "09/07/2026 - 13:38",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Poudre fillite",
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "Poudre",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:39",
+                    "date_derniere_maj": "09/07/2026 - 13:39",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Plâtre fin de Paris",
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:41",
+                    "date_derniere_maj": "09/07/2026 - 13:41",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Plâtre multiusages",
+                "code": "",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:42",
+                    "date_derniere_maj": "09/07/2026 - 13:42",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Silicone SILASTIC RTV-3481",
+                "code": "140448",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "Active Composites",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:45",
+                    "date_derniere_maj": "09/07/2026 - 13:45",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Catalyseur CARTV 281",
+                "code": "140449",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "Active Composites",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:48",
+                    "date_derniere_maj": "09/07/2026 - 13:48",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
+            },
+            {
+                "nom": "Huile  de silicione",
+                "code": "140451",
+                "designation": "",
+                "statut": "Pas vérifié",
+                "compartiments": [
+                    "Moulage"
+                ],
+                "sous_groupe": "Général",
+                "fournisseur": "Active Composites",
+                "code_article": "",
+                "designation_achat": "",
+                "nature": "-",
+                "danger": "-",
+                "danger_texte": "",
+                "manipulation": "",
+                "commentaire": "",
+                "commentaire_global": "",
+                "has_ft": true,
+                "fiche_technique": {
+                    "date_creation": "09/07/2026 - 13:50",
+                    "date_derniere_maj": "09/07/2026 - 13:50",
+                    "date_avant_derniere_maj": "-",
+                    "redacteur": "Atelier: moulage"
+                }
             }
         ],
         "base_rals": [],
@@ -5822,6 +6312,10 @@
             "peinture",
             "Moulage",
             "couleurs"
+        ],
+        "sous_groupes": [
+            "Général",
+            "Finition"
         ]
     }
 }
