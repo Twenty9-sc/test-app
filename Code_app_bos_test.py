@@ -771,7 +771,20 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
     ]))
     story.append(t_comm)
 
-
+    
+    # DIMINUTION & OPTIMISATION DE L'APERCU VISUEL
+    if "image_rendu" in data_obj and data_obj["image_rendu"]:
+        story.append(Spacer(1, 2))
+        story.append(Paragraph("Aperçu Visuel", h2_style))
+        try:
+            img_bytes = base64.b64decode(data_obj["image_rendu"]["data"])
+            from reportlab.platypus import Image as RLImage
+            img_rl = RLImage(io.BytesIO(img_bytes), width=65, height=65)
+            img_rl.hAlign = ''
+            story.append(img_rl)
+        except Exception:
+            story.append(Paragraph("-", body_style))
+    
     # --- SECTION SÉCURISÉE DES SIGNATURES TOUJOURS COLLÉE EN BAS ---
     # Un grand spacer flexible force l'envoi du bloc de signature tout en bas de la page courante
     story.append(Spacer(1, 9))
