@@ -102,7 +102,7 @@ if "groupe_actif" not in st.session_state:
 if "produit_selectionne" not in st.session_state:
     st.session_state.produit_selectionne = None
 if "sub_section_melange" not in st.session_state:
-    st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
+    st.session_state.sub_section_melange = None
 if "historique_recherches" not in st.session_state:
     st.session_state.historique_recherches = []
 if "recherche_globale_val" not in st.session_state:
@@ -287,7 +287,8 @@ def structure_donnees_vide():
             "base_rals": [],
             "compartiments": ["résine", "peinture"],
             "sous_groupes": ["Général"],
-            "ateliers": ["Atelier Résine", "Atelier Peinture"],  
+            "ateliers": ["Atelier Résine", "Atelier Peinture"],
+            "corbeille": [],  # <-- AJOUTER CETTE LIGNE
         },
     }
 
@@ -302,9 +303,12 @@ def charger_donnees():
                 donnees = contenu
         except (OSError, json.JSONDecodeError):
             pass
-
     donnees.setdefault("creation_processus", {})
+    
+    # 1. On définit la variable 'preparation'
     preparation = donnees.setdefault("preparation_melanges", {})
+    
+    # 2. On configure tous les sous-ensembles
     preparation.setdefault("couleurs", [])
     preparation.setdefault("melanges", [])
     preparation.setdefault("fiches_methode", [])
@@ -312,7 +316,9 @@ def charger_donnees():
     preparation.setdefault("base_rals", [])
     preparation.setdefault("compartiments", ["résine", "peinture"])
     preparation.setdefault("sous_groupes", ["Général"])
-    preparation.setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])  
+    preparation.setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])
+    preparation.setdefault("corbeille", [])  # <-- Ne pose aucun problème ici
+    
     return donnees
 
 
@@ -335,6 +341,23 @@ if "processus_db" not in st.session_state:
 # =============================================================================
 # UTILITAIRES
 # =============================================================================
+def deplacer_vers_corbeille(type_item, item_data, identifiant=""):
+    """
+    Déplace un élément supprimé vers la corbeille avec horodatage automatique.
+    """
+    prep = st.session_state.processus_db["preparation_melanges"]
+    corbeille = prep.setdefault("corbeille", [])
+    
+    nom_affiche = identifiant or item_data.get("nom") or item_data.get("ref") or item_data.get("code") or "Sans nom"
+    
+    corbeille.append({
+        "id_corbeille": str(uuid.uuid4())[:8],
+        "type": type_item,  # Exemple : "Couleur", "Élément", "Mélange", "Code RAL", "Fiche Méthode"
+        "identifiant": nom_affiche,
+        "date_suppression": pro_date_maintenant(),  # Horodatage auto (JJ/MM/AAAA - HH:MM)
+        "data": copy.deepcopy(item_data)
+    })
+    sauvegarder_donnees()
 
 def afficher_animation_validation(message):
     emplacement = st.empty()
@@ -465,14 +488,24 @@ def gerer_historique_dates_et_causes(ancien_dict, date_edition_str, cause_saisie
     if derniere != date_edition_str:
         avant_derniere = derniere
         derniere = date_edition_str
-
+        
     causes_existantes = list(ancien_dict.get("causes_modification", []))
-    if cause_saisie.strip():
-        causes_existantes.append(f"{date_edition_str} : {cause_saisie.strip()}")
+    num_version = ancien_dict.get("num_version", 1)
+    
+    cause_clean = str(cause_saisie or "").strip()
+    if cause_clean:
+        num_version += 1
+        causes_existantes.append({
+            "version": f"v{num_version}",
+            "date": date_edition_str,
+            "cause": cause_clean
+        })
+        # Conserve uniquement les 4 modifications les plus récentes
         if len(causes_existantes) > 4:
-            causes_existantes = causes_existantes[-4:] # Supprime automatiquement la plus ancienne au-delà de 4
-
-    return date_creation, derniere, avant_derniere
+            causes_existantes = causes_existantes[-4:]
+            
+    ancien_dict["num_version"] = num_version
+    return date_creation, derniere, avant_derniere, causes_existantes
 
 def nettoyer_valeur_pdf(valeur):
     if valeur is None:
@@ -556,6 +589,24 @@ def render_dynamic_ft_inputs(fiche_existante, dialog_id):
             )
     return valeurs
 
+def deplacer_vers_corbeille(type_item, item_data, identifiant=""):
+    """
+    Déplace un élément supprimé vers la corbeille avec horodatage automatique.
+    """
+    # On définit explicitement 'prep' ici
+    prep = st.session_state.processus_db.setdefault("preparation_melanges", {})
+    corbeille = prep.setdefault("corbeille", [])
+    
+    nom_affiche = identifiant or item_data.get("nom") or item_data.get("ref") or item_data.get("code") or "Sans nom"
+    
+    corbeille.append({
+        "id_corbeille": str(uuid.uuid4())[:8],
+        "type": type_item,
+        "identifiant": nom_affiche,
+        "date_suppression": pro_date_maintenant(),
+        "data": copy.deepcopy(item_data)
+    })
+    sauvegarder_donnees()
 
 def generer_fichier_export(donnees_list, nom_fichier="export"):
     if not donnees_list:
@@ -1044,6 +1095,23 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
             apercu_rows.append([img_apercu])
         except Exception:
             apercu_rows.append([Paragraph("-", body_style)])
+    elif type_ft == "couleur" or ("visuel" in data_obj and data_obj.get("visuel")):
+        try:
+            # Génération dynamique du carré de couleur pour le PDF
+            hex_color = data_obj.get("visuel", "#D8DEE4")
+            if not hex_color or not re.fullmatch(r"#[0-9a-fA-F]{6}", str(hex_color)):
+                hex_color = "#D8DEE4"
+            
+            img_pastille = Image.new('RGB', (160, 160), color=hex_color)
+            buffer_img = io.BytesIO()
+            img_pastille.save(buffer_img, format='PNG')
+            buffer_img.seek(0)
+            
+            img_apercu = RLImage(buffer_img, width=80, height=80)
+            img_apercu.hAlign = 'CENTER'
+            apercu_rows.append([img_apercu])
+        except Exception:
+            apercu_rows.append([Paragraph("-", body_style)])
     else:
         apercu_rows.append([Paragraph("-", body_style)])
 
@@ -1219,14 +1287,49 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     story.append(t_date)
-    story.append(Spacer(1, 1))
-    
+
+    # --- Tableau des causes de modification (Version | Date | Modification) ---
+    causes_list = ft_data.get("causes_modification", [])
+    if causes_list:
+        table_causes_data = [[
+            Paragraph("<b>Version</b>", body_bold),
+            Paragraph("<b>Date</b>", body_bold),
+            Paragraph("<b>Modification</b>", body_bold)
+        ]]
+        
+        for idx, item in enumerate(causes_list[-4:], start=1):
+            if isinstance(item, dict):
+                ver_str = item.get("version", f"v{idx + 1}")
+                date_str = item.get("date", "-")
+                cause_str = item.get("cause", "-")
+            else:
+                ver_str = f"v{idx + 1}"
+                date_str = "-"
+                cause_str = str(item)
+                
+            table_causes_data.append([
+                Paragraph(nettoyer_valeur_pdf(ver_str), body_style),
+                Paragraph(nettoyer_valeur_pdf(date_str), body_style),
+                Paragraph(nettoyer_valeur_pdf(cause_str), body_style)
+            ])
+            
+        t_causes = Table(table_causes_data, colWidths=[60, 115, 337], repeatRows=1)
+        t_causes.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(Spacer(1, 4))
+        story.append(t_causes)
+
+    story.append(Spacer(1, 1))    
     
     # =======================================================================
     # 7. SIGNATURES (poussées vers le bas de page)
     # =======================================================================
     # Spacer flexible pour pousser le bloc signature en bas si l'espace le permet
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 11))
 
     redacteur = ft_data.get('redacteur', 'Labo / R&D')
     data_sign = [
@@ -1242,7 +1345,7 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
     t_sign = Table(data_sign, colWidths=[256, 256])
     t_sign.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('PADDING', (0, 0), (-1, -1), 4),
+        ('PADDING', (0, 0), (-1, -1), 2.5),
         ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.HexColor('#CBD5E1')),
     ]))
     story.append(t_sign)
@@ -1284,7 +1387,9 @@ def ouvrir_visualisation_ft(melange):
         else:
             st.caption("Aucune image associée.")
     with col_actions:
-        nom = f"FT_{melange.get('ref', 'melange')}.pdf".replace(" ", "_")
+        nom_p = melange.get('nom', 'Melange')
+        ref_p = melange.get('ref', 'sans_ref')
+        nom = f"FT_{nom_p}_{ref_p}.pdf".replace(" ", "_").replace("/", "-")
         st.download_button(
             "Télécharger le PDF",
             data=generer_pdf_fiche_technique(melange, "melange"),
@@ -1302,7 +1407,9 @@ def ouvrir_visualisation_ft_additif(additif):
         f"Création : {fiche.get('date_creation', '-')} | "
         f"Dernière mise à jour : {fiche.get('date_derniere_maj', '-')}"
     )
-    nom = f"FT_element_{additif.get('code', 'element')}.pdf".replace(" ", "_")
+    nom_p = additif.get('nom', 'Element')
+    code_p = additif.get('code') or additif.get('ref', 'sans_code')
+    nom = f"FT_{nom_p}_{code_p}.pdf".replace(" ", "_").replace("/", "-")
     st.download_button(
         "Télécharger le PDF",
         data=generer_pdf_fiche_technique(additif, "additif"),
@@ -1324,7 +1431,9 @@ def ouvrir_visualisation_ft_couleur(couleur):
             unsafe_allow_html=True,
         )
     with col_action:
-        nom = f"FT_couleur_{couleur.get('ref', 'couleur')}.pdf".replace(" ", "_")
+        nom_p = couleur.get('nom_actuel', 'Couleur')
+        ref_p = couleur.get('ref', 'sans_ref')
+        nom = f"FT_{nom_p}_{ref_p}.pdf".replace(" ", "_").replace("/", "-")
         st.download_button(
             "Télécharger le PDF",
             data=generer_pdf_fiche_technique(couleur, "couleur"),
@@ -1401,38 +1510,6 @@ def ouvrir_details_melange(melange):
         st.markdown(
             f"- **{composant.get('nom', '-')}** — {composant.get('dosage', '-')}"
         )
-
-
-# =============================================================================
-# PROCESSUS ET AIDE
-# =============================================================================
-
-
-@st.dialog("Ajouter une étape", width="large")
-def ouvrir_formulaire_etape(groupe, produit):
-    titre = st.text_input("Titre de l'étape")
-    description = st.text_area("Description de l'étape")
-    fichier = st.file_uploader(
-        "Illustration optionnelle",
-        type=["png", "jpg", "jpeg", "webp"],
-    )
-    if st.button("Enregistrer l'étape", type="primary", use_container_width=True):
-        if not titre.strip():
-            st.error("Le titre est obligatoire.")
-            return
-        etape = {
-            "titre": titre.strip(),
-            "description": description.strip(),
-            "is_local": bool(fichier),
-        }
-        if fichier:
-            etape["media_data"] = encoder_fichier_local(fichier)
-        st.session_state.processus_db[groupe][produit].setdefault("etapes", []).append(
-            etape
-        )
-        sauvegarder_donnees()
-        st.rerun()
-
 
 # --- URL ROUTING & AIDE ---
 query_params = st.query_params
@@ -1668,13 +1745,69 @@ with st.sidebar:
     if os.path.exists(logo_path):
         st.image(logo_path, use_container_width=True)
     st.markdown(
-        '<div style="text-align:center;margin-top:16px;"><h2>PORTAIL</h2></div>',
+        '<div style="text-align:center;margin-top:10px;margin-bottom:15px;"><h2>PORTAIL</h2></div>',
         unsafe_allow_html=True,
     )
-    if st.button("❓ Centre de formation", use_container_width=True):
-        ouvrir_fenetre_aide()
+
+    # --- Bouton Retour au Menu Principal ---
+    if st.button("🏠 Menu Principal / Retour", use_container_width=True, key="btn_return_main_menu"):
+        st.session_state.groupe_actif = None
+        st.session_state.sub_section_melange = None
+        st.session_state.navigation_preparation = None
+        st.rerun()
+
     st.markdown("---")
 
+    # --- MENU DES SECTIONS DIRECTEMENT DANS LA BARRE LATÉRALE ---
+    sections_preparation = [
+        "🎨 Nuancier de couleurs",
+        "🧪 Catalogue des composants",
+        "🔢 Référentiel des codes RAL",
+        "⚗️ Formulations d'atelier",
+        "📐 Fiches Méthode",
+        "⚖️ Comparaison",
+    ]
+
+    # Initialisation de la clé de navigation si absente
+    if "navigation_preparation" not in st.session_state:
+        st.session_state.navigation_preparation = None
+
+    # Récupération de l'index courant
+    nav_actuelle = st.session_state.get("navigation_preparation")
+    idx_defaut = sections_preparation.index(nav_actuelle) if nav_actuelle in sections_preparation else None
+
+    choix_section = st.radio(
+        "Sélectionnez une section",
+        sections_preparation,
+        index=idx_defaut,
+        key="radio_nav_sidebar",
+    )
+
+    # Détection du changement de sélection dans le menu
+    if choix_section != st.session_state.navigation_preparation:
+        st.session_state.navigation_preparation = choix_section
+        if choix_section is None:
+            st.session_state.groupe_actif = None
+            st.session_state.sub_section_melange = None
+        else:
+            st.session_state.groupe_actif = "preparation_melanges"
+            st.session_state.sub_section_melange = choix_section
+        st.rerun()
+
+    st.markdown("---")
+
+    if st.button("❓ Centre de formation", use_container_width=True):
+        ouvrir_fenetre_aide()
+
+    st.markdown("---")
+
+    # --- Corbeille en bas du menu latéral ---
+    prep_db = st.session_state.processus_db.get("preparation_melanges", {})
+    corbeille_list = prep_db.get("corbeille", [])
+    nb_elements_corbeille = len(corbeille_list)
+    if st.button(f"🗑️ Corbeille ({nb_elements_corbeille})", use_container_width=True, key="sidebar_btn_corbeille"):
+        st.session_state.groupe_actif = "corbeille"
+        st.rerun()
 
 st.markdown("<br>", unsafe_allow_html=True)
 search_icon = get_svg_icon("search")
@@ -1694,15 +1827,6 @@ if recherche_globale:
     resultats = []
     preparation = st.session_state.processus_db.get("preparation_melanges", {})
 
-    for produit in st.session_state.processus_db.get("creation_processus", {}):
-        if requete in produit.lower():
-            resultats.append(
-                {
-                    "type": "processus",
-                    "label": produit,
-                    "data": produit,
-                }
-            )
     for couleur in preparation.get("couleurs", []):
         if any(
             requete in str(couleur.get(cle, "")).lower()
@@ -1768,159 +1892,47 @@ if recherche_globale:
                         st.rerun()
 
 
-# =============================================================================
-# PORTAIL PRINCIPAL
-# =============================================================================
 
-if st.session_state.groupe_actif is None:
-    st.title("Portail Industriel")
-    st.markdown("### Sélectionnez votre espace de travail")
-    col_processus, col_preparation = st.columns(2)
-    with col_processus:
-        if st.button(
-            "CRÉATION DES PROCESSUS",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state.groupe_actif = "creation_processus"
-            st.rerun()
-    with col_preparation:
-        if st.button(
-            "PRÉPARATION DES MÉLANGES",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state.groupe_actif = "preparation_melanges"
-            st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
-            st.rerun()
-    st.stop()
+# =============================================================================
+# PORTAIL PRINCIPAL — ÉCRAN D'ACCUEIL BLANC AVEC FILIGRANE
+# =============================================================================
+if st.session_state.groupe_actif is None or st.session_state.get("navigation_preparation") is None:
+    if st.session_state.groupe_actif != "corbeille":
+        st.markdown(
+            """
+            <div style="
+                min-height: 70vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 40px;
+            ">
+                <h1 style="color: #142235; font-family: Georgia, serif; font-size: 36px; margin-bottom: 12px;">
+                    Portail Industriel Béraudy & Vaure
+                </h1>
+                <p style="color: #64748B; font-size: 16px; max-width: 550px; line-height: 1.6;">
+                    Veuillez sélectionner une section dans le menu latéral à gauche pour afficher son contenu.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.stop()
 
 
 G_ACTIF = st.session_state.groupe_actif
-if st.sidebar.button("Menu Principal / Retour", use_container_width=True):
-    st.session_state.groupe_actif = None
-    st.session_state.produit_selectionne = None
-    st.rerun()
-
 
 # =============================================================================
-# MODULE 1 — CRÉATION DES PROCESSUS
+# MODULE 1 — PRÉPARATION DES MÉLANGES
 # =============================================================================
 
-if G_ACTIF == "creation_processus":
-    base_processus = st.session_state.processus_db["creation_processus"]
-    st.sidebar.title("Édition SOP")
-    filtre_processus = st.sidebar.text_input("Filtrer la liste").strip().lower()
-    noms_processus = sorted(
-        [
-            nom
-            for nom in base_processus
-            if not filtre_processus or filtre_processus in nom.lower()
-        ],
-        key=str.lower,
-    )
-
-    if noms_processus:
-        selection_actuelle = st.session_state.produit_selectionne
-        index_selection = (
-            noms_processus.index(selection_actuelle)
-            if selection_actuelle in noms_processus
-            else 0
-        )
-        produit_selectionne = st.sidebar.selectbox(
-            "Processus actif",
-            noms_processus,
-            index=index_selection,
-        )
-        st.session_state.produit_selectionne = produit_selectionne
-    else:
-        produit_selectionne = None
-        st.sidebar.info("Aucun processus enregistré.")
-
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Nouveau fichier")
-    nouveau_nom = st.sidebar.text_input("Nom du processus")
-    if st.sidebar.button("Créer la fiche", use_container_width=True):
-        nom_propre = nouveau_nom.strip()
-        if not nom_propre:
-            st.sidebar.error("Le nom est obligatoire.")
-        elif nom_propre in base_processus:
-            st.sidebar.error("Ce processus existe déjà.")
-        else:
-            base_processus[nom_propre] = {"etapes": [], "ressources": []}
-            st.session_state.produit_selectionne = nom_propre
-            sauvegarder_donnees()
-            st.rerun()
-
-    st.title("Création des Processus")
-    if produit_selectionne:
-        col_titre, col_mode = st.columns([3, 1])
-        col_titre.subheader(f"Processus : {produit_selectionne}")
-        if "mode_grand_ecran" not in st.session_state:
-            st.session_state.mode_grand_ecran = False
-        if col_mode.button("Basculer Grand Écran", use_container_width=True):
-            st.session_state.mode_grand_ecran = not st.session_state.mode_grand_ecran
-            st.rerun()
-
-        etapes = base_processus[produit_selectionne].setdefault("etapes", [])
-        if not st.session_state.mode_grand_ecran:
-            if st.button("Ajouter une étape", type="primary"):
-                ouvrir_formulaire_etape("creation_processus", produit_selectionne)
-            st.markdown("---")
-
-        if not etapes:
-            st.info("Aucune étape enregistrée dans ce processus.")
-
-        for index_etape, etape in enumerate(etapes):
-            if st.session_state.mode_grand_ecran:
-                st.markdown(f"### Étape {index_etape + 1} : {etape.get('titre', '-')}")
-                interpreter_texte_avec_images(etape.get("description", ""))
-                if etape.get("is_local") and etape.get("media_data"):
-                    afficher_image_base64(etape["media_data"].get("data"))
-                st.markdown("---")
-            else:
-                with st.expander(
-                    f"Étape {index_etape + 1} : {etape.get('titre', '-')}",
-                    expanded=False,
-                ):
-                    col_description, col_media = st.columns(2)
-                    with col_description:
-                        interpreter_texte_avec_images(etape.get("description", ""))
-                    with col_media:
-                        if etape.get("is_local") and etape.get("media_data"):
-                            afficher_image_base64(etape["media_data"].get("data"))
-                    cle_confirmation = f"delete_step_{produit_selectionne}_{index_etape}"
-                    if st.button("Supprimer l'étape", key=f"ask_{cle_confirmation}"):
-                        st.session_state[cle_confirmation] = True
-                    if st.session_state.get(cle_confirmation, False):
-                        col_oui, col_non = st.columns(2)
-                        if col_oui.button("Confirmer", key=f"yes_{cle_confirmation}"):
-                            etapes.pop(index_etape)
-                            st.session_state[cle_confirmation] = False
-                            sauvegarder_donnees()
-                            st.rerun()
-                        if col_non.button("Annuler", key=f"no_{cle_confirmation}"):
-                            st.session_state[cle_confirmation] = False
-                            st.rerun()
-
-
-# =============================================================================
-# MODULE 2 — PRÉPARATION DES MÉLANGES
-# =============================================================================
-
-elif G_ACTIF == "preparation_melanges":
-    sections_preparation = [
-        "🎨 Nuancier de couleurs",
-        "🧪 Catalogue des éléments",
-        "🔢 Référentiel des codes RAL",
-        "⚗️ Formulations d'atelier",
-        "📐 Fiches Méthode",
-    ]
-    choix_section = st.sidebar.radio(
-        "Sélectionnez la section",
-        sections_preparation,
-        key="navigation_preparation",
-    )
+if G_ACTIF == "preparation_melanges":
+    choix_section = st.session_state.get("navigation_preparation")
+    if choix_section is None:
+        st.stop()
+    
     st.session_state.sub_section_melange = choix_section
     st.markdown(f"## {choix_section}")
 
@@ -1929,7 +1941,12 @@ elif G_ACTIF == "preparation_melanges":
     liste_couleurs = preparation.setdefault("couleurs", [])
     liste_additifs = preparation.setdefault("additifs", [])
     liste_melanges = preparation.setdefault("melanges", [])
-
+    
+    if choix_section is None:
+        st.session_state.groupe_actif = None
+        st.rerun()
+    
+    
     # ========================================================================
     # OUTILS VISUELS ET FONCTIONNELS COMMUNS AUX SECTIONS DE PRÉPARATION
     # À conserver juste avant le premier :
@@ -1976,58 +1993,36 @@ elif G_ACTIF == "preparation_melanges":
 
     def pro_entete_section(surtitre, titre, description, statistiques, badge="BASE B&V"):
         cartes = "".join(
-            f"""
-            <div style="min-width:110px;padding:8px 12px;background:rgba(255,254,251,.08);border:1px solid rgba(217,191,145,.20);border-radius:8px;">
-                <div style="color:#D9BF91;font-size:9.5px;font-weight:800;text-transform:uppercase;">{html_lib.escape(str(libelle))}</div>
-                <div style="color:#FFFEFB;font-family:Georgia,serif;font-size:20px;margin-top:2px;">{html_lib.escape(str(valeur))}</div>
-            </div>
-            """
+            f'<div style="min-width:110px;padding:8px 12px;background:rgba(255,254,251,.08);border:1px solid rgba(217,191,145,.20);border-radius:8px;">'
+            f'<div style="color:#D9BF91;font-size:9.5px;font-weight:800;text-transform:uppercase;">{html_lib.escape(str(libelle))}</div>'
+            f'<div style="color:#FFFEFB;font-family:Georgia,serif;font-size:20px;margin-top:2px;">{html_lib.escape(str(valeur))}</div>'
+            f'</div>'
             for libelle, valeur in statistiques
         )
-        st.markdown(
-            f"""
-            <div style="margin:2px 0 16px 0;padding:16px 18px;color:#FFFEFB;background:linear-gradient(135deg,rgba(20,34,53,.98),rgba(32,52,77,.94));border:1px solid rgba(200,165,107,.36);border-radius:12px;">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-                    <div style="flex:1;min-width:260px;">
-                        <div style="color:#D9BF91;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">{html_lib.escape(surtitre)}</div>
-                        <div style="font-family:Georgia,serif;font-size:26px;line-height:1.15;margin-top:4px;">{html_lib.escape(titre)}</div>
-                        <div style="max-width:760px;color:rgba(255,254,251,.68);font-size:12.5px;margin-top:5px;">{html_lib.escape(description)}</div>
-                    </div>
-                    <div style="color:#142235;background:#D9BF91;padding:6px 10px;border-radius:999px;font-size:10px;font-weight:800;">{html_lib.escape(badge)}</div>
-                </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-                    {cartes}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        
+        html_code = (
+            f'<div style="margin:2px 0 16px 0;padding:16px 18px;color:#FFFEFB;background:linear-gradient(135deg,rgba(20,34,53,.98),rgba(32,52,77,.94));border:1px solid rgba(200,165,107,.36);border-radius:12px;">'
+            f'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">'
+            f'<div style="flex:1;min-width:260px;">'
+            f'<div style="color:#D9BF91;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">{html_lib.escape(surtitre)}</div>'
+            f'<div style="font-family:Georgia,serif;font-size:26px;line-height:1.15;margin-top:4px;">{html_lib.escape(titre)}</div>'
+            f'<div style="max-width:760px;color:rgba(255,254,251,.68);font-size:12.5px;margin-top:5px;">{html_lib.escape(description)}</div>'
+            f'</div>'
+            f'<div style="color:#142235;background:#D9BF91;padding:6px 10px;border-radius:999px;font-size:10px;font-weight:800;">{html_lib.escape(badge)}</div>'
+            f'</div>'
+            f'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">{cartes}</div>'
+            f'</div>'
         )
+        st.markdown(html_code, unsafe_allow_html=True)
 
     def pro_barre_resultats(nombre, total, libelle="résultats"):
-        st.markdown(
-            f"""
-            <div style="
-                min-height:42px;
-                display:flex;
-                align-items:center;
-                justify-content:space-between;
-                gap:12px;
-                padding:8px 12px;
-                margin:8px 0 10px 0;
-                color:#344A63;
-                background:rgba(255,254,251,.78);
-                border:1px solid rgba(20,34,53,.13);
-                border-radius:9px;
-                font-size:12px;
-                font-weight:700;
-            ">
-                <span>{nombre} {html_lib.escape(libelle)}</span>
-                <span style="color:#6D7F91;">Total enregistré : {total}</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        html_code = (
+            f'<div style="min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;margin:8px 0 10px 0;color:#344A63;background:rgba(255,254,251,.78);border:1px solid rgba(20,34,53,.13);border-radius:9px;font-size:12px;font-weight:700;">'
+            f'<span>{nombre} {html_lib.escape(libelle)}</span>'
+            f'<span style="color:#6D7F91;">Total enregistré : {total}</span>'
+            f'</div>'
         )
-
+        st.markdown(html_code, unsafe_allow_html=True)
 
     def pro_paginer(liste, prefixe, taille_defaut=25):
         if not liste:
@@ -2208,12 +2203,7 @@ elif G_ACTIF == "preparation_melanges":
                         placeholder="Exemple : 5015",
                         key="pro_add_color_ral",
                     )
-                    c_statut = st.radio(
-                        "Statut",
-                        ["Pas vérifié", "Vérifier"],
-                        horizontal=True,
-                        key="pro_add_color_status",
-                    )
+                    c_statut = "Pas vérifié"
                 with col_visuel_2:
                     numero_ral = "".join(filter(str.isdigit, c_ral))
                     couleur_ral = RAL_DICT.get(numero_ral)
@@ -2371,13 +2361,7 @@ elif G_ACTIF == "preparation_melanges":
                     statut_actuel = couleur_data.get("statut", "Pas vérifié")
                     if statut_actuel not in statuts:
                         statut_actuel = "Pas vérifié"
-                    m_statut = st.radio(
-                        "Statut",
-                        statuts,
-                        index=statuts.index(statut_actuel),
-                        horizontal=True,
-                        key=f"pro_edit_color_status_{index}",
-                    )
+                    m_statut = couleur_data.get("statut", "Pas vérifié")
                 with col_visuel_2:
                     numero_ral = "".join(filter(str.isdigit, m_ral))
                     couleur_ral = RAL_DICT.get(numero_ral)
@@ -2400,7 +2384,10 @@ elif G_ACTIF == "preparation_melanges":
                 conditions = ft_ancienne.get("conditions", "")
                 commentaire_global = couleur_data.get("commentaire_global", "")
                 redacteur = ft_ancienne.get("redacteur", OPTIONS_REDACTEURS[0])
-
+                m_cause_modification = st.text_input(
+                    "Cause de la modification (optionnel)",
+                    key=f"pro_edit_element_cause_dlg_{index}",
+                )
                 if activer_ft:
                     valeurs_dynamiques = render_dynamic_ft_inputs(
                         ft_ancienne,
@@ -2415,6 +2402,10 @@ elif G_ACTIF == "preparation_melanges":
                         "Commentaires généraux (FT)",
                         value=commentaire_global,
                         key=f"pro_edit_color_global_{index}",
+                    )
+                    m_cause_modification = st.text_input(
+                        "Cause de la modification (optionnel)",
+                        key=f"pro_edit_color_cause_{index}",
                     )
                     index_redacteur = (
                         OPTIONS_REDACTEURS.index(redacteur)
@@ -2449,9 +2440,10 @@ elif G_ACTIF == "preparation_melanges":
                     return
 
                 date_edition = pro_date_maintenant()
-                date_creation, date_derniere, date_avant = gerer_historique_dates_et_causes(
+                date_creation, date_derniere, date_avant, causes_modifs = gerer_historique_dates_et_causes(
                     ft_ancienne,
                     date_edition,
+                    cause_saisie=m_cause_modification,
                 )
                 numero_ral = "".join(filter(str.isdigit, m_ral))
                 nuance_finale = RAL_DICT.get(numero_ral, m_hex) if numero_ral else m_hex
@@ -2669,6 +2661,7 @@ elif G_ACTIF == "preparation_melanges":
 
                 cle_suppression = f"pro_color_delete_confirm_{index_couleur}"
                 if action_supprimer.button("🗑", key=f"pro_color_delete_{index_couleur}"):
+                    st.session_state.pop("dialog_actif", None)  # <-- Réinitialise le dialogue actif
                     st.session_state[cle_suppression] = True
                 if couleur_data.get("has_ft"):
                     if action_ft.button("FT", key=f"pro_color_ft_{index_couleur}"):
@@ -2680,7 +2673,12 @@ elif G_ACTIF == "preparation_melanges":
                     )
                     col_oui, col_non = st.columns(2)
                     if col_oui.button("Oui, supprimer", key=f"pro_color_delete_yes_{index_couleur}"):
-                        liste_couleurs.pop(index_couleur)
+                        item_supprime = liste_couleurs.pop(index_couleur)
+                        deplacer_vers_corbeille(
+                            "Couleur", 
+                            item_supprime, 
+                            identifiant=f"{item_supprime.get('nom_actuel', '')} ({item_supprime.get('ref', '')})"
+                        )                     
                         st.session_state[cle_suppression] = False
                         sauvegarder_donnees()
                         st.rerun()
@@ -2705,7 +2703,7 @@ elif G_ACTIF == "preparation_melanges":
     # SECTION 2 — CATALOGUE DES ÉLÉMENTS
     # ========================================================================
 
-    elif choix_section == "🧪 Catalogue des éléments":
+    elif choix_section == "🧪 Catalogue des composants":
         nombre_elements_ft = sum(1 for item in liste_additifs if item.get("has_ft"))
         nombre_elements_dangereux = sum(
             1 for item in liste_additifs if item.get("danger") == "Oui"
@@ -2722,7 +2720,7 @@ elif G_ACTIF == "preparation_melanges":
 
         pro_entete_section(
             "Matières et composants",
-            "Catalogue des éléments",
+            "Catalogue des Composants",
             "Gérez les matières premières, additifs, fournisseurs, classifications, risques et fiches techniques.",
             [
                 ("Éléments", len(liste_additifs)),
@@ -2758,12 +2756,7 @@ elif G_ACTIF == "preparation_melanges":
                         "Commentaire court (formulation)",
                         key="pro_add_element_short_comment",
                     )
-                    e_statut = st.radio(
-                        "État de l'élément",
-                        ["Pas vérifié", "Vérifier"],
-                        horizontal=True,
-                        key="pro_add_element_status",
-                    )
+                    e_statut = "Pas vérifié"
 
             with onglet_classement:
                 col_classement_1, col_classement_2 = st.columns(2)
@@ -2961,13 +2954,7 @@ elif G_ACTIF == "preparation_melanges":
                     statut_actuel = data.get("statut", "Pas vérifié")
                     if statut_actuel not in statuts:
                         statut_actuel = "Pas vérifié"
-                    m_statut = st.radio(
-                        "État de l'élément",
-                        statuts,
-                        index=statuts.index(statut_actuel),
-                        horizontal=True,
-                        key=f"pro_edit_element_status_{index}",
-                    )
+                    m_statut = data.get("statut", "Pas vérifié")
 
             with onglet_classement:
                 compartiments_actuels = [
@@ -3020,7 +3007,10 @@ elif G_ACTIF == "preparation_melanges":
                 m_commentaire_global = data.get("commentaire_global", "")
                 m_redacteur = fiche_ancienne.get("redacteur", OPTIONS_REDACTEURS[0])
                 specs_dynamiques = fiche_ancienne.get("specs_dynamiques", {})
-
+                m_cause_modification = st.text_input(
+                    "Cause de la modification (optionnel)",
+                    key=f"pro_edit_element_cause_dlg_{index}",
+                )
                 if activer_ft:
                     col_ft_1, col_ft_2 = st.columns(2)
                     with col_ft_1:
@@ -3080,6 +3070,10 @@ elif G_ACTIF == "preparation_melanges":
                         value=m_commentaire_global,
                         key=f"pro_edit_element_global_comment_{index}",
                     )
+                    m_cause_modification = st.text_input(
+                        "Cause de la modification (optionnel)",
+                        key=f"pro_edit_element_cause_{index}",
+                    )
                     index_redacteur = (
                         OPTIONS_REDACTEURS.index(m_redacteur)
                         if m_redacteur in OPTIONS_REDACTEURS
@@ -3126,9 +3120,10 @@ elif G_ACTIF == "preparation_melanges":
                 else:
                     sous_groupe_final = m_sous_groupe
 
-                date_creation, date_derniere, date_avant = gerer_historique_dates_et_causes(
+                date_creation, date_derniere, date_avant, causes_modifs = gerer_historique_dates_et_causes(
                     fiche_ancienne,
                     pro_date_maintenant(),
+                    cause_saisie=m_cause_modification,
                 )
                 if activer_ft:
                     specs_dynamiques = extraire_specs_du_state(f"pro_edit_element_{index}")
@@ -3159,6 +3154,7 @@ elif G_ACTIF == "preparation_melanges":
                             "date_creation": date_creation,
                             "date_derniere_maj": date_derniere,
                             "date_avant_derniere_maj": date_avant,
+                            "causes_modification": causes_modifs,
                             "redacteur": m_redacteur,
                         },
                     }
@@ -3369,6 +3365,7 @@ elif G_ACTIF == "preparation_melanges":
 
                 cle_suppression = f"pro_element_delete_confirm_{index_element}"
                 if action_supprimer.button("🗑", key=f"pro_element_delete_{prefixe_tableau}_{index_element}"):
+                    st.session_state.pop("dialog_actif", None)  # <-- Réinitialise le dialogue actif
                     st.session_state[cle_suppression] = True
                 if element_data.get("has_ft"):
                     if action_ft.button("FT", key=f"pro_element_ft_{prefixe_tableau}_{index_element}"):
@@ -3378,7 +3375,12 @@ elif G_ACTIF == "preparation_melanges":
                     st.warning(f"Supprimer définitivement {element_data.get('nom', '')} ?")
                     col_oui, col_non = st.columns(2)
                     if col_oui.button("Oui, supprimer", key=f"pro_element_delete_yes_{prefixe_tableau}_{index_element}"):
-                        liste_additifs.pop(index_element)
+                        item_supprime = liste_additifs.pop(index_element)
+                        deplacer_vers_corbeille(
+                            "Élément", 
+                            item_supprime, 
+                            identifiant=f"{item_supprime.get('nom', '')} ({item_supprime.get('code', '-')})"
+                        )
                         st.session_state[cle_suppression] = False
                         sauvegarder_donnees()
                         st.rerun()
@@ -3728,7 +3730,12 @@ elif G_ACTIF == "preparation_melanges":
                         st.warning(f"Supprimer la nuance RAL {ral_ligne['code']} ?")
                         col_oui, col_non = st.columns(2)
                         if col_oui.button("Oui", key=f"pro_ral_delete_yes_{ral_ligne['code']}"):
-                            rals_personnalises.pop(index_personnalise)
+                            item_supprime = rals_personnalises.pop(index_personnalise)
+                            deplacer_vers_corbeille(
+                                "Code RAL", 
+                                item_supprime, 
+                                identifiant=f"RAL {item_supprime.get('code', '')} — {item_supprime.get('nom', '')}"
+                            )
                             st.session_state[cle_confirmation_ral] = False
                             sauvegarder_donnees()
                             st.rerun()
@@ -4052,12 +4059,16 @@ elif G_ACTIF == "preparation_melanges":
                         "Nouveau compartiment Atelier",
                         key="pro_add_mix_new_atelier",
                     )
-                    m_statut = st.radio(
-                        "État du mélange",
-                        ["Pas vérifié", "Vérifier"],
-                        horizontal=True,
-                        key="pro_add_mix_status",
-                    )
+                    # L'option 'Vérifier' s'affiche UNIQUEMENT si la catégorie choisie est 'Mélange Couleurs'
+                    if m_categorie == "Mélange Couleurs":
+                        m_statut = st.radio(
+                            "État du mélange",
+                            ["Pas vérifié", "Vérifier"],
+                            horizontal=True,
+                            key="pro_add_mix_status",
+                        )
+                    else:
+                        m_statut = "Pas vérifié"
                 m_image = st.file_uploader(
                     "Image du mélange (optionnel)",
                     type=["png", "jpg", "jpeg", "webp"],
@@ -4236,13 +4247,20 @@ elif G_ACTIF == "preparation_melanges":
                     statut_actuel = melange_data.get("statut", "Pas vérifié")
                     if statut_actuel not in statuts:
                         statut_actuel = "Pas vérifié"
-                    m_statut = st.radio(
-                        "État du mélange",
-                        statuts,
-                        index=statuts.index(statut_actuel),
-                        horizontal=True,
-                        key=f"pro_edit_mix_status_{index}",
-                    )
+                    if m_categorie == "Mélange Couleurs":
+                        statuts = ["Pas vérifié", "Vérifier"]
+                        statut_actuel = melange_data.get("statut", "Pas vérifié")
+                        if statut_actuel not in statuts:
+                            statut_actuel = "Pas vérifié"
+                        m_statut = st.radio(
+                            "État du mélange",
+                            statuts,
+                            index=statuts.index(statut_actuel),
+                            horizontal=True,
+                            key=f"pro_edit_mix_status_{index}",
+                        )
+                    else:
+                        m_statut = "Pas vérifié"
 
                 if melange_data.get("image_rendu"):
                     st.caption("Aperçu de l'image actuelle")
@@ -4286,6 +4304,11 @@ elif G_ACTIF == "preparation_melanges":
                 specs_dynamiques = fiche_ancienne.get("specs_dynamiques", {})
                 commentaire_global = melange_data.get("commentaire_global", "")
                 ft_redacteur = fiche_ancienne.get("redacteur", OPTIONS_REDACTEURS[0])
+                m_cause_modification = st.text_input(
+                    "Cause de la modification (optionnel)",
+                    placeholder="Ex : Modification de la recette originale",
+                    key=f"pro_edit_mix_cause_dlg_{index}",
+                )
                 if activer_ft:
                     specs_dynamiques = render_dynamic_ft_inputs(
                         fiche_ancienne,
@@ -4295,6 +4318,11 @@ elif G_ACTIF == "preparation_melanges":
                         "Commentaires généraux (FT)",
                         value=commentaire_global,
                         key=f"pro_edit_mix_global_comment_{index}",
+                    )
+                    # --- NOUVEAU : Champ pour saisir la cause de modification ---
+                    m_cause_modification = st.text_input(
+                        "Cause de la modification (optionnel)",
+                        key=f"pro_edit_element_cause_dlg_{index}",
                     )
                     index_redacteur = (
                         OPTIONS_REDACTEURS.index(ft_redacteur)
@@ -4340,9 +4368,10 @@ elif G_ACTIF == "preparation_melanges":
                     return
 
                 composants_finaux = pro_formulation_depuis_etat(composants_selectionnes)
-                date_creation, date_derniere, date_avant = gerer_historique_dates_et_causes(
+                date_creation, date_derniere, date_avant, causes_modifs = gerer_historique_dates_et_causes(
                     fiche_ancienne,
                     pro_date_maintenant(),
+                    cause_saisie=m_cause_modification,
                 )
                 specs_dynamiques = {
                 } if activer_ft else {}
@@ -4386,6 +4415,7 @@ elif G_ACTIF == "preparation_melanges":
                             "date_avant_derniere_maj": date_avant,
                             "redacteur": ft_redacteur,
                             "specs_dynamiques": specs_dynamiques,
+                            "causes_modification": causes_modifs,  # <-- ESSENTIEL
                         },
                         "image_rendu": image_finale,
                     }
@@ -4636,6 +4666,7 @@ elif G_ACTIF == "preparation_melanges":
 
                 cle_suppression = f"pro_mix_delete_confirm_{index_melange}"
                 if action_supprimer.button("🗑", key=f"pro_mix_delete_{prefixe_tableau}_{index_melange}"):
+                    st.session_state.pop("dialog_actif", None)  # <-- Réinitialise le dialogue actif
                     st.session_state[cle_suppression] = True
                 if melange_data.get("has_ft"):
                     if action_ft.button("FT", key=f"pro_mix_ft_{prefixe_tableau}_{index_melange}"):
@@ -4647,7 +4678,12 @@ elif G_ACTIF == "preparation_melanges":
                     )
                     col_oui, col_non = st.columns(2)
                     if col_oui.button("Oui, supprimer", key=f"pro_mix_delete_yes_{prefixe_tableau}_{index_melange}"):
-                        liste_melanges.pop(index_melange)
+                        item_supprime = liste_melanges.pop(index_melange)
+                        deplacer_vers_corbeille(
+                            "Mélange", 
+                            item_supprime, 
+                            identifiant=f"{item_supprime.get('nom', '')} ({item_supprime.get('ref', '-')})"
+                        )
                         st.session_state[cle_suppression] = False
                         sauvegarder_donnees()
                         st.rerun()
@@ -5302,7 +5338,12 @@ elif G_ACTIF == "preparation_melanges":
                 disabled=confirmation.strip().upper() != "OUI",
                 key=f"mm_delete_fiche_{fiche_id}",
             ):
-                fiches_m.pop(index_suppression)
+                item_supprime = fiches_m.pop(index_suppression)
+                deplacer_vers_corbeille(
+                    "Fiche Méthode", 
+                    item_supprime, 
+                    identifiant=item_supprime.get('nom', 'Mind Map')
+                )
                 nouvelle_fiche_active = fiches_m[0].get("id") if fiches_m else None
                 st.session_state.mm_fiche_active_id = nouvelle_fiche_active
                 st.session_state.mm_select_fiche_active = nouvelle_fiche_active
@@ -7571,3 +7612,477 @@ elif G_ACTIF == "preparation_melanges":
             f"Dernière modification : {fiche_active.get('date_modification', '-')} "
             "• Sauvegarde automatique dans donnees_bos2.json"
         )
+
+    # ========================================================================
+    # SECTION 6 — COMPARAISON INTERACTIVE
+    # ========================================================================
+    elif choix_section == "⚖️ Comparaison":
+        pro_entete_section(
+            "Analyse comparative",
+            "Comparaison côte à côte",
+            "Sélectionnez 2 objets ou plus (couleurs, éléments, codes RAL, mélanges) pour comparer visuellement leurs teintes et leurs caractéristiques techniques.",
+            [
+                ("Couleurs", len(liste_couleurs)),
+                ("Éléments", len(liste_additifs)),
+                ("Codes RAL", len(RAL_DICT) + len(st.session_state.processus_db["preparation_melanges"].get("base_rals", []))),
+                ("Mélanges", len(liste_melanges)),
+            ],
+            "OUTIL COMPARATIF",
+        )
+
+        # 1. Construction du dictionnaire global des objets comparables
+        options_comparaison = {}
+
+        # --- Couleurs du nuancier ---
+        for c in liste_couleurs:
+            ref_c = c.get('ref', '-')
+            nom_c = c.get('nom_actuel') or ref_c
+            label = f"🎨 [Couleur] {nom_c} ({ref_c})"
+            options_comparaison[label] = {"kind": "couleur", "data": c}
+
+        # --- Éléments du catalogue ---
+        for e in liste_additifs:
+            code_e = e.get('code') or 'sans code'
+            nom_e = e.get('nom', '-')
+            label = f"🧪 [Élément] {nom_e} ({code_e})"
+            options_comparaison[label] = {"kind": "element", "data": e}
+
+        # --- Codes RAL Officiels ---
+        for code_ral, hex_ral in RAL_DICT.items():
+            label = f"🔢 [RAL Officiel] RAL {code_ral}"
+            options_comparaison[label] = {
+                "kind": "ral",
+                "data": {"code": code_ral, "nom": f"Teinte RAL CLASSIC {code_ral}", "visuel": hex_ral, "origine": "Officiel"}
+            }
+
+        # --- Codes RAL Personnalisés ---
+        for r_p in st.session_state.processus_db["preparation_melanges"].get("base_rals", []):
+            if r_p.get("code"):
+                label = f"🔢 [RAL Perso] RAL {r_p.get('code')} — {r_p.get('nom', '')}"
+                options_comparaison[label] = {
+                    "kind": "ral",
+                    "data": {"code": r_p.get('code'), "nom": r_p.get('nom', ''), "visuel": r_p.get('visuel', '#FFFFFF'), "origine": "Personnalisé"}
+                }
+
+        # --- Formulations de Mélanges ---
+        for m in liste_melanges:
+            ref_m = m.get('ref', '-')
+            nom_m = m.get('nom', '-')
+            label = f"⚗️ [Mélange] {nom_m} ({ref_m})"
+            options_comparaison[label] = {"kind": "melange", "data": m}
+
+        # 2. Sélecteur d'objets à comparer
+        cles_disponibles = list(options_comparaison.keys())
+        defaut_selection = cles_disponibles[:2] if len(cles_disponibles) >= 2 else cles_disponibles
+
+        selection_comparaison = st.multiselect(
+            "🔍 Choisissez 2 éléments ou plus à comparer côte à côte :",
+            options=cles_disponibles,
+            default=defaut_selection,
+            key="multiselect_comparaison_interactive"
+        )
+
+        if len(selection_comparaison) < 2:
+            st.info("💡 Veuillez sélectionner au moins 2 éléments dans le champ ci-dessus pour afficher le tableau comparatif.")
+        else:
+            colonnes = st.columns(len(selection_comparaison))
+            
+            for index_col, item_key in enumerate(selection_comparaison):
+                item_info = options_comparaison[item_key]
+                kind = item_info["kind"]
+                data = item_info["data"]
+
+                with colonnes[index_col]:
+                    st.markdown(f"#### {item_key.split('] ')[-1]}")
+
+                    # =========================================================
+                    # 🖼️ APERÇU VISUEL GRAND FORMAT
+                    # =========================================================
+                    st.markdown("##### 👁 Aperçu Grand Format")
+                    
+                    if kind in ["couleur", "ral"]:
+                        hex_val = pro_couleur_valide(data.get("visuel"), "#D8DEE4")
+                        st.markdown(
+                            f"""
+                            <div style="
+                                height: 190px;
+                                background: {hex_val};
+                                border: 3px solid #142235;
+                                border-radius: 14px;
+                                box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+                                display: flex;
+                                align-items: flex-end;
+                                padding: 12px;
+                                margin-bottom: 15px;
+                            ">
+                                <span style="
+                                    background: rgba(255,255,255,0.92);
+                                    padding: 4px 10px;
+                                    border-radius: 6px;
+                                    font-weight: 800;
+                                    font-size: 13px;
+                                    color: #142235;
+                                    border: 1px solid #142235;
+                                ">{hex_val}</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    elif kind == "melange":
+                        if data.get("image_rendu"):
+                            afficher_image_base64(data["image_rendu"].get("data"))
+                        else:
+                            st.markdown(
+                                """
+                                <div style="
+                                    height: 190px;
+                                    background: #F1F5F9;
+                                    border: 2px dashed #94A3B8;
+                                    border-radius: 14px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    align-items: center;
+                                    justify-content: center;
+                                    color: #64748B;
+                                    font-size: 13px;
+                                    font-weight: 700;
+                                    margin-bottom: 15px;
+                                ">
+                                    <div style="font-size: 32px; margin-bottom: 6px;">⚗️</div>
+                                    Aucune image associée
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                    elif kind == "element":
+                        is_danger = data.get("danger") == "Oui"
+                        danger_flag = "🔴 Risque déclaré" if is_danger else "✅ Pas de danger majeur"
+                        bg_color = "#FEF2F2" if is_danger else "#F0FDF4"
+                        border_color = "#EF4444" if is_danger else "#22C55E"
+                        st.markdown(
+                            f"""
+                            <div style="
+                                height: 190px;
+                                background: {bg_color};
+                                border: 2px solid {border_color};
+                                border-radius: 14px;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
+                                padding: 15px;
+                                text-align: center;
+                                margin-bottom: 15px;
+                                box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                            ">
+                                <div style="font-size: 40px; margin-bottom: 6px;">🧪</div>
+                                <div style="font-weight: 800; font-size: 15px; color: #142235;">{html_lib.escape(data.get('nature', 'Matière'))}</div>
+                                <div style="font-size: 12px; margin-top: 6px; font-weight: 700; color: {'#991B1B' if is_danger else '#166534'};">{danger_flag}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                    # =========================================================
+                    # 📋 DÉTAILS ET CARACTÉRISTIQUES EN BAS
+                    # =========================================================
+                    st.markdown("##### 📋 Caractéristiques")
+                    
+                    if kind == "couleur":
+                        st.write(f"**Catégorie :** 🎨 Couleur du nuancier")
+                        st.write(f"**Référence :** `{data.get('ref', '-')}`")
+                        st.write(f"**Nom actuel :** {data.get('nom_actuel', '-')}")
+                        st.write(f"**Futur nom :** {data.get('nom_futur', '-')}")
+                        st.write(f"**Code RAL :** {data.get('ral', '-') or '-'}")
+                        st.write(f"**Société / Client :** {data.get('societe', '-')}")
+                        st.write(f"**Type :** {data.get('type', '-')}")
+                        st.write(f"**Commentaire :** {data.get('commentaire', '-')}")
+                        if data.get("has_ft"):
+                            if st.button("📄 Télécharger FT PDF", key=f"comp_btn_ft_col_{index_col}_{data.get('ref')}", use_container_width=True):
+                                ouvrir_visualisation_ft_couleur(data)
+
+                    elif kind == "element":
+                        st.write(f"**Catégorie :** 🧪 Élément / Additif")
+                        st.write(f"**Nom :** `{data.get('nom', '-')}`")
+                        st.write(f"**Code :** `{data.get('code', '-')}`")
+                        st.write(f"**Désignation :** {data.get('designation', '-')}")
+                        st.write(f"**Fournisseur :** {data.get('fournisseur', '-')}")
+                        st.write(f"**Nature :** {data.get('nature', '-')}")
+                        st.write(f"**Danger :** {data.get('danger', '-')}")
+                        if data.get('danger') == 'Oui' and data.get('danger_texte'):
+                            st.caption(f"⚠️ Précision : {data.get('danger_texte')}")
+                        st.write(f"**Compartiments :** {', '.join(data.get('compartiments', [])) or '-'}")
+                        st.write(f"**Sous-groupe :** {data.get('sous_groupe', 'Général')}")
+                        st.write(f"**Commentaire :** {data.get('commentaire', '-')}")
+                        if data.get("has_ft"):
+                            if st.button("📄 Télécharger FT PDF", key=f"comp_btn_ft_elem_{index_col}_{data.get('code')}", use_container_width=True):
+                                ouvrir_visualisation_ft_additif(data)
+
+                    elif kind == "ral":
+                        st.write(f"**Catégorie :** 🔢 Référentiel RAL")
+                        st.write(f"**Code RAL :** `{data.get('code', '-')}`")
+                        st.write(f"**Désignation :** {data.get('nom', '-')}")
+                        st.write(f"**Origine :** {data.get('origine', '-')}")
+                        st.write(f"**Hexadécimal :** `{data.get('visuel', '-')}`")
+
+                    elif kind == "melange":
+                        st.write(f"**Catégorie :** ⚗️ Formulation de Mélange")
+                        st.write(f"**Référence :** `{data.get('ref', '-')}`")
+                        st.write(f"**Nom :** {data.get('nom', '-')}")
+                        st.write(f"**Type :** {data.get('categorie_choisie', '-')}")
+                        st.write(f"**Ateliers :** {', '.join(data.get('ateliers', [])) or '-'}")
+                        st.write(f"**Emplacement :** {data.get('emplacement', '-')}")
+                        st.write(f"**Commentaire :** {data.get('commentaire', '-')}")
+                        
+                        st.markdown("**Composants & Dosages :**")
+                        composants = data.get("couleurs_associees", [])
+                        if not composants:
+                            st.caption("Aucun composant")
+                        else:
+                            for c_item in composants:
+                                st.caption(f"• **{c_item.get('nom')}** : {c_item.get('dosage')}")
+                        
+                        if data.get("has_ft"):
+                            if st.button("📄 Télécharger FT PDF", key=f"comp_btn_ft_mix_{index_col}_{data.get('ref')}", use_container_width=True):
+                                ouvrir_visualisation_ft(data)
+
+                    # --- Affichage des spécifications physico-chimiques dynamiques ---
+                    ft_dict = data.get("fiche_technique", {})
+                    specs_dyn = ft_dict.get("specs_dynamiques", {})
+                    if specs_dyn:
+                        with st.expander("🔬 Spécifications Physico-Chimiques", expanded=False):
+                            for spec_nom, spec_valeur in specs_dyn.items():
+                                if str(spec_valeur).strip():
+                                    st.write(f"• **{spec_nom} :** {spec_valeur}")
+
+# =============================================================================
+# MODULE 2 — CORBEILLE ET HISTORIQUE DES SUPPRESSIONS
+# =============================================================================
+
+elif G_ACTIF == "corbeille":
+    st.title("🗑️ Corbeille — Historique des Suppressions")
+    st.caption("Consultez les éléments supprimés, affichez leurs détails, téléchargez leurs FT, modifiez-les ou restaurez-les.")
+
+    corbeille = st.session_state.processus_db.get("preparation_melanges", {}).get("corbeille", [])
+
+    # -------------------------------------------------------------------------
+    # DIALOGUES DE MODIFICATION DÉDIÉS AUX ÉLÉMENTS EN CORBEILLE
+    # -------------------------------------------------------------------------
+    @st.dialog("Modifier une couleur (Corbeille)", width="large")
+    def ouvrir_modif_couleur_corbeille(idx_corbeille, couleur_data):
+        st.markdown(f"### {couleur_data.get('nom_actuel') or couleur_data.get('ref')} (Corbeille)")
+        c_ref = st.text_input("Référence *", value=couleur_data.get("ref", ""), key=f"trash_edit_color_ref_{idx_corbeille}")
+        c_actuel = st.text_input("Nom actuel", value=couleur_data.get("nom_actuel", ""), key=f"trash_edit_color_actuel_{idx_corbeille}")
+        c_futur = st.text_input("Futur nom", value=couleur_data.get("nom_futur", ""), key=f"trash_edit_color_futur_{idx_corbeille}")
+        c_societe = st.text_input("Société", value=couleur_data.get("societe", ""), key=f"trash_edit_color_societe_{idx_corbeille}")
+        c_comm = st.text_area("Commentaire global / FT", value=couleur_data.get("commentaire_global", ""), key=f"trash_edit_color_comm_{idx_corbeille}")
+        
+        if st.button("Enregistrer dans la corbeille", type="primary", use_container_width=True, key=f"trash_edit_color_save_{idx_corbeille}"):
+            ref_clean = c_ref.strip()
+            if not ref_clean:
+                st.error("La référence est obligatoire.")
+                return
+            couleur_data["ref"] = ref_clean
+            couleur_data["nom_actuel"] = c_actuel.strip()
+            couleur_data["nom_futur"] = c_futur.strip()
+            couleur_data["societe"] = c_societe.strip()
+            couleur_data["commentaire_global"] = c_comm.strip()
+            
+            # MÀJ de l'identifiant d'affichage dans la corbeille
+            corbeille[idx_corbeille]["identifiant"] = f"{c_actuel.strip()} ({ref_clean})"
+            sauvegarder_donnees()
+            afficher_animation_validation("Couleur modifiée dans la corbeille")
+            st.session_state.pop("dialog_actif", None)
+            st.rerun()
+
+    @st.dialog("Modifier un élément (Corbeille)", width="large")
+    def ouvrir_modif_element_corbeille(idx_corbeille, element_data):
+        st.markdown(f"### {element_data.get('nom', 'Élément')} (Corbeille)")
+        e_nom = st.text_input("Nom *", value=element_data.get("nom", ""), key=f"trash_edit_elem_nom_{idx_corbeille}")
+        e_code = st.text_input("Code", value=element_data.get("code", ""), key=f"trash_edit_elem_code_{idx_corbeille}")
+        e_des = st.text_input("Désignation", value=element_data.get("designation", ""), key=f"trash_edit_elem_des_{idx_corbeille}")
+        e_fourn = st.text_input("Fournisseur", value=element_data.get("fournisseur", ""), key=f"trash_edit_elem_fourn_{idx_corbeille}")
+        e_comm = st.text_area("Commentaires généraux (FT)", value=element_data.get("commentaire_global", ""), key=f"trash_edit_elem_comm_{idx_corbeille}")
+
+        if st.button("Enregistrer dans la corbeille", type="primary", use_container_width=True, key=f"trash_edit_elem_save_{idx_corbeille}"):
+            nom_clean = e_nom.strip()
+            if not nom_clean:
+                st.error("Le nom est obligatoire.")
+                return
+            element_data["nom"] = nom_clean
+            element_data["code"] = e_code.strip()
+            element_data["designation"] = e_des.strip()
+            element_data["fournisseur"] = e_fourn.strip()
+            element_data["commentaire_global"] = e_comm.strip()
+
+            corbeille[idx_corbeille]["identifiant"] = f"{nom_clean} ({e_code.strip() or '-'})"
+            sauvegarder_donnees()
+            afficher_animation_validation("Élément modifié dans la corbeille")
+            st.session_state.pop("dialog_actif", None)
+            st.rerun()
+
+    @st.dialog("Modifier un mélange (Corbeille)", width="large")
+    def ouvrir_modif_melange_corbeille(idx_corbeille, melange_data):
+        st.markdown(f"### {melange_data.get('nom', 'Mélange')} (Corbeille)")
+        m_ref = st.text_input("Référence *", value=melange_data.get("ref", ""), key=f"trash_edit_mix_ref_{idx_corbeille}")
+        m_nom = st.text_input("Nom *", value=melange_data.get("nom", ""), key=f"trash_edit_mix_nom_{idx_corbeille}")
+        m_emp = st.text_input("Emplacement", value=melange_data.get("emplacement", ""), key=f"trash_edit_mix_emp_{idx_corbeille}")
+        m_comm = st.text_area("Commentaires généraux (FT)", value=melange_data.get("commentaire_global", ""), key=f"trash_edit_mix_comm_{idx_corbeille}")
+
+        if st.button("Enregistrer dans la corbeille", type="primary", use_container_width=True, key=f"trash_edit_mix_save_{idx_corbeille}"):
+            ref_clean = m_ref.strip()
+            nom_clean = m_nom.strip()
+            if not ref_clean or not nom_clean:
+                st.error("La référence et le nom sont obligatoires.")
+                return
+            melange_data["ref"] = ref_clean
+            melange_data["nom"] = nom_clean
+            melange_data["emplacement"] = m_emp.strip()
+            melange_data["commentaire_global"] = m_comm.strip()
+
+            corbeille[idx_corbeille]["identifiant"] = f"{nom_clean} ({ref_clean})"
+            sauvegarder_donnees()
+            afficher_animation_validation("Mélange modifié dans la corbeille")
+            st.session_state.pop("dialog_actif", None)
+            st.rerun()
+
+    # -------------------------------------------------------------------------
+    # BARRE D'ENTÊTE ET VIDAGE
+    # -------------------------------------------------------------------------
+    col_info, col_vider = st.columns([3, 1])
+    with col_info:
+        st.info(f"Éléments présents en corbeille : **{len(corbeille)}**")
+    with col_vider:
+        if corbeille:
+            if st.button("🚨 Vider la corbeille", type="primary", use_container_width=True, key="btn_clear_trash"):
+                st.session_state.confirm_clear_trash = True
+            
+            if st.session_state.get("confirm_clear_trash", False):
+                st.warning("⚠️ Supprimer DÉFINITIVEMENT tout le contenu ? Cette action est irréversible.")
+                c_oui, c_non = st.columns(2)
+                if c_oui.button("Oui, tout vider", key="yes_clear_trash"):
+                    st.session_state.processus_db["preparation_melanges"]["corbeille"] = []
+                    st.session_state.confirm_clear_trash = False
+                    sauvegarder_donnees()
+                    afficher_animation_validation("Corbeille vidée")
+                    st.rerun()
+                if c_non.button("Annuler", key="no_clear_trash"):
+                    st.session_state.confirm_clear_trash = False
+                    st.rerun()
+
+    if not corbeille:
+        st.success("La corbeille est vide. Aucun élément supprimé.")
+    else:
+        # Barre de recherche et filtres
+        f_col1, f_col2 = st.columns([2, 1])
+        with f_col1:
+            recherche_corbeille = st.text_input("Rechercher dans la corbeille", placeholder="Identifiant, nom, date...", key="input_search_corbeille").strip().lower()
+        with f_col2:
+            types_existants = ["Tous"] + sorted(list({item.get("type", "Inconnu") for item in corbeille}))
+            filtre_type_corbeille = st.selectbox("Filtrer par type", types_existants, key="select_type_corbeille")
+
+        st.markdown("---")
+        
+        # En-tête du tableau
+        col_h1, col_h2, col_h3, col_h4 = st.columns([1.0, 2.2, 1.5, 3.3])
+        col_h1.markdown("**Type**")
+        col_h2.markdown("**Identifiant / Nom**")
+        col_h3.markdown("**Date suppression**")
+        col_h4.markdown("**Actions (Détails / FT / Modif / Restauration)**")
+        st.markdown("<hr style='margin:4px 0;border-width:2px;border-color:#142235;'>", unsafe_allow_html=True)
+
+        # Affichage inversé (plus récents en premier)
+        for index_reel, item in enumerate(reversed(corbeille)):
+            index_original = len(corbeille) - 1 - index_reel
+            item_type = item.get("type", "Autre")
+            identifiant = item.get("identifiant", "-")
+            date_suppression = item.get("date_suppression", "-")
+            data_obj = item.get("data", {})
+
+            if recherche_corbeille and (recherche_corbeille not in identifiant.lower() and recherche_corbeille not in item_type.lower() and recherche_corbeille not in date_suppression.lower()):
+                continue
+            if filtre_type_corbeille != "Tous" and item_type != filtre_type_corbeille:
+                continue
+
+            r_col1, r_col2, r_col3, r_col4 = st.columns([1.0, 2.2, 1.5, 3.3])
+            
+            icones_type = {"Couleur": "🎨", "Élément": "🧪", "Mélange": "⚗️", "Code RAL": "🔢", "Fiche Méthode": "📐"}
+            icone = icones_type.get(item_type, "📄")
+            
+            r_col1.write(f"{icone} {item_type}")
+            r_col2.write(f"**{identifiant}**")
+            r_col3.write(date_suppression)
+
+            # --- BOUTONS D'ACTIONSS COMPLETES ---
+            b_voir, b_ft, b_edit, b_resto, b_del = r_col4.columns([0.8, 0.8, 0.8, 1.1, 0.9])
+
+            # 1. 👁 VOIR DÉTAILS
+            if b_voir.button("👁", key=f"trash_view_{index_original}", help="Voir le détail de l'élément"):
+                if item_type == "Couleur":
+                    ouvrir_details_couleur(data_obj)
+                elif item_type == "Élément":
+                    ouvrir_details_element(data_obj)
+                elif item_type == "Mélange":
+                    ouvrir_details_melange(data_obj)
+                else:
+
+                    st.json(data_obj)
+
+            # 2. 📄 FT (TELECHARGER / VISUALISER FT PDF)
+            has_ft = data_obj.get("has_ft", True)
+            if has_ft and item_type in ["Couleur", "Élément", "Mélange"]:
+                if b_ft.button("📄", key=f"trash_ft_{index_original}", help="Télécharger / Voir la Fiche Technique PDF"):
+                    if item_type == "Couleur":
+                        ouvrir_visualisation_ft_couleur(data_obj)
+                    elif item_type == "Élément":
+                        ouvrir_visualisation_ft_additif(data_obj)
+                    elif item_type == "Mélange":
+                        ouvrir_visualisation_ft(data_obj)
+            else:
+                b_ft.write("")
+
+            # 3. ✎ MODIFIER DIRECTEMENT DANS LA CORBEILLE
+            if b_edit.button("✎", key=f"trash_edit_{index_original}", help="Modifier l'élément archivé"):
+                st.session_state.dialog_actif = {"type": f"edit_trash_{item_type}", "index": index_original}
+                st.rerun()
+
+            # 4. 🔄 RESTAURER
+            if b_resto.button("🔄", key=f"trash_resto_{index_original}", help="Restaurer l'élément à sa place d'origine"):
+                prep = st.session_state.processus_db["preparation_melanges"]
+                if item_type == "Couleur":
+                    prep.setdefault("couleurs", []).append(data_obj)
+                elif item_type == "Élément":
+                    prep.setdefault("additifs", []).append(data_obj)
+                elif item_type == "Mélange":
+                    prep.setdefault("melanges", []).append(data_obj)
+                elif item_type == "Code RAL":
+                    prep.setdefault("base_rals", []).append(data_obj)
+                elif item_type == "Fiche Méthode":
+                    prep.setdefault("fiches_methode", []).append(data_obj)
+
+                corbeille.pop(index_original)
+                sauvegarder_donnees()
+                afficher_animation_validation(f"Restauré : {identifiant}")
+                st.rerun()
+
+            # 5. 🗑 SUPPRIMER DÉFINITIVEMENT
+            if b_del.button("🗑️", key=f"trash_del_{index_original}", help="Supprimer définitivement"):
+                corbeille.pop(index_original)
+                sauvegarder_donnees()
+                st.rerun()
+
+            st.markdown("<hr style='margin:4px 0;opacity:.15;'>", unsafe_allow_html=True)
+
+        # Gestion des réouvertures de dialogues de modification
+        dialog_actif = st.session_state.get("dialog_actif")
+        if isinstance(dialog_actif, dict):
+            d_type = dialog_actif.get("type", "")
+            d_idx = dialog_actif.get("index")
+            if d_idx is not None and 0 <= d_idx < len(corbeille):
+                item_target = corbeille[d_idx]
+                if d_type == "edit_trash_Couleur":
+                    ouvrir_modif_couleur_corbeille(d_idx, item_target["data"])
+                elif d_type == "edit_trash_Élément":
+                    ouvrir_modif_element_corbeille(d_idx, item_target["data"])
+                elif d_type == "edit_trash_Mélange":
+                    ouvrir_modif_melange_corbeille(d_idx, item_target["data"])
