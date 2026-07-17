@@ -1,124 +1,82 @@
-import streamlit as st
-import json
-import os
+# -*- coding: utf-8 -*-
+"""
+B&V — Portail de gestion industrielle
+Version corrigée : les cinq sections de Préparation des mélanges sont au même
+niveau d'indentation et s'affichent indépendamment.
+"""
+
+# =============================================================================
+# IMPORTS ET CONFIGURATION — st.set_page_config doit rester le premier appel st
+# =============================================================================
+
 import base64
-from PIL import Image
-import io
-import re
+import copy
+import csv
 import datetime
-import random 
+import hashlib
+import html as html_lib
+import io
+import json
+import math
+import os
+import random
+import re
 import time
+import uuid
+
+import streamlit as st
 import streamlit.components.v1 as components
+from PIL import Image
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import (
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+)
 
 
-# --- INITIALISATION DES ÉTATS DE SESSION ---
-if "etat_sidebar" not in st.session_state: st.session_state.etat_sidebar = "expanded"
-if "logged_in" not in st.session_state: st.session_state.logged_in = False  
-if "groupe_actif" not in st.session_state: st.session_state.groupe_actif = None
-if "produit_selectionne" not in st.session_state: st.session_state.produit_selectionne = None
-if "sub_section_melange" not in st.session_state: st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
-if "historique_recherches" not in st.session_state: st.session_state.historique_recherches = []
-if "recherche_globale_val" not in st.session_state: st.session_state.recherche_globale_val = ""
-if "active_dialog" not in st.session_state: st.session_state.active_dialog = None
-
-# Champs FT par défaut globaux et persistants
-if "ft_champs_defaut" not in st.session_state:
-    st.session_state.ft_champs_defaut = [
-        "Aspect / Finition",
-        "Viscosité attendue",
-        "Densité",
-        "Temps de séchage",
-        "Conditions d'application"
-    ]
-
-# --- FONCTION D'ANIMATION DE VALIDATION (1 seconde) ---
-def afficher_animation_validation(message):
-    placeholder = st.empty()
-    placeholder.markdown(f"""
-    <div style="position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background-color: #FFFFFF; padding: 25px 50px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; border: 2px solid #22C55E;">
-        <div style="font-size: 50px; color: #22C55E; margin-bottom: 10px; animation: popCheck 0.4s ease forwards;">✅</div>
-        <div style="font-size: 16px; font-weight: bold; color: #1E293B; font-family: sans-serif;">{message}</div>
-    </div>
-    <style>
-    @keyframes popCheck {{
-        0% {{ transform: scale(0); opacity: 0; }}
-        50% {{ transform: scale(1.2); opacity: 1; }}
-        100% {{ transform: scale(1); opacity: 1; }}
-    }}
-    </style>
-    """, unsafe_allow_html=True)
-    time.sleep(1)
-    placeholder.empty()
-    
-# =========================================================
-# SYSTÈME DE CONNEXION (LOGIN)
-# =========================================================
-def afficher_page_connexion():
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    logo_path = os.path.join(os.getcwd(), "Martineau logo.png")
-    if os.path.exists(logo_path): st.image(logo_path, width=300)
-    
-    st.markdown("<h2>Connexion au Portail</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #64748b; margin-bottom: 20px;'>Veuillez vous identifier.</p>", unsafe_allow_html=True)
-    
-    with st.form("formulaire_connexion"):
-        identifiant = st.text_input("Identifiant")
-        mot_de_passe = st.text_input("Mot de passe", type="password")
-        if st.form_submit_button("Se connecter", use_container_width=True):
-            # Identifiants en dur (à modifier selon tes besoins)
-            utilisateurs_valides = {"1":"1", "admin": "bos2024", "labo": "labo123", "atelier": "atelier123", "test": "1234"}
-            if identifiant in utilisateurs_valides and utilisateurs_valides[identifiant] == mot_de_passe:
-                st.session_state.logged_in = True
-                st.session_state.current_user = identifiant
-                st.rerun()
-            else:
-                st.error("Identifiant ou mot de passe incorrect.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# 🛑 LE VIDEUR : Stoppe le script si non connecté
-if not st.session_state.logged_in:
-    afficher_page_connexion()
-    st.stop()
+st.set_page_config(
+    page_title="B&V - Portail de Gestion",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 
-st.markdown("""
-<style>
-/* 1. Typographie Raffinée */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap');
+try:
+    from theme_bos2_safe import appliquer_theme_bos2_professionnel
 
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-h1, h2, h3 { font-family: 'Playfair Display', serif !important; color: #1E293B; }
+    appliquer_theme_bos2_professionnel()
+except Exception:
+    # Le fonctionnement de BOS2 ne dépend pas du fichier de thème.
+    pass
 
-/* 2. Animations d'entrée */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
 
-[data-testid="stDialog"] { animation: fadeIn 0.3s ease-out; }
-.stApp { animation: fadeIn 0.6s ease-out; }
+# =============================================================================
+# IMPORTS REPORTLAB
+# =============================================================================
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape, letter
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.pdfgen import canvas
+    from reportlab.platypus import (
+        Image as RLImage,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
+    # C'est cette ligne qui résout le 'Undefined name Line, String, Rect, Drawing' :
+    from reportlab.graphics.shapes import Drawing, Rect, String, Line
 
-/* 3. Boutons : Noir au clic / Blanc au repos */
-div[data-testid="stButton"] > button {
-    background-color: #FFFFFF !important;
-    color: #000000 !important;
-    border: 1px solid #000000 !important;
-    transition: all 0.2s ease-in-out !important;
-    border-radius: 0px !important; /* Style Old Money anguleux */
-}
+    REPORTLAB_DISPO = True
+except ImportError:
+    REPORTLAB_DISPO = False
 
-div[data-testid="stButton"] > button:hover, 
-div[data-testid="stButton"] > button:active {
-    background-color: #000000 !important;
-    color: #FFFFFF !important;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
 
-/* 4. Effet de survol sur les tableaux et expanders */
-.stExpander:hover { border-color: #000000 !important; }
-</style>
-""", unsafe_allow_html=True)
+
 
 # Essayer d'importer ReportLab pour la génération du PDF standard
 try:
@@ -131,339 +89,54 @@ try:
 except ImportError:
     REPORTLAB_DISPO = False
 
-# --- CONFIGURATION INITIALE ---
+# =============================================================================
+# ÉTAT DE SESSION
+# =============================================================================
+
 if "etat_sidebar" not in st.session_state:
     st.session_state.etat_sidebar = "expanded"
-
-st.set_page_config(
-    page_title="BOS2 - Gestion Industrielle",
-    layout="wide",
-    initial_sidebar_state="expanded"
-    # Streamlit ne supporte pas de changer de thème dynamiquement 
-    # sans rechargement, d'où le passage par le fichier config.toml
-)
-
-# --- OPTIONS GLOBALES ---
-OPTIONS_REDACTEURS = ["Labo / R&D", "Atelier: couleurs", "Atelier: perles/croix", "Atelier: pose peinture", "Atelier: moulage", "Atelier: résine", "Atelier: finition", "Atelier: assemblage"]
-MAX_LIGNES_AFFICHAGE = 200 # LIMITE ANTI-LAG POUR STREAMLIT
-
-# Dans ton code, là où tu affiches ton contenu principal :
-st.markdown("""
-<style>
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-.main-content { animation: fadeIn 0.8s ease-in; }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
-/* Style Old Money pour l'application */
-.stApp { background-color: #F9F8F6 !important; }
-[data-testid="stAppViewContainer"]::before {
-    content: ""; 
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    background-image: url("data:image/png;base64,BASE64_DE_VOTRE_LOGO");
-    background-size: 50%;
-    background-repeat: no-repeat;
-    background-position: center center;
-    opacity: 0.1; /* Opacité 10% */
-    z-index: 0;
-    pointer-events: none;
-}
-/* Typographie Serif */
-h1, h2, h3, .stMarkdown { font-family: 'Playfair Display', serif !important; color: #2C3539 !important; }
-</style>
-""", unsafe_allow_html=True)
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "groupe_actif" not in st.session_state:
+    st.session_state.groupe_actif = None
+if "produit_selectionne" not in st.session_state:
+    st.session_state.produit_selectionne = None
+if "sub_section_melange" not in st.session_state:
+    st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
+if "historique_recherches" not in st.session_state:
+    st.session_state.historique_recherches = []
+if "recherche_globale_val" not in st.session_state:
+    st.session_state.recherche_globale_val = ""
+if "active_dialog" not in st.session_state:
+    st.session_state.active_dialog = None
+if "ft_champs_defaut" not in st.session_state:
+    st.session_state.ft_champs_defaut = [
+        "Aspect / Finition",
+        "Viscosité attendue",
+        "Densité",
+        "Temps de séchage",
+        "Conditions d'application",
+    ]
 
 
-# Dans tes modules, enveloppe ton contenu :
-with st.container():
-    st.markdown('<div class="main-content">', unsafe_allow_html=True)
-    # ... TON CONTENU ICI ...
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- CSS PERSONNALISÉ ---
-st.markdown("""
-<style>
-/* 1. Importation des polices 'Old Money' */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap');
-
-/* Application des polices et animations */
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-h1, h2, h3 {
-    font-family: 'Playfair Display', serif !important;
-}
-
-/* Animation de fondu entrant (Fade-in) */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.stApp, .main, [data-testid="stSidebar"] {
-    animation: fadeIn 0.8s ease-out forwards;
-}
-
-/* Base des boutons : style classique avec transition douce */
-div[data-testid="stButton"] > button {
-    border-radius: 3px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.5px;
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-}
-
-/* --- MODE NUIT (Bleu nuit profond) --- */
-@media (prefers-color-scheme: dark) {
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
-        background: linear-gradient(135deg, #111827 0%, #090e17 100%) !important; 
-    }
-    
-    .stMarkdown, h1, h2, h3, p, span, label {
-        color: #F8FAFC !important;
-    }
-    
-    /* Boutons en mode nuit : Bordure blanche */
-    div[data-testid="stButton"] > button {
-        border: 1px solid #FFFFFF !important;
-        background-color: transparent !important;
-        color: #FFFFFF !important;
-    }
-    div[data-testid="stButton"] > button:hover {
-        border-color: #D4AF37 !important; /* Doré Old Money */
-        color: #D4AF37 !important;
-        background-color: rgba(255,255,255,0.05) !important;
-        transform: translateY(-2px); /* Effet lévitation */
-    }
-    
-    div[role="dialog"] { background-color: #070b12 !important; }
-}
-
-/* --- MODE JOUR (Ivoire / Crème) --- */
-@media (prefers-color-scheme: light) {
-    .stApp, [data-testid="stAppViewContainer"] {
-        background-color: #F9F8F6 !important; 
-    }
-    
-    div[role="dialog"], [data-testid="stSidebar"] {
-        background-color: #F4F1EA !important;
-    }
-
-    .stMarkdown, h1, h2, h3, p, span, label {
-        color: #1E293B !important;
-    }
-
-    div[data-testid="stButton"] > button {
-        border: 1px solid #2C3539 !important;
-        background-color: transparent !important;
-        color: #2C3539 !important;
-    }
-    div[data-testid="stButton"] > button:hover {
-        background-color: #2C3539 !important;
-        color: #F9F8F6 !important;
-        transform: scale(1.02); /* Léger agrandissement élégant */
-    }
-}
-</style>
-""", unsafe_allow_html=True)
-
+# =============================================================================
+# CONSTANTES
+# =============================================================================
 
 FICHIER_SAUVEGARDE = "donnees_bos2.json"
+MAX_LIGNES_AFFICHAGE = 200
+OPTIONS_REDACTEURS = [
+    "Labo / R&D",
+    "Atelier : couleurs",
+    "Atelier : perles/croix",
+    "Atelier : pose peinture",
+    "Atelier : moulage",
+    "Atelier : résine",
+    "Atelier : finition",
+    "Atelier : assemblage",
+]
 
-# --- UTILITAIRES & CALLBACKS D'ÉTAT ---
-def get_svg_icon(icon_name):
-    icons = {
-        "search": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
-        "chart": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'
-    }
-    return icons.get(icon_name, "")
 
-@st.cache_data # MISE EN CACHE POUR ÉVITER LE LAG DU RECALCUL
-def encoder_image_systeme(nom_fichier):
-    if os.path.exists(nom_fichier):
-        try:
-            with open(nom_fichier, "rb") as f:
-                return base64.b64encode(f.read()).decode("utf-8")
-        except Exception:
-            return ""
-    return ""
-
-LOGO_BACKGROUND_BASE64 = encoder_image_systeme("Logo-Beraudy-rectangle.png")
-
-if LOGO_BACKGROUND_BASE64:
-    st.markdown(f"""
-    <style>
-    [data-testid="stAppViewContainer"]::before {{
-        content: ""; 
-        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background-image: url("data:image/png;base64,{LOGO_BACKGROUND_BASE64}");
-        background-size: 45%;
-        background-repeat: no-repeat;
-        background-position: center center;
-        background-attachment: fixed;
-        opacity: 0.04; /* Filigrane très discret (4%) pour l'élégance */
-        z-index: 0;
-        pointer-events: none; /* Empêche le logo de bloquer les clics */
-    }}
-    [data-testid="stHeader"], [data-testid="stVerticalBlock"], .stMain {{ 
-        position: relative; 
-        z-index: 1; 
-        background-color: transparent !important; 
-    }}
-    </style>
-    """, unsafe_allow_html=True)
-
-def encoder_fichier_local(uploaded_file):
-    try:
-        bytes_data = uploaded_file.getvalue()
-        return {"name": uploaded_file.name, "mime": uploaded_file.type, "data": base64.b64encode(bytes_data).decode("utf-8")}
-    except Exception as e:
-        st.error(f"Erreur lors de l'encodage de l'image : {e}")
-        return None
-
-def afficher_image_base64(base64_string, width=None):
-    try:
-        st.image(Image.open(io.BytesIO(base64.b64decode(base64_string))), use_container_width=True if width is None else False, width=width)
-    except Exception as e:
-        st.error(f"Erreur d'image : {e}")
-
-def interpreter_texte_avec_images(texte, images_en_ligne=None):
-    if not texte: return ""
-    st.markdown(texte, unsafe_allow_html=True)
-
-def est_dosage_valide(txt_dosage):
-    if not txt_dosage: return False
-    clean = str(txt_dosage).strip().lower()
-    return clean not in ["", "0", "0g", "0 g", "0ml", "0 ml", "none"]
-
-def gerer_historique_dates(ancien_dict, date_edition_str):
-    date_crea = ancien_dict.get("date_creation", date_edition_str)
-    derniere_maj = ancien_dict.get("date_derniere_maj", date_edition_str)
-    avant_derniere_maj = ancien_dict.get("date_avant_derniere_maj", "-")
-    
-    if list(derniere_maj)[:10] != list(date_edition_str)[:10]:
-        avant_derniere_maj = derniere_maj
-        derniere_maj = date_edition_str
-        
-    return date_crea, derniere_maj, avant_derniere_maj
-
-def nettoyer_valeur_pdf(val):
-    if val is None:
-        return "-"
-    s = str(val).strip()
-    return s if s != "" else "-"
-
-# --- FONCTION D'EXPORT EXCEL / CSV ---
-def generer_fichier_export(donnees_list, nom_fichier="export"):
-    if not donnees_list:
-        return None, None, None
-        
-    import io
-
-    # 1. Définir les colonnes de base à garder et à renommer
-    if "Couleurs" in nom_fichier:
-        colonnes_map = {'ref': 'Référence', 'nom_actuel': 'Nom', 'nom_futur': 'Futur nom', 'ral': 'RAL', 'societe': 'Société', 'type': 'Type'}
-    elif "Elements" in nom_fichier:
-        colonnes_map = {'nom': 'Nom', 'code': 'Code', 'designation': 'Désignation', 'fournisseur': 'Fournisseur', 'sous_groupe': 'Sous-groupe', 'commentaire': 'Commentaire'}
-    elif "Melanges" in nom_fichier:
-        colonnes_map = {'ref': 'Référence', 'nom': 'Nom', 'emplacement': 'Emplacement', 'commentaire': 'Commentaire'}
-    else:
-        colonnes_map = None
-
-    donnees_propres = []
-    colonnes_dynamiques_melange = []
-
-    # 2. Nettoyer, filtrer et séparer les données
-    for row in donnees_list:
-        row_propre = {}
-        if colonnes_map:
-            for cle_dict, nom_colonne in colonnes_map.items():
-                row_propre[nom_colonne] = str(row.get(cle_dict, ""))
-            
-            if "Couleurs" not in nom_fichier and "Elements" not in nom_fichier and "Melanges" in nom_fichier and "couleurs_associees" in row and isinstance(row["couleurs_associees"], list):
-                for i, composant in enumerate(row["couleurs_associees"]):
-                    col_nom = f"Composant {i+1}"
-                    col_dos = f"Dosage {i+1}"
-                    row_propre[col_nom] = composant.get("nom", "Inconnu")
-                    row_propre[col_dos] = composant.get("dosage", "-")
-                    
-                    if col_nom not in colonnes_dynamiques_melange:
-                        colonnes_dynamiques_melange.extend([col_nom, col_dos])
-                        
-            if "Elements" in nom_fichier:
-                row_propre["Compartiments"] = ", ".join(row.get("compartiments", []))
-        else:
-            row_propre = {k: (str(v) if isinstance(v, (dict, list)) else v) for k, v in row.items()}
-            
-        donnees_propres.append(row_propre)
-
-    # Reconstruire la liste finale et ordonnée de toutes les colonnes
-    if colonnes_map:
-        colonnes_finales = list(colonnes_map.values())
-        if "Elements" in nom_fichier:
-            colonnes_finales.insert(4, "Compartiments")
-        colonnes_finales += colonnes_dynamiques_melange
-    else:
-        colonnes_finales = []
-        for r in donnees_propres:
-            for k in r.keys():
-                if k not in colonnes_finales:
-                    colonnes_finales.append(k)
-
-    # 3. Génération du fichier Excel (ou CSV point-virgule)
-    try:
-        import pandas as pd
-        df = pd.DataFrame(donnees_propres)
-        df = df.reindex(columns=colonnes_finales)
-        buffer = io.BytesIO()
-        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False, sheet_name='Export')
-        return buffer.getvalue(), f"{nom_fichier}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        
-    except ImportError:
-        import csv
-        buffer = io.StringIO()
-        if donnees_propres:
-            writer = csv.DictWriter(buffer, fieldnames=colonnes_finales, extrasaction='ignore', delimiter=';')
-            writer.writeheader()
-            for row in donnees_propres:
-                writer.writerow(row)
-        return buffer.getvalue().encode('utf-8-sig'), f"{nom_fichier}.csv", "text/csv"
-
-# --- GESTION INSTANTANÉE DES COMPOSANTS ---
-def add_tmp_item(state_dict_name, k, data):
-    if state_dict_name in st.session_state:
-        st.session_state[state_dict_name][k] = data
-
-def remove_tmp_item_cb(state_dict_name, widget_key, dict_key):
-    if state_dict_name in st.session_state:
-        if not st.session_state.get(widget_key, True):
-            st.session_state[state_dict_name].pop(dict_key, None)
-
-# --- CANVAS DE PAGINATION DYNAMIQUE REPORTLAB ---
-class NumeroteurDePages(canvas.Canvas):
-    def __init__(self, *args, **kwargs):
-        super(NumeroteurDePages, self).__init__(*args, **kwargs)
-        self.pages = []
-    def showPage(self):
-        self.pages.append(dict(self.__dict__))
-        self._startPage()
-    def save(self):
-        num_pages = len(self.pages)
-        for page in self.pages:
-            self.__dict__.update(page)
-            if num_pages > 1:
-                self.setFont("Helvetica", 8)
-                self.setFillColor(colors.HexColor('#64748B'))
-                self.drawRightString(612 - 40, 20, f"Page {self._pageNumber} sur {num_pages}")
-            super(NumeroteurDePages, self).showPage()
-        super(NumeroteurDePages, self).save()
-
-# --- BASE DE DONNÉES NUANCIER RAL OFFICIEL ---
 RAL_DICT = {
     "1000": "#BEBD7F", "1001": "#C2B07E", "1002": "#C6A664", "1003": "#E5BE01", "1004": "#CDA434",
     "1005": "#A98307", "1006": "#E4A010", "1007": "#DC9D00", "1011": "#8A6642", "1012": "#C7B446",
@@ -502,56 +175,566 @@ RAL_DICT = {
     "8017": "#45322E", "8019": "#403A3A", "8022": "#212121", "8023": "#A65624", "8024": "#79553D",
     "8025": "#755C48", "8028": "#4E3629", "9001": "#FDF4E3", "9002": "#E7EBDA", "9003": "#F4F4F4",
     "9004": "#282828", "9005": "#0A0A0A", "9006": "#A5A5A5", "9007": "#8F8F8F", "9010": "#FFFFFF",
-    "9011": "#1C1C1C", "9016": "#F6F6F6", "9017": "#1E1E1E", "9018": "#D7DBDE"
+    "9011": "#1C1C1C", "9016": "#F6F6F6", "9017": "#1E1E1E", "9018": "#D7DBDE",
 }
 
-# --- CHARGEMENT / SAUVEGARDE MULTI-GROUPES ---
+
+# =============================================================================
+# CONNEXION
+# =============================================================================
+
+
+def afficher_page_connexion():
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    logo_path = os.path.join(os.getcwd(), "Martineau logo.png")
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=260)
+    st.markdown("<h2>Connexion au Portail B&V</h2>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#64748b;margin-bottom:20px;'>Veuillez vous identifier.</p>",
+        unsafe_allow_html=True,
+    )
+    with st.form("formulaire_connexion"):
+        identifiant = st.text_input("Identifiant", autocomplete="off", key="login_identifiant")
+        mot_de_passe = st.text_input("Mot de passe", type="password", autocomplete="new-password", key="login_password")
+        
+        if st.form_submit_button("Se connecter", use_container_width=True):
+            utilisateurs_valides = {
+                "1": "1",
+                "admin": "bos2024",
+                "labo": "labo123",
+                "atelier": "atelier123",
+                "test": "1234",
+            }
+            if (
+                identifiant in utilisateurs_valides
+                and utilisateurs_valides[identifiant] == mot_de_passe
+            ):
+                st.session_state.logged_in = True
+                st.session_state.current_user = identifiant
+                st.rerun()
+            else:
+                st.error("Identifiant ou mot de passe incorrect.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+if not st.session_state.logged_in:
+    afficher_page_connexion()
+    st.stop()
+
+
+# =============================================================================
+# REPORTLAB OPTIONNEL
+# =============================================================================
+
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.pdfgen import canvas
+    from reportlab.platypus import (
+        Image as RLImage,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
+
+    REPORTLAB_DISPO = True
+except ImportError:
+    REPORTLAB_DISPO = False
+
+
+if REPORTLAB_DISPO:
+    class NumeroteurDePages(canvas.Canvas):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.pages = []
+
+        def showPage(self):
+            self.pages.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self):
+            nombre_pages = len(self.pages)
+            for page in self.pages:
+                self.__dict__.update(page)
+                if nombre_pages > 1:
+                    self.setFont("Helvetica", 8)
+                    self.setFillColor(colors.HexColor("#64748B"))
+                    self.drawRightString(
+                        A4[0] - 35,
+                        20,
+                        f"Page {self._pageNumber} sur {nombre_pages}",
+                    )
+                super().showPage()
+            super().save()
+
+
+# =============================================================================
+# CHARGEMENT ET SAUVEGARDE
+# =============================================================================
+
+
+def structure_donnees_vide():
+    return {
+        "creation_processus": {},
+        "preparation_melanges": {
+            "couleurs": [],
+            "melanges": [],
+            "fiches_methode": [],
+            "additifs": [],
+            "base_rals": [],
+            "compartiments": ["résine", "peinture"],
+            "sous_groupes": ["Général"],
+            "ateliers": ["Atelier Résine", "Atelier Peinture"],  
+        },
+    }
+
+
 def charger_donnees():
+    donnees = structure_donnees_vide()
     if os.path.exists(FICHIER_SAUVEGARDE):
         try:
-            with open(FICHIER_SAUVEGARDE, "r", encoding="utf-8") as f:
-                donnees = json.load(f)
-                donnees.setdefault("creation_processus", {})
-                prep = donnees.setdefault("preparation_melanges", {})
-                prep.setdefault("couleurs", [])
-                prep.setdefault("melanges", [])
-                prep.setdefault("fiches_methode", [])
-                prep.setdefault("additifs", [])
-                prep.setdefault("base_rals", [])
-                prep.setdefault("compartiments", ["résine", "peinture"])
-                prep.setdefault("sous_groupes", ["Général"])
-                return donnees
-        except Exception:
+            with open(FICHIER_SAUVEGARDE, "r", encoding="utf-8") as fichier:
+                contenu = json.load(fichier)
+            if isinstance(contenu, dict):
+                donnees = contenu
+        except (OSError, json.JSONDecodeError):
             pass
-    return {"creation_processus": {}, "preparation_melanges": {"couleurs": [], "melanges": [], "fiches_methode": [], "additifs": [], "base_rals": [], "compartiments": ["résine", "peinture"], "sous_groupes": ["Général"]}}
+
+    donnees.setdefault("creation_processus", {})
+    preparation = donnees.setdefault("preparation_melanges", {})
+    preparation.setdefault("couleurs", [])
+    preparation.setdefault("melanges", [])
+    preparation.setdefault("fiches_methode", [])
+    preparation.setdefault("additifs", [])
+    preparation.setdefault("base_rals", [])
+    preparation.setdefault("compartiments", ["résine", "peinture"])
+    preparation.setdefault("sous_groupes", ["Général"])
+    preparation.setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])  
+    return donnees
+
 
 def sauvegarder_donnees():
-    with open(FICHIER_SAUVEGARDE, "w", encoding="utf-8") as f:
-        json.dump(st.session_state.processus_db, f, ensure_ascii=False, indent=4)
+    fichier_temporaire = f"{FICHIER_SAUVEGARDE}.tmp"
+    with open(fichier_temporaire, "w", encoding="utf-8") as fichier:
+        json.dump(
+            st.session_state.processus_db,
+            fichier,
+            ensure_ascii=False,
+            indent=4,
+        )
+    os.replace(fichier_temporaire, FICHIER_SAUVEGARDE)
 
-if "processus_db" not in st.session_state: st.session_state.processus_db = charger_donnees()
-if "groupe_actif" not in st.session_state: st.session_state.groupe_actif = None
-if "produit_selectionne" not in st.session_state: st.session_state.produit_selectionne = None
-if "sub_section_melange" not in st.session_state: st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
+
+if "processus_db" not in st.session_state:
+    st.session_state.processus_db = charger_donnees()
+
+
+# =============================================================================
+# UTILITAIRES
+# =============================================================================
+
+def afficher_animation_validation(message):
+    emplacement = st.empty()
+    emplacement.markdown(
+        f"""
+        <div style="position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);z-index:100000;background:#FFFEFB;padding:26px 48px;border-radius:14px;box-shadow:0 20px 60px rgba(16,26,39,.25);text-align:center;border:2px solid #397D67;">
+            <div style="font-size:52px;margin-bottom:10px;line-height:1;">✅</div>
+            <div style="font-size:16px;font-weight:800;color:#142235;font-family:Arial,sans-serif;">{message}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    time.sleep(1.0)
+    emplacement.empty()
+
+def afficher_page_connexion():
+    st.markdown(
+        """
+        <style>
+        .login-box { max-width: 440px; margin: 30px auto; padding: 25px; background: #FFFEFB; border-radius: 14px; box-shadow: 0 10px 30px rgba(16,26,39,.1); border: 1px solid #D9BF91; }
+        input[type="text"], input[type="password"] {
+            autocomplete: off !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    logo_path = os.path.join(os.getcwd(), "Martineau logo.png")
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=260)
+    st.markdown("<h2>Connexion au Portail B&V</h2>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#64748b;margin-bottom:20px;'>Veuillez vous identifier.</p>",
+        unsafe_allow_html=True,
+    )
+    with st.form("formulaire_connexion"):
+        identifiant = st.text_input("Identifiant", autocomplete="off", key="login_identifiant")
+        mot_de_passe = st.text_input("Mot de passe", type="password", autocomplete="new-password", key="login_password")
+        
+        if st.form_submit_button("Se connecter", use_container_width=True):
+            utilisateurs_valides = {
+                "1": "1",
+                "admin": "bos2024",
+                "labo": "labo123",
+                "atelier": "atelier123",
+                "test": "1234",
+            }
+            if (
+                identifiant in utilisateurs_valides
+                and utilisateurs_valides[identifiant] == mot_de_passe
+            ):
+                st.session_state.logged_in = True
+                st.session_state.current_user = identifiant
+                st.rerun()
+            else:
+                st.error("Identifiant ou mot de passe incorrect.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def get_svg_icon(icon_name):
+    icons = {
+        "search": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+        "chart": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>',
+    }
+    return icons.get(icon_name, "")
+
+
+@st.cache_data
+def encoder_image_systeme(nom_fichier):
+    if not os.path.exists(nom_fichier):
+        return ""
+    try:
+        with open(nom_fichier, "rb") as fichier:
+            return base64.b64encode(fichier.read()).decode("utf-8")
+    except OSError:
+        return ""
+
+
+def encoder_fichier_local(uploaded_file):
+    if uploaded_file is None:
+        return None
+    try:
+        bytes_data = uploaded_file.getvalue()
+        return {
+            "name": uploaded_file.name,
+            "mime": uploaded_file.type,
+            "data": base64.b64encode(bytes_data).decode("utf-8"),
+        }
+    except Exception as erreur:
+        st.error(f"Erreur lors de l'encodage de l'image : {erreur}")
+        return None
+
+
+def afficher_image_base64(base64_string, width=None):
+    if not base64_string:
+        return
+    try:
+        image = Image.open(io.BytesIO(base64.b64decode(base64_string)))
+        if width is None:
+            st.image(image, use_container_width=True)
+        else:
+            st.image(image, width=width)
+    except Exception as erreur:
+        st.error(f"Erreur d'image : {erreur}")
+
+
+def interpreter_texte_avec_images(texte, images_en_ligne=None):
+    if texte:
+        st.markdown(texte, unsafe_allow_html=True)
+
+
+def est_dosage_valide(txt_dosage):
+    if not txt_dosage:
+        return False
+    propre = str(txt_dosage).strip().lower()
+    return propre not in ["", "0", "0g", "0 g", "0ml", "0 ml", "none"]
+
+
+def pro_date_maintenant():
+    return datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
+
+def gerer_historique_dates_et_causes(ancien_dict, date_edition_str, cause_saisie=""):
+    date_creation = ancien_dict.get("date_creation", date_edition_str)
+    derniere = ancien_dict.get("date_derniere_maj", date_edition_str)
+    avant_derniere = ancien_dict.get("date_avant_derniere_maj", "-")
+    
+    if derniere != date_edition_str:
+        avant_derniere = derniere
+        derniere = date_edition_str
+
+    causes_existantes = list(ancien_dict.get("causes_modification", []))
+    if cause_saisie.strip():
+        causes_existantes.append(f"{date_edition_str} : {cause_saisie.strip()}")
+        if len(causes_existantes) > 4:
+            causes_existantes = causes_existantes[-4:] # Supprime automatiquement la plus ancienne au-delà de 4
+
+    return date_creation, derniere, avant_derniere
+
+def nettoyer_valeur_pdf(valeur):
+    if valeur is None:
+        return "-"
+    texte = str(valeur).strip()
+    if not texte:
+        return "-"
+    # 1. Échappe les caractères spéciaux (<, >, &) pour éviter les erreurs ReportLab
+    # 2. Remplace chaque saut de ligne (\n) par la balise <br/> reconnue par ReportLab
+    texte_securise = html_lib.escape(texte)
+    return texte_securise.replace("\n", "<br/>")
+
+
+if "ft_champs_defaut" not in st.session_state:
+    st.session_state.ft_champs_defaut = [
+        "Aspect / Finition",
+        "Viscosité attendue",
+        "Densité",
+        "Temps de séchage",
+        "Conditions d'application",
+    ]
+
+def extraire_specs_du_state(dialog_id):
+    """Lit les specs physico-chimiques directement depuis le session_state."""
+    specs = {}
+    for champ in st.session_state.ft_champs_defaut:
+        val = st.session_state.get(f"input_{dialog_id}_{champ}", "")
+        specs[champ] = val
+    return specs
 
 def render_dynamic_ft_inputs(fiche_existante, dialog_id):
-    """Génère les champs de saisie pour les spécifications physico-chimiques."""
-    st.markdown("##### 📝 Saisie des Spécifications (FT)")
-    valeurs_dynamiques = {}
+    has_champs = bool(st.session_state.ft_champs_defaut)
     
-    # On récupère les valeurs existantes si on est en modification
-    specs_actuelles = fiche_existante.get("specs_dynamiques", {})
+    if has_champs:
+        st.markdown("##### Spécifications Physico-Chimiques (Champs personnalisables)")
+        st.caption("Vous pouvez ajouter de nouveaux champs ou supprimer des champs existants.")
     
-    for champ in st.session_state.ft_champs_defaut:
-        # La clé unique est cruciale ici pour éviter l'erreur de duplication
-        val = st.text_input(
-            f"{champ}", 
-            value=specs_actuelles.get(champ, ""), 
-            key=f"input_{dialog_id}_{champ}"
+    # --- Gestion du vidage de l'input (AVANT instanciation du widget) ---
+    input_key = f"new_spec_input_{dialog_id}"
+    reset_key = f"reset_spec_input_{dialog_id}"
+    
+    if st.session_state.get(reset_key, False):
+        st.session_state[input_key] = ""
+        st.session_state[reset_key] = False
+    
+    col_new_f, col_btn_add = st.columns([3, 1])
+    with col_new_f:
+        nouveau_champ = st.text_input("Ajouter un champ personnalisé", key=input_key)
+    with col_btn_add:
+        st.write("")
+        st.write("")
+        if st.button("➕ Ajouter", key=f"btn_add_spec_{dialog_id}"):
+            f_clean = nouveau_champ.strip()
+            if f_clean and f_clean not in st.session_state.ft_champs_defaut:
+                st.session_state.ft_champs_defaut.append(f_clean)
+                st.session_state[reset_key] = True   # ← demande le vidage au prochain run
+                st.rerun()
+    
+    if has_champs:
+        with st.expander("Gérer / Supprimer les champs existants", expanded=False):
+            champs_a_retirer = []
+            for index_c, champ_courant in enumerate(st.session_state.ft_champs_defaut):
+                c1, c2 = st.columns([4, 1])
+                c1.write(f"• **{champ_courant}**")
+                if c2.button("🗑️", key=f"del_spec_{dialog_id}_{index_c}"):
+                    champs_a_retirer.append(champ_courant)
+            if champs_a_retirer:
+                for c_rem in champs_a_retirer:
+                    st.session_state.ft_champs_defaut.remove(c_rem)
+                st.rerun()
+
+    valeurs = {}
+    if has_champs:
+        specifications_existantes = fiche_existante.get("specs_dynamiques", {})
+        for champ in st.session_state.ft_champs_defaut:
+            valeur_defaut = specifications_existantes.get(champ, fiche_existante.get(champ.lower(), ""))
+            valeurs[champ] = st.text_input(
+                champ,
+                value=valeur_defaut,
+                key=f"input_{dialog_id}_{champ}",
+            )
+    return valeurs
+
+
+def generer_fichier_export(donnees_list, nom_fichier="export"):
+    if not donnees_list:
+        return None, None, None
+
+    if "Couleurs" in nom_fichier:
+        colonnes_map = {
+            "ref": "Référence",
+            "nom_actuel": "Nom",
+            "nom_futur": "Futur nom",
+            "ral": "RAL",
+            "societe": "Société",
+            "type": "Type",
+        }
+    elif "Elements" in nom_fichier:
+        colonnes_map = {
+            "nom": "Nom",
+            "code": "Code",
+            "designation": "Désignation",
+            "fournisseur": "Fournisseur",
+            "sous_groupe": "Sous-groupe",
+            "commentaire": "Commentaire",
+        }
+    elif "Melanges" in nom_fichier:
+        colonnes_map = {
+            "ref": "Référence",
+            "nom": "Nom",
+            "emplacement": "Emplacement",
+            "commentaire": "Commentaire",
+        }
+    else:
+        colonnes_map = None
+
+    donnees_propres = []
+    colonnes_finales = []
+
+    for ligne in donnees_list:
+        if colonnes_map:
+            ligne_propre = {
+                libelle: ligne.get(cle, "")
+                for cle, libelle in colonnes_map.items()
+            }
+            if "Elements" in nom_fichier:
+                ligne_propre["Compartiments"] = ", ".join(
+                    ligne.get("compartiments", [])
+                )
+            if "Melanges" in nom_fichier:
+                for index_composant, composant in enumerate(
+                    ligne.get("couleurs_associees", []),
+                    start=1,
+                ):
+                    ligne_propre[f"Composant {index_composant}"] = composant.get(
+                        "nom",
+                        "",
+                    )
+                    ligne_propre[f"Dosage {index_composant}"] = composant.get(
+                        "dosage",
+                        "",
+                    )
+        else:
+            ligne_propre = {
+                cle: json.dumps(valeur, ensure_ascii=False)
+                if isinstance(valeur, (list, dict))
+                else valeur
+                for cle, valeur in ligne.items()
+            }
+        donnees_propres.append(ligne_propre)
+        for cle in ligne_propre:
+            if cle not in colonnes_finales:
+                colonnes_finales.append(cle)
+
+    try:
+        import pandas as pd
+
+        dataframe = pd.DataFrame(donnees_propres).reindex(columns=colonnes_finales)
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+            dataframe.to_excel(writer, index=False, sheet_name="Export")
+        return (
+            buffer.getvalue(),
+            f"{nom_fichier}.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        valeurs_dynamiques[champ] = val
-        
-    return valeurs_dynamiques
+    except (ImportError, ModuleNotFoundError):
+        buffer_texte = io.StringIO()
+        writer = csv.DictWriter(
+            buffer_texte,
+            fieldnames=colonnes_finales,
+            extrasaction="ignore",
+            delimiter=";",
+        )
+        writer.writeheader()
+        writer.writerows(donnees_propres)
+        return (
+            buffer_texte.getvalue().encode("utf-8-sig"),
+            f"{nom_fichier}.csv",
+            "text/csv",
+        )
+
+
+def add_tmp_item(state_dict_name, cle, data):
+    st.session_state.setdefault(state_dict_name, {})[cle] = data
+
+
+def remove_tmp_item_cb(state_dict_name, widget_key, dict_key):
+    if not st.session_state.get(widget_key, True):
+        st.session_state.setdefault(state_dict_name, {}).pop(dict_key, None)
+
+
+# Filigrane général facultatif.
+LOGO_BACKGROUND_BASE64 = encoder_image_systeme("Logo-Beraudy-rectangle.png")
+if LOGO_BACKGROUND_BASE64:
+    st.markdown(
+        f"""
+        <style>
+        [data-testid="stAppViewContainer"]::before {{
+            content:"";
+            position:fixed;
+            inset:0;
+            background-image:url("data:image/png;base64,{LOGO_BACKGROUND_BASE64}");
+            background-size:45%;
+            background-repeat:no-repeat;
+            background-position:center;
+            opacity:.035;
+            z-index:0;
+            pointer-events:none;
+        }}
+        [data-testid="stHeader"], [data-testid="stVerticalBlock"], .stMain {{
+            position:relative;
+            z-index:1;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# =============================================================================
+# PDF
+# =============================================================================
+
+
+def dessiner_fond_pdf(canvas_pdf, document):
+    canvas_pdf.saveState()
+    canvas_pdf.setFillColor(colors.HexColor("#FCFAF5"))
+    canvas_pdf.rect(
+        0,
+        0,
+        document.pagesize[0],
+        document.pagesize[1],
+        fill=True,
+        stroke=False,
+    )
+    logo = "Logo-Beraudy-rectangle.png"
+    if os.path.exists(logo):
+        try:
+            canvas_pdf.setFillAlpha(0.07)
+            canvas_pdf.drawImage(
+                logo,
+                document.pagesize[0] / 2 - 145,
+                document.pagesize[1] / 2 - 45,
+                width=290,
+                height=90,
+                mask="auto",
+            )
+        except Exception:
+            pass
+    canvas_pdf.restoreState()
+
+# Essayer d'importer ReportLab pour la génération du PDF standard
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.pdfgen import canvas
+    REPORTLAB_DISPO = True
+except ImportError:
+    REPORTLAB_DISPO = False
 
 def dessiner_fond_ivoire_et_filigrane(canvas, doc):
     canvas.saveState()
@@ -570,68 +753,256 @@ def dessiner_fond_ivoire_et_filigrane(canvas, doc):
             pass # Sécurité anti-crash si la version de ReportLab gère mal l'alpha
     canvas.restoreState()
 
-# --- GENERATEUR DE FICHE TECHNIQUE STANDARD PDF (REPORTLAB) ---
-def generer_pdf_fiche_technique(data_obj, type_ft="melange"):  
+def generer_pdf_mindmap(fiche):
     buffer = io.BytesIO()
-    
-    # Vérification de la disponibilité de ReportLab
     if not REPORTLAB_DISPO:
-        buffer.write("ReportLab non disponible sur ce système.".encode('utf-8'))
+        buffer.write("ReportLab non disponible.".encode("utf-8"))
         buffer.seek(0)
         return buffer
 
-    # Définition des marges à 50 points (Style d'édition classique)
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=50, leftMargin=50, topMargin=50, bottomMargin=50)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=25,
+        rightMargin=25,
+        topMargin=25,
+        bottomMargin=25,
+    )
     story = []
+    
+    title_style = ParagraphStyle(
+        'MMTitle',
+        fontName='Times-Bold',
+        fontSize=15,
+        textColor=colors.HexColor('#142235'),
+        alignment=1,
+        spaceAfter=6,
+    )
+    story.append(Paragraph(f"MIND MAP / FICHE MÉTHODE : {fiche.get('nom', 'Mind Map')}", title_style))
+    if fiche.get('description'):
+        desc_style = ParagraphStyle('MMDesc', fontName='Times-Italic', fontSize=9, textColor=colors.HexColor('#50657D'), alignment=1, spaceAfter=8)
+        story.append(Paragraph(fiche.get('description'), desc_style))
 
-    # Styles Typographiques Sophistiqués (Vintage / Serif - Times)
-    title_style = ParagraphStyle('TitleStyle', fontName='Times-Bold', fontSize=20, textColor=colors.HexColor('#CC0605'), alignment=2, spaceBefore=10, spaceAfter=5)
-    h2_style = ParagraphStyle('H2Style', fontName='Times-Bold', fontSize=11, textColor=colors.HexColor('#2C3539'), spaceBefore=14, spaceAfter=8, borderPadding=4, borderBottom=0.5, borderBottomColor=colors.HexColor('#2C3539'))
-    body_style = ParagraphStyle('BodyStyle', fontName='Times-Roman', fontSize=9, leading=13, textColor=colors.HexColor('#2C3539'))
-    body_bold = ParagraphStyle('BodyBold', fontName='Times-Bold', fontSize=9, leading=13, textColor=colors.HexColor('#2C3539'))
-
-    # Détermination du Titre Principal de la Fiche
-    if type_ft == "melange": 
-        titre_principal = "FICHE TECHNIQUE PRODUIT"
-    elif type_ft == "couleur": 
-        titre_principal = "FICHE TECHNIQUE COULEUR"
-    else: 
-        titre_principal = "FICHE TECHNIQUE ÉLÉMENT"
+    noeuds = fiche.get('formes', [])
+    liaisons = fiche.get('liaisons', [])
+    
+    dw_width = 790
+    dw_height = 470
+    d = Drawing(dw_width, dw_height)
+    
+    d.add(Rect(0, 0, dw_width, dw_height, fillColor=colors.HexColor('#FCFAF5'), strokeColor=colors.HexColor('#D9BF91'), strokeWidth=0.5))
+    
+    if noeuds:
+        xs = [float(n.get('x', 0)) for n in noeuds]
+        ys = [float(n.get('y', 0)) for n in noeuds]
+        min_x, max_x = min(xs) - 100, max(xs) + 100
+        min_y, max_y = min(ys) - 70, max(ys) + 70
         
-    # --- EN-TÊTE HAUT DE GAMME ---
-    header_data = [["", Paragraph(titre_principal, title_style)]]
-    header_table = Table(header_data, colWidths=[160, 352])
+        box_w = max(400, max_x - min_x)
+        box_h = max(250, max_y - min_y)
+        
+        scale_x = (dw_width - 40) / box_w
+        scale_y = (dw_height - 40) / box_h
+        scale = min(scale_x, scale_y, 1.1)
+        
+        def to_pdf_coords(nx, ny):
+            px = 20 + (nx - min_x) * scale
+            py = dw_height - (20 + (ny - min_y) * scale)
+            return px, py
+        
+        node_map_coords = {}
+        for n in noeuds:
+            px, py = to_pdf_coords(float(n.get('x', 0)), float(n.get('y', 0)))
+            node_map_coords[str(n.get('id'))] = (px, py, n)
+            
+        for l in liaisons:
+            src_id = str(l.get('from'))
+            dst_id = str(l.get('to'))
+            if src_id in node_map_coords and dst_id in node_map_coords:
+                x1, y1, _ = node_map_coords[src_id]
+                x2, y2, _ = node_map_coords[dst_id]
+                edge_color = colors.HexColor(l.get('color', '#50657D'))
+                d.add(Line(x1, y1, x2, y2, strokeColor=edge_color, strokeWidth=1.5))
+                if l.get('label'):
+                    mx, my = (x1 + x2)/2, (y1 + y2)/2
+                    d.add(String(mx, my, str(l.get('label')), fontName='Times-Roman', fontSize=7, textAnchor='middle', fillColor=colors.HexColor('#344A63')))
+                    
+        for nid, (px, py, n) in node_map_coords.items():
+            nw = float(n.get('width', 190)) * scale * 0.72
+            nh = float(n.get('height', 78)) * scale * 0.72
+            fill_c = colors.HexColor(n.get('color', '#F4EBDD'))
+            border_c = colors.HexColor(n.get('border_color', '#9B7740'))
+            text_c = colors.HexColor(n.get('text_color', '#142235'))
+            
+            d.add(Rect(px - nw/2, py - nh/2, nw, nh, rx=6, ry=6, fillColor=fill_c, strokeColor=border_c, strokeWidth=1.5))
+            lbl = str(n.get('label', ''))
+            sub = str(n.get('subtitle', ''))
+            d.add(String(px, py + (2 if sub else -2), lbl, fontName='Times-Bold', fontSize=min(10, max(7, int(10 * scale))), textAnchor='middle', fillColor=text_c))
+            if sub:
+                d.add(String(px, py - 8, sub, fontName='Times-Italic', fontSize=min(8, max(6, int(8 * scale))), textAnchor='middle', fillColor=text_c))
+
+    story.append(d)
+    
+    def on_page(canvas, doc):
+        canvas.saveState()
+        canvas.setFillColor(colors.HexColor('#F9F8F6'))
+        canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], fill=True, stroke=False)
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=on_page, canvasmaker=NumeroteurDePages)
+    buffer.seek(0)
+    return buffer
+
+# --- GENERATEUR DE FICHE TECHNIQUE STANDARD PDF (REPORTLAB) ---
+def dessiner_fond_ivoire_et_entete(canvas, doc):
+    canvas.saveState()
+    canvas.setFillColor(colors.HexColor('#F9F8F6'))
+    canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], fill=True, stroke=False)
     
     img_path = "Logo-Beraudy-rectangle.png"
     if os.path.exists(img_path):
         try:
-            from reportlab.platypus import Image as RLImage
+            canvas.setFillAlpha(0.08)
+            canvas.drawImage(img_path, doc.pagesize[0]/2 - 150, doc.pagesize[1]/2 - 50, width=300, height=100, mask='auto')
+        except Exception:
+            pass
+            
+    # Entête répété sur chaque page après la 1ère
+    if doc.page > 1:
+        canvas.setFillColor(colors.HexColor('#142235'))
+        canvas.setFont('Times-Bold', 9)
+        canvas.drawString(45, doc.pagesize[1] - 28, "B&V — FICHE TECHNIQUE INDUSTRIELLE (SUITE)")
+        canvas.setStrokeColor(colors.HexColor('#2C3539'))
+        canvas.setLineWidth(0.5)
+        canvas.line(45, doc.pagesize[1] - 32, doc.pagesize[0] - 45, doc.pagesize[1] - 32)
+        
+    canvas.restoreState()
+
+def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
+    """
+    Génère une Fiche Technique PDF (Mélange, Couleur ou Élément) au format
+    Béraudy & Vaure avec mise en page fidèle au template visuel.
+    """
+    buffer = io.BytesIO()
+
+    # -----------------------------------------------------------------------
+    # Vérification ReportLab (à adapter selon votre constante globale)
+    # -----------------------------------------------------------------------
+    try:
+        from reportlab.platypus import SimpleDocTemplate
+    except ImportError:
+        buffer.write("ReportLab non disponible sur ce système.".encode('utf-8'))
+        buffer.seek(0)
+        return buffer
+
+    # -----------------------------------------------------------------------
+    # Configuration du document (marges éditoriales classiques)
+    # -----------------------------------------------------------------------
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=50,
+        leftMargin=50,
+        topMargin=50,
+        bottomMargin=50
+    )
+    story = []
+
+    # -----------------------------------------------------------------------
+    # Styles typographiques (Vintage / Serif – Times)
+    # -----------------------------------------------------------------------
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        fontName='Times-Bold',
+        fontSize=20,
+        textColor=colors.HexColor('#CC0605'),
+        alignment=2,  # Droite
+        spaceBefore=10,
+        spaceAfter=5
+    )
+
+    h2_style = ParagraphStyle(
+        'H2Style',
+        fontName='Times-Bold',
+        fontSize=11,
+        textColor=colors.HexColor('#2C3539'),
+        spaceBefore=14,
+        spaceAfter=8,
+        borderPadding=4,
+        borderBottom=0.5,
+        borderBottomColor=colors.HexColor('#2C3539')
+    )
+
+    body_style = ParagraphStyle(
+        'BodyStyle',
+        fontName='Times-Roman',
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#2C3539')
+    )
+
+    body_bold = ParagraphStyle(
+        'BodyBold',
+        fontName='Times-Bold',
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#2C3539')
+    )
+
+    # -----------------------------------------------------------------------
+    # Titre principal selon le type de fiche
+    # -----------------------------------------------------------------------
+    if type_ft == "melange":
+        titre_principal = "FICHE TECHNIQUE PRODUIT"
+    elif type_ft == "couleur":
+        titre_principal = "FICHE TECHNIQUE COULEUR"
+    else:
+        titre_principal = "FICHE TECHNIQUE ÉLÉMENT"
+
+    # =======================================================================
+    # 1. EN-TÊTE : Logo (gauche) + Titre (droite)
+    # =======================================================================
+    header_data = [["", Paragraph(titre_principal, title_style)]]
+    header_table = Table(header_data, colWidths=[160, 352])
+
+    img_path = "Logo-Beraudy-rectangle.png"
+    if os.path.exists(img_path):
+        try:
             img_rl = RLImage(img_path, width=170, height=44)
             img_rl.hAlign = 'LEFT'
             header_table._cellvalues[0][0] = img_rl
         except Exception:
-            header_table._cellvalues[0][0] = Paragraph("<b>BOS2</b>", body_bold)
+            header_table._cellvalues[0][0] = Paragraph("<b>BÉRAUDY & VAURE</b>", body_bold)
+    else:
+        header_table._cellvalues[0][0] = Paragraph("<b>BÉRAUDY & VAURE</b>", body_bold)
 
     header_table.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
-        ('LINEBELOW', (0,0), (-1,-1), 1, colors.HexColor('#2C3539')) # Ligne fine de délimitation
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ('LINEBELOW', (0, 0), (-1, -1), 1, colors.HexColor('#2C3539'))
     ]))
     story.append(header_table)
     story.append(Spacer(1, 8))
 
     ft_data = data_obj.get("fiche_technique", {})
 
-    # --- CADRE 1 : INFORMATIONS GÉNÉRALES ---
-    story.append(Paragraph("Informations Générales", h2_style))
+    # =======================================================================
+    # 2. BLOC SUPÉRIEUR : Informations Générales (gauche) | Aperçu Visuel (droite)
+    # =======================================================================
+
+    # -- Colonne gauche : Informations Générales --
     if type_ft == "melange":
-        titre_melange = data_obj.get("nom", "-") + (" <font color='#CC0605'>🔴 (À Vérifier)</font>" if data_obj.get("statut") == "Vérifier" else "")
+        story.append(Paragraph("Informations Générales", h2_style))
+        titre_melange = data_obj.get("nom", "-")
+        if data_obj.get("statut") == "Vérifier":
+            titre_melange += " <font color='#CC0605'>🔴 (Vérifier)</font>"
         infos_rows = [
             [Paragraph("<b>Nom du Mélange :</b>", body_style), Paragraph(titre_melange, body_style)],
             [Paragraph("<b>Référence interne :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("ref")), body_style)],
             [Paragraph("<b>Stockage / Emplacement :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("emplacement")), body_style)]
         ]
     elif type_ft == "couleur":
+        story.append(Paragraph("Informations Générales", h2_style))
         infos_rows = [
             [Paragraph("<b>Nom actuel :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("nom_actuel")), body_style)],
             [Paragraph("<b>Référence :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("ref")), body_style)],
@@ -641,7 +1012,10 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
             [Paragraph("<b>Type :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("type")), body_style)]
         ]
     else:
-        titre_element = data_obj.get("nom", "-") + (" <font color='#CC0605'>🔴 (À Vérifier)</font>" if data_obj.get("statut") == "Vérifier" else "")
+        story.append(Paragraph("Informations Générales", h2_style))
+        titre_element = data_obj.get("nom", "-")
+        if data_obj.get("statut") == "Vérifier":
+            titre_element += " <font color='#CC0605'>🔴 (Vérifier)</font>"
         infos_rows = [
             [Paragraph("<b>Nom de l'élément :</b>", body_style), Paragraph(titre_element, body_style)],
             [Paragraph("<b>Code :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("code")), body_style)],
@@ -650,372 +1024,419 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
             [Paragraph("<b>Code Article Achat :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("code_article")), body_style)],
             [Paragraph("<b>Désignation Achat :</b>", body_style), Paragraph(nettoyer_valeur_pdf(data_obj.get("designation_achat")), body_style)]
         ]
-    
-    t_infos = Table(infos_rows, colWidths=[140, 372])
+
+    t_infos = Table(infos_rows, colWidths=[140, 180])
     t_infos.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
         ('PADDING', (0, 0), (-1, -1), 5),
-        ('LINEBELOW', (0, 0), (-1, -2), 0.5, colors.HexColor('#E2E8F0'))
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, colors.HexColor('#E2E8F0')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
-    story.append(t_infos)
-    story.append(Spacer(1, 2))
 
-    # --- CADRE 2 : SUIVI ET HISTORIQUE ---
-    story.append(Paragraph("Suivi et Traçabilité de la Fiche", h2_style))
-    date_rows = [
-        [Paragraph("<b>Création :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("date_creation")), body_style),
-         Paragraph("<b>Dernière MÀJ :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("date_derniere_maj")), body_style),
-         Paragraph("<b>Précédente MÀJ :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("date_avant_derniere_maj")), body_style)]
-    ]
-    t_date = Table(date_rows, colWidths=[65, 95, 85, 95, 90, 82])
-    t_date.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
-        ('PADDING', (0, 0), (-1, -1), 5),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0'))
-    ]))
-    story.append(t_date)
-    story.append(Spacer(1, 2))
-
-    # --- CADRE 3 : SPÉCIFICATIONS PHYSICO-CHIMIQUES (CHAMPS PERSISTANTS DYNAMIQUES) ---
-    story.append(Paragraph("Spécifications Physico-Chimiques", h2_style))
-    specs_dyn = ft_data.get("specs_dynamiques", {})
-    spec_rows = []
-    
-    if specs_dyn:
-        items = list(specs_dyn.items())
-        # Distribution sur 2 colonnes pour un équilibre visuel parfait
-        for i in range(0, len(items), 2):
-            row = [Paragraph(f"<b>{items[i][0]} :</b>", body_style), Paragraph(nettoyer_valeur_pdf(items[i][1]), body_style)]
-            if i + 1 < len(items):
-                row.extend([Paragraph(f"<b>{items[i+1][0]} :</b>", body_style), Paragraph(nettoyer_valeur_pdf(items[i+1][1]), body_style)])
-            else:
-                row.extend(["", ""])
-            spec_rows.append(row)
+    # -- Colonne droite : Aperçu Visuel --
+    apercu_rows = []
+    img_apercu = None
+    if "image_rendu" in data_obj and data_obj["image_rendu"]:
+        try:
+            img_bytes = base64.b64decode(data_obj["image_rendu"]["data"])
+            img_apercu = RLImage(io.BytesIO(img_bytes), width=80, height=80)
+            img_apercu.hAlign = 'CENTER'
+            apercu_rows.append([img_apercu])
+        except Exception:
+            apercu_rows.append([Paragraph("-", body_style)])
     else:
-        # Fallback de secours si aucun champ personnalisé n'est encore initialisé
-        spec_rows = [
-            [Paragraph("<b>Aspect :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("aspect")), body_style), Paragraph("<b>Densité :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("densite")), body_style)],
-            [Paragraph("<b>Viscosité :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("viscosite")), body_style), Paragraph("<b>Temps de séchage :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("sechage")), body_style)],
-            [Paragraph("<b>Conditions d'application :</b>", body_style), Paragraph(nettoyer_valeur_pdf(ft_data.get("conditions")), body_style), "", ""]
-        ]
-        
-    t_spec = Table(spec_rows, colWidths=[110, 146, 110, 146])
-    t_spec.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
-        ('PADDING', (0, 0), (-1, -1), 5),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0'))
-    ]))
-    if not specs_dyn:
-        t_spec.setStyle(TableStyle([('SPAN', (1, 2), (3, 2))]))
-    story.append(t_spec)
-    story.append(Spacer(1, 2))
+        apercu_rows.append([Paragraph("-", body_style)])
 
-    # --- CADRE 4 : FORMULATION DE BASE (MÉLANGES SEULEMENT) ---
+    t_apercu = Table(apercu_rows, colWidths=[192])
+    t_apercu.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('PADDING', (0, 0), (-1, -1), 0),
+    ]))
+
+    # -- Assemblage des deux colonnes --
+    top_table = Table([[t_infos, t_apercu]], colWidths=[320, 192])
+    top_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    story.append(top_table)
+    story.append(Spacer(1, 1))
+
+
+
+    # =======================================================================
+    # 3. FORMULATION INDUSTRIELLE DE BASE (Mélanges uniquement)
+    # =======================================================================
     if type_ft == "melange":
         story.append(Paragraph("Formulation Industrielle de Base", h2_style))
         data_comp = [[
-            Paragraph("<b>Composant</b>", body_bold), Paragraph("<b>Code/Réf</b>", body_bold),
-            Paragraph("<b>Dosage</b>", body_bold), Paragraph("<b>Note technique</b>", body_bold),
-            Paragraph("<b>Désignation</b>", body_bold), Paragraph("<b>Risque</b>", body_bold)
+            Paragraph("<b>Code/Réf</b>", body_bold),
+            Paragraph("<b>Composant</b>", body_bold),
+            Paragraph("<b>Désignation</b>", body_bold),
+            Paragraph("<b>Dosage</b>", body_bold),
+            Paragraph("<b>Note / Commentaire</b>", body_bold),
+            Paragraph("<b>Risque</b>", body_bold)
         ]]
-        
+
         db_prep = st.session_state.processus_db.get("preparation_melanges", {})
-        tous_elements = db_prep.get("additifs", []) 
+        tous_elements = db_prep.get("additifs", [])
         toutes_couleurs = db_prep.get("couleurs", [])
         tous_melanges = db_prep.get("melanges", [])
 
         for c in data_obj.get("couleurs_associees", []):
             code_aff, des_aff, dan_aff = "-", "-", "-"
             ctype = c.get('type')
-            
+
             if ctype in ["additif", "element"]:
                 item = next((a for a in tous_elements if a["nom"] == c.get("ref")), None)
-                if item: code_aff, des_aff, dan_aff = item.get("code", "-"), item.get("designation", "-"), item.get("danger", "-")
+                if item:
+                    code_aff = item.get("code", "-")
+                    des_aff = item.get("designation", "-")
+                    dan_aff = item.get("danger", "-")
             elif ctype == "couleur":
                 item = next((a for a in toutes_couleurs if a["ref"] == c.get("ref")), None)
-                if item: code_aff, des_aff = item.get("ref", "-"), item.get("nom_actuel", "-")
+                if item:
+                    code_aff = item.get("ref", "-")
+                    des_aff = item.get("nom_actuel", "-")
             elif ctype == "melange_base":
                 item = next((a for a in tous_melanges if a["ref"] == c.get("ref")), None)
-                if item: code_aff, des_aff = item.get("ref", "-"), item.get("nom", "-")
+                if item:
+                    code_aff = item.get("ref", "-")
+                    des_aff = item.get("nom", "-")
             elif ctype == "ral_officiel":
-                code_aff, des_aff = c.get("ref", "-"), c.get("nom", "-")
+                code_aff = c.get("ref", "-")
+                des_aff = c.get("nom", "-")
 
             comm_comp = c.get("commentaire_composant", "") or "-"
-
             data_comp.append([
-                Paragraph(f"{c.get('nom')}", body_style), Paragraph(nettoyer_valeur_pdf(code_aff), body_style),
-                Paragraph(nettoyer_valeur_pdf(c.get('dosage')), body_style), Paragraph(nettoyer_valeur_pdf(comm_comp), body_style),
-                Paragraph(nettoyer_valeur_pdf(des_aff), body_style), Paragraph(nettoyer_valeur_pdf(dan_aff), body_style)
+                Paragraph(nettoyer_valeur_pdf(code_aff), body_style),
+                Paragraph(c.get('nom', '-'), body_style),
+                Paragraph(nettoyer_valeur_pdf(des_aff), body_style),
+                Paragraph(nettoyer_valeur_pdf(c.get('dosage')), body_style),
+                Paragraph(nettoyer_valeur_pdf(comm_comp), body_style),
+                Paragraph(nettoyer_valeur_pdf(dan_aff), body_style)
             ])
 
         if len(data_comp) > 1:
-            t_comp = Table(data_comp, colWidths=[110, 55, 55, 100, 130, 62]) 
+            # Largeurs ajustées pour un total exact de 512 pt
+            t_comp = Table(data_comp, colWidths=[55, 100, 100, 65, 122, 70], repeatRows=1)
             t_comp.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
                 ('PADDING', (0, 0), (-1, -1), 4),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1'))
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
             story.append(t_comp)
         else:
             story.append(Paragraph("Aucun composant rattaché à cette formulation.", body_style))
-        story.append(Spacer(1, 2))
+        story.append(Spacer(1, 1))
 
-    # CADRE 5 : COMMENTAIRE GLOBAL FINAL
+    # =======================================================================
+    # 4. COMMENTAIRES GÉNÉRAUX / NOTES
+    # =======================================================================
     story.append(Paragraph("Commentaires Généraux / Notes", h2_style))
     comm_global = data_obj.get("commentaire_global", "")
     t_comm = Table([[Paragraph(nettoyer_valeur_pdf(comm_global), body_style)]], colWidths=[512])
     t_comm.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFBEB')),
         ('PADDING', (0, 0), (-1, -1), 6),
-        ('BOX', (0, 0), (-1, -1), 0.2, colors.HexColor('#F59E0B'))
+        ('BOX', (0, 0), (-1, -1), 0.2, colors.HexColor('#F59E0B')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     story.append(t_comm)
+    story.append(Spacer(1, 1))
 
-    # DIMINUTION & OPTIMISATION DE L'APERCU VISUEL
-    if "image_rendu" in data_obj and data_obj["image_rendu"]:
-        story.append(Spacer(1, 6))
-        story.append(Paragraph("Aperçu Visuel", h2_style))
-        try:
-            img_bytes = base64.b64decode(data_obj["image_rendu"]["data"])
-            from reportlab.platypus import Image as RLImage
-            img_rl = RLImage(io.BytesIO(img_bytes), width=65, height=65)
-            img_rl.hAlign = 'LEFT'
-            story.append(img_rl)
-        except Exception:
-            story.append(Paragraph("-", body_style))
-
-    # --- SECTION SÉCURISÉE DES SIGNATURES TOUJOURS COLLÉE EN BAS ---
-    # Un grand spacer flexible force l'envoi du bloc de signature tout en bas de la page courante
-    story.append(Spacer(1, 9))
     
+    # =======================================================================
+    # 5. SPÉCIFICATIONS PHYSICO-CHIMIQUES
+    # =======================================================================
+    specs_dyn = ft_data.get("specs_dynamiques", {})
+    
+    # Fallback compatibilité descendante : anciens champs fixes
+    if not specs_dyn:
+        mapping_legacy = {
+            "Aspect / Finition": ft_data.get("aspect", ""),
+            "Viscosité attendue": ft_data.get("viscosite", ""),
+            "Densité": ft_data.get("densite", ""),
+            "Temps de séchage": ft_data.get("sechage", ""),
+            "Conditions d'application": ft_data.get("conditions", ""),
+        }
+        specs_dyn = {k: v for k, v in mapping_legacy.items() if str(v).strip()}
+    
+    # Filtrer également les valeurs vides du nouveau format
+    specs_dyn = {k: v for k, v in specs_dyn.items() if str(v).strip()}
+    
+    if specs_dyn:
+        story.append(Paragraph("Spécifications Physico-Chimiques", h2_style))
+        spec_rows = []
+        items = list(specs_dyn.items())
+        for i in range(0, len(items), 2):
+            row = [
+                Paragraph(f"<b>{items[i][0]} :</b>", body_style),
+                Paragraph(nettoyer_valeur_pdf(items[i][1]), body_style)
+            ]
+            if i + 1 < len(items):
+                row.extend([
+                    Paragraph(f"<b>{items[i + 1][0]} :</b>", body_style),
+                    Paragraph(nettoyer_valeur_pdf(items[i + 1][1]), body_style)
+                ])
+            else:
+                row.extend(["", ""])
+            spec_rows.append(row)
+        t_spec = Table(spec_rows, colWidths=[110, 146, 110, 146])
+        t_spec.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
+            ('PADDING', (0, 0), (-1, -1), 5),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(t_spec)
+        story.append(Spacer(1, 2))
+        
+        
+    # =======================================================================
+    # 6. SUIVI ET TRAÇABILITÉ
+    # =======================================================================
+    story.append(Paragraph("Suivi et Traçabilité de la Fiche", h2_style))
+    date_rows = [
+        [
+            Paragraph("<b>Création :</b>", body_style),
+            Paragraph(nettoyer_valeur_pdf(ft_data.get("date_creation")), body_style),
+            Paragraph("<b>Dernière MÀJ :</b>", body_style),
+            Paragraph(nettoyer_valeur_pdf(ft_data.get("date_derniere_maj")), body_style),
+            Paragraph("<b>Précédente MÀJ :</b>", body_style),
+            Paragraph(nettoyer_valeur_pdf(ft_data.get("date_avant_derniere_maj")), body_style)
+        ]
+    ]
+    t_date = Table(date_rows, colWidths=[65, 95, 85, 95, 90, 82])
+    t_date.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
+        ('PADDING', (0, 0), (-1, -1), 5),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    story.append(t_date)
+    story.append(Spacer(1, 1))
+    
+    
+    # =======================================================================
+    # 7. SIGNATURES (poussées vers le bas de page)
+    # =======================================================================
+    # Spacer flexible pour pousser le bloc signature en bas si l'espace le permet
+    story.append(Spacer(1, 15))
+
     redacteur = ft_data.get('redacteur', 'Labo / R&D')
     data_sign = [
-        [Paragraph(f"<b>Visa Rédacteur / Émetteur :</b><br/>{redacteur}", body_style), 
-         Paragraph("<b>Approbation Direction :</b><br/>Responsable Qualité Industrielle", body_style)],
-        [Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style), 
-         Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style)]
+        [
+            Paragraph(f"<b>Visa Rédacteur / Émetteur :</b><br/>{redacteur}", body_style),
+            Paragraph("<b>Approbation Direction :</b><br/>Responsable Qualité Industrielle", body_style)
+        ],
+        [
+            Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style),
+            Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style)
+        ]
     ]
     t_sign = Table(data_sign, colWidths=[256, 256])
     t_sign.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('PADDING', (0, 0), (-1, -1), 4),
-        ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.HexColor('#CBD5E1')) # Séparateur vertical discret entre les visas
+        ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.HexColor('#CBD5E1')),
     ]))
     story.append(t_sign)
 
-    # Construction finale du document en passant notre callback d'arrière-plan Ivoire/Filtré
-    doc.build(story, 
-              onFirstPage=dessiner_fond_ivoire_et_filigrane, 
-              onLaterPages=dessiner_fond_ivoire_et_filigrane, 
-              canvasmaker=NumeroteurDePages)
-              
+    # =======================================================================
+    # CONSTRUCTION FINALE
+    # =======================================================================
+    # Remplacez dessiner_fond_ivoire_et_filigrane et NumeroteurDePages
+    # par vos callbacks / canvasmaker existants dans votre projet.
+    doc.build(
+        story,
+        onFirstPage=dessiner_fond_ivoire_et_filigrane,
+        onLaterPages=dessiner_fond_ivoire_et_filigrane,
+        canvasmaker=NumeroteurDePages
+    )
+
     buffer.seek(0)
     return buffer
 
-# --- VISUALISATIONS DIALOGS (STREAMLIT UI) ---
-def generer_miniature_ft(data_obj):
-    ft = data_obj.get("fiche_technique", {})
-    if not ft or not ft.get("aspect"): return None
-    return f"Aspect: {ft.get('aspect', '-')}\nDensité: {ft.get('densite', '-')}\nViscosité: {ft.get('viscosite', '-')}"
 
-@st.dialog("📄 Visualisation Fiche Technique", width="large")
+
+# =============================================================================
+# DIALOGUES DE CONSULTATION
+# =============================================================================
+
+
+@st.dialog("Fiche Technique — Mélange", width="large")
 def ouvrir_visualisation_ft(melange):
-    st.markdown(f"### 📄 Fiche Technique : {melange.get('nom')}")
-    ft = melange.get("fiche_technique", {})
-    
-    st.info(f"📅 **Création :** {ft.get('date_creation','-')} | 🔄 **Dernière MÀJ :** {ft.get('date_derniere_maj','-')} | ⏳ **Avant-dernière MÀJ :** {ft.get('date_avant_derniere_maj','-')}")
-    
-    col_visu, col_actions = st.columns([1, 2])
-    
-    with col_visu:
-        if "image_rendu" in melange and melange["image_rendu"]:
-            st.markdown("**Aperçu du produit :**")
-            afficher_image_base64(melange["image_rendu"]["data"], width=150)
-            
-        miniature = generer_miniature_ft(melange)
-        if miniature:
-            st.markdown("**Aperçu des specs :**")
-            st.code(miniature)
-        else:
-            st.warning("Aucune donnée technique pour générer une miniature.")
-
-    with col_actions:
-        st.markdown("**Actions :**")
-        c1, c2, c3 = st.columns(3)
-        nom_telechargement = f"FT_produit_{melange.get('nom', 'inconnu')}_{melange.get('ref', 'vide')}.pdf".replace(" ", "_")
-        c1.download_button("⬇️ PDF", data=generer_pdf_fiche_technique(melange, "melange"), file_name=nom_telechargement, mime="application/pdf", use_container_width=True)
-        if c2.button("📋 Copier", use_container_width=True): st.toast("Contenu copié !")
-        if c3.button("🔗 Partager", use_container_width=True): st.toast("Lien de partage généré !")
-
-@st.dialog("📄 Fiche Technique - Élément", width="large")
-def ouvrir_visualisation_ft_additif(additif):
-    st.markdown(f"### 📄 Fiche Technique Élément : {additif.get('nom')}")
-    ft = additif.get("fiche_technique", {})
-    st.info(f"📅 **Création :** {ft.get('date_creation','-')} | 🔄 **Dernière MÀJ :** {ft.get('date_derniere_maj','-')}")
-    
-    col_visu, col_actions = st.columns([1, 2])
-    with col_visu:
-        st.markdown("**Nature :**")
-        st.write(additif.get("nature", "-"))
-        
-    with col_actions:
-        st.markdown("**Actions :**")
-        c1, c2, c3 = st.columns(3)
-        nom_telechargement_el = f"FT_element_{additif.get('nom', 'inconnu')}_{additif.get('code', 'vide')}.pdf".replace(" ", "_")
-        c1.download_button("⬇️ PDF", data=generer_pdf_fiche_technique(additif, "additif"), file_name=nom_telechargement_el, mime="application/pdf", use_container_width=True)
-        if c2.button("📋 Copier", use_container_width=True): st.toast("Contenu copié !")
-        if c3.button("🔗 Partager", use_container_width=True): st.toast("Lien de partage généré !")
-
-@st.dialog("📄 Fiche Technique - Couleur", width="large")
-def ouvrir_visualisation_ft_couleur(couleur):
-    st.markdown(f"### 📄 Fiche Technique Couleur : {couleur.get('nom_actuel')} ({couleur.get('ref')})")
-    ft = couleur.get("fiche_technique", {})
-    st.info(f"📅 **Création :** {ft.get('date_creation','-')} | 🔄 **Dernière MÀJ :** {ft.get('date_derniere_maj','-')}")
-    
-    col_visu, col_actions = st.columns([1, 2])
-    with col_visu:
-        st.markdown("**Aperçu visuel :**")
-        st.markdown(f'<div style="width:100px; height:100px; background-color:{couleur.get("visuel", "#3B82F6")}; border-radius:8px; border:1px solid #1E293B;"></div>', unsafe_allow_html=True)
-        
-    with col_actions:
-        st.markdown("**Actions :**")
-        c1, c2, c3 = st.columns(3)
-        nom_telechargement_c = f"FT_couleur_{couleur.get('nom_actuel', 'inconnu')}_{couleur.get('ref', 'vide')}.pdf".replace(" ", "_")
-        c1.download_button("⬇️ PDF", data=generer_pdf_fiche_technique(couleur, "couleur"), file_name=nom_telechargement_c, mime="application/pdf", use_container_width=True)
-        if c2.button("📋 Copier", use_container_width=True): st.toast("Contenu copié !")
-        if c3.button("🔗 Partager", use_container_width=True): st.toast("Lien de partage généré !")
-
-@st.dialog("👁️ Détails de la couleur", width="large")
-def ouvrir_details_couleur(couleur):
-    st.markdown(f"### 🎨 {couleur.get('nom_actuel')} ({couleur.get('ref')})")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"**Nom Futur :** {couleur.get('nom_futur', '-')}")
-        st.markdown(f"**Code RAL :** {couleur.get('ral', '-')}")
-        st.markdown(f"**Société :** {couleur.get('societe', '-')}")
-        st.markdown(f"**Type :** {couleur.get('type', '-')}")
-    with col2:
-        st.markdown("**Aperçu visuel :**")
-        st.markdown(f'<div style="width:120px; height:120px; background-color:{couleur.get("visuel", "#3B82F6")}; border-radius:12px; border:2px solid #1E293B; margin:auto;"></div>', unsafe_allow_html=True)
-    if st.button("Fermer la vue", use_container_width=True):
-        st.rerun()
-
-@st.dialog("👁️ Détails de l'élément", width="large")
-def abrir_details_element(element):
-    st.markdown(f"### 🧪 {element.get('nom')} ({element.get('code')})")
-    st.markdown(f"**Désignation :** {element.get('designation', '-')}")
-    st.markdown(f"**Fournisseur :** {element.get('fournisseur', '-')}")
-    comps = element.get('compartiments', [])
-    st.markdown(f"**Compartiments :** {', '.join(comps) if comps else 'Aucun'}")
-    st.markdown(f"**Sous-groupe :** {element.get('sous_groupe', 'Général')}")
-    st.markdown(f"**Nature (FT) :** {element.get('nature', '-')}")
-    danger_val = element.get('danger', '-')
-    st.markdown(f"**Risque / Danger :** {danger_val}" + (f" - {element.get('danger_texte', '')}" if danger_val == 'Oui' else ""))
-    st.markdown(f"**Commentaire (Formulation) :**\n> {element.get('commentaire', '-')}")
-    if st.button("Fermer la vue", use_container_width=True): st.rerun()
-
-
-@st.dialog("👁️ Détails de l'élément", width="large")
-def ouvrir_details_element(element):
-    st.markdown(f"### 🧪 {element.get('nom')} ({element.get('code')})")
-    st.markdown(f"**Désignation :** {element.get('designation', '-')}")
-    st.markdown(f"**Fournisseur :** {element.get('fournisseur', '-')}")
-    
-    comps = element.get('compartiments', [])
-    st.markdown(f"**Compartiments :** {', '.join(comps) if comps else 'Aucun'}")
-    st.markdown(f"**Sous-groupe :** {element.get('sous_groupe', 'Général')}")
-    
-    st.markdown(f"**Nature (FT) :** {element.get('nature', '-')}")
-    danger_val = element.get('danger', '-')
-    st.markdown(f"**Risque / Danger :** {danger_val}" + (f" - {element.get('danger_texte', '')}" if danger_val == 'Oui' else ""))
-    st.markdown(f"**Commentaire (Formulation) :**\n> {element.get('commentaire', '-')}")
-    if element.get("has_ft"):
-        st.success("📄 Cet élément possède une Fiche Technique enregistrée.")
-    else:
-        st.warning("⚠️ Aucune Fiche Technique générée pour cet élément.")
-    if st.button("Fermer la vue", use_container_width=True):
-        st.rerun()
-
-@st.dialog("👁️ Détails complets du mélange", width="large")
-def ouvrir_details_melange(melange):
-    st.markdown(f"### 🧪 {melange.get('nom')} ({melange.get('ref')})")
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        st.markdown(f"**Catégorie:** {melange.get('categorie_choisie', 'Non défini')}")
-        st.markdown(f"**Emplacement:** {melange.get('emplacement', 'Non défini')}")
-        st.markdown(f"**État:** {melange.get('statut', 'Non défini')}")
-    with col_d2:
+    st.markdown(f"### {melange.get('nom', 'Mélange')}")
+    fiche = melange.get("fiche_technique", {})
+    st.info(
+        f"Création : {fiche.get('date_creation', '-')} | "
+        f"Dernière mise à jour : {fiche.get('date_derniere_maj', '-')}"
+    )
+    col_visuel, col_actions = st.columns([1, 2])
+    with col_visuel:
         if melange.get("image_rendu"):
-            st.caption("Aperçu du rendu :")
-            afficher_image_base64(melange["image_rendu"]["data"], width=150)
+            afficher_image_base64(melange["image_rendu"].get("data"), width=160)
         else:
             st.caption("Aucune image associée.")
-    
-    st.markdown(f"**Commentaire court:**\n> {melange.get('commentaire', '-')}")
-    
-    st.markdown("---")
-    st.markdown("#### 📄 Fiche Technique (Aperçu)")
-    has_ft = melange.get("has_ft", False)
-    if has_ft:
-        ft = melange.get("fiche_technique", {})
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown(f"**Aspect :** {ft.get('aspect', '-')}")
-            st.markdown(f"**Viscosité :** {ft.get('viscosite', '-')}")
-            st.markdown(f"**Densité :** {ft.get('densite', '-')}")
-            st.markdown(f"**Rédigé par :** {ft.get('redacteur', 'Labo / R&D')}")
-        with c2:
-            st.markdown(f"**Séchage :** {ft.get('sechage', '-')}")
-        st.markdown(f"**Conditions :** {ft.get('conditions', '-')}")
-        st.markdown(f"**Commentaire FT :**\n> {melange.get('commentaire_global', '-')}")
-    else:
-        st.info("Aucune Fiche Technique enregistrée pour ce mélange.")
+    with col_actions:
+        nom = f"FT_{melange.get('ref', 'melange')}.pdf".replace(" ", "_")
+        st.download_button(
+            "Télécharger le PDF",
+            data=generer_pdf_fiche_technique(melange, "melange"),
+            file_name=nom,
+            mime="application/pdf",
+            use_container_width=True,
+        )
 
-    st.markdown("---")
-    st.markdown("#### 🧱 Formulation (Composants)")
-    comp_list = melange.get("couleurs_associees", [])
-    if comp_list:
-        for c in comp_list:
-            t_comp = c.get('type', 'composant').replace('additif', 'élément')
-            comm_aff = f" | Note: {c['commentaire_composant']}" if c.get("commentaire_composant") else ""
-            st.markdown(f"""
-            <div style="display:flex; align-items:center; margin-bottom: 5px; padding: 5px; background: #F8FAFC; border-radius: 4px;">
-                <div style="width:16px; height:16px; background-color:{c.get('visuel','#CCCCCC')}; border-radius:50%; margin-right:10px; border:1px solid #333;"></div>
-                <span style="flex-grow: 1;"><b>[{t_comp.upper()}]</b> {c.get('nom')} ({c.get('ref')}){comm_aff}</span>
-                <span style="font-weight: bold; color: #CC0605; background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #E2E8F0;">Dosage: {c.get('dosage', '-')}</span>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.warning("Aucun composant sélectionné dans ce mélange.")
-        
-    if st.button("Fermer la vue", use_container_width=True):
-        st.rerun()
 
-# --- MODALES POUR PROCESSUS & METHODES ---
-@st.dialog("➕ Créer une nouvelle fiche méthode", width="large")
-def ouvrir_ajout_fiche_methode():
-    nom = st.text_input("Nom de la fiche méthode")
-    if st.button("Créer la fiche", type="primary"):
-        if nom:
-            st.session_state.processus_db["preparation_melanges"]["fiches_methode"].append({"nom": nom, "formes": [], "liaisons": []})
-            sauvegarder_donnees()
-            st.rerun()
+@st.dialog("Fiche Technique — Élément", width="large")
+def ouvrir_visualisation_ft_additif(additif):
+    st.markdown(f"### {additif.get('nom', 'Élément')}")
+    fiche = additif.get("fiche_technique", {})
+    st.info(
+        f"Création : {fiche.get('date_creation', '-')} | "
+        f"Dernière mise à jour : {fiche.get('date_derniere_maj', '-')}"
+    )
+    nom = f"FT_element_{additif.get('code', 'element')}.pdf".replace(" ", "_")
+    st.download_button(
+        "Télécharger le PDF",
+        data=generer_pdf_fiche_technique(additif, "additif"),
+        file_name=nom,
+        mime="application/pdf",
+        use_container_width=True,
+    )
 
-@st.dialog("➕ Ajouter une étape", width="large")
-def ouvrir_formulaire_etape(groupe, prod):
+
+@st.dialog("Fiche Technique — Couleur", width="large")
+def ouvrir_visualisation_ft_couleur(couleur):
+    st.markdown(
+        f"### {couleur.get('nom_actuel', 'Couleur')} ({couleur.get('ref', '-')})"
+    )
+    col_apercu, col_action = st.columns([1, 2])
+    with col_apercu:
+        st.markdown(
+            f"<div style='width:120px;height:120px;background:{couleur.get('visuel', '#D8DEE4')};border:1px solid #142235;border-radius:12px;'></div>",
+            unsafe_allow_html=True,
+        )
+    with col_action:
+        nom = f"FT_couleur_{couleur.get('ref', 'couleur')}.pdf".replace(" ", "_")
+        st.download_button(
+            "Télécharger le PDF",
+            data=generer_pdf_fiche_technique(couleur, "couleur"),
+            file_name=nom,
+            mime="application/pdf",
+            use_container_width=True,
+        )
+
+
+@st.dialog("Détails de la couleur", width="large")
+def ouvrir_details_couleur(couleur):
+    st.markdown(
+        f"### {couleur.get('nom_actuel', 'Couleur')} ({couleur.get('ref', '-')})"
+    )
+    col_texte, col_apercu = st.columns(2)
+    with col_texte:
+        st.write(f"**Futur nom :** {couleur.get('nom_futur', '-')}")
+        st.write(f"**RAL :** {couleur.get('ral', '-')}")
+        st.write(f"**Société :** {couleur.get('societe', '-')}")
+        st.write(f"**Type :** {couleur.get('type', '-')}")
+        st.write(f"**Statut :** {couleur.get('statut', 'Pas vérifié')}")
+    with col_apercu:
+        st.markdown(
+            f"<div style='width:150px;height:150px;margin:auto;background:{couleur.get('visuel', '#D8DEE4')};border:2px solid #142235;border-radius:14px;'></div>",
+            unsafe_allow_html=True,
+        )
+
+
+@st.dialog("Détails de l'élément", width="large")
+def ouvrir_details_element(element):
+    st.markdown(f"### {element.get('nom', 'Élément')} ({element.get('code', '-')})")
+    col_gauche, col_droite = st.columns(2)
+    with col_gauche:
+        st.write(f"**Désignation :** {element.get('designation', '-')}")
+        st.write(f"**Fournisseur :** {element.get('fournisseur', '-')}")
+        st.write(
+            f"**Compartiments :** {', '.join(element.get('compartiments', [])) or '-'}"
+        )
+        st.write(f"**Sous-groupe :** {element.get('sous_groupe', 'Général')}")
+    with col_droite:
+        st.write(f"**Nature :** {element.get('nature', '-')}")
+        st.write(f"**Danger :** {element.get('danger', '-')}")
+        st.write(f"**Précision :** {element.get('danger_texte', '-')}")
+        st.write(f"**Statut :** {element.get('statut', 'Pas vérifié')}")
+    st.write(f"**Commentaire :** {element.get('commentaire', '-')}")
+
+
+# Alias conservé pour compatibilité avec l'ancien code.
+abrir_details_element = ouvrir_details_element
+
+
+@st.dialog("Détails du mélange", width="large")
+def ouvrir_details_melange(melange):
+    st.markdown(
+        f"### {melange.get('nom', 'Mélange')} ({melange.get('ref', '-')})"
+    )
+    col_gauche, col_droite = st.columns(2)
+    with col_gauche:
+        st.write(f"**Catégorie :** {melange.get('categorie_choisie', '-')}")
+        st.write(f"**Emplacement :** {melange.get('emplacement', '-')}")
+        st.write(f"**Statut :** {melange.get('statut', '-')}")
+        st.write(f"**Commentaire :** {melange.get('commentaire', '-')}")
+    with col_droite:
+        if melange.get("image_rendu"):
+            afficher_image_base64(melange["image_rendu"].get("data"), width=170)
+        else:
+            st.caption("Aucune image associée.")
+
+    st.markdown("#### Composants")
+    composants = melange.get("couleurs_associees", [])
+    if not composants:
+        st.info("Aucun composant enregistré.")
+    for composant in composants:
+        st.markdown(
+            f"- **{composant.get('nom', '-')}** — {composant.get('dosage', '-')}"
+        )
+
+
+# =============================================================================
+# PROCESSUS ET AIDE
+# =============================================================================
+
+
+@st.dialog("Ajouter une étape", width="large")
+def ouvrir_formulaire_etape(groupe, produit):
     titre = st.text_input("Titre de l'étape")
     description = st.text_area("Description de l'étape")
-    if st.button("Enregistrer l'étape", type="primary"):
-        if titre:
-            if "etapes" not in st.session_state.processus_db[groupe][prod]:
-                st.session_state.processus_db[groupe][prod]["etapes"] = []
-            st.session_state.processus_db[groupe][prod]["etapes"].append({"titre": titre, "description": description, "is_local": False})
-            sauvegarder_donnees()
-            st.rerun()
+    fichier = st.file_uploader(
+        "Illustration optionnelle",
+        type=["png", "jpg", "jpeg", "webp"],
+    )
+    if st.button("Enregistrer l'étape", type="primary", use_container_width=True):
+        if not titre.strip():
+            st.error("Le titre est obligatoire.")
+            return
+        etape = {
+            "titre": titre.strip(),
+            "description": description.strip(),
+            "is_local": bool(fichier),
+        }
+        if fichier:
+            etape["media_data"] = encoder_fichier_local(fichier)
+        st.session_state.processus_db[groupe][produit].setdefault("etapes", []).append(
+            etape
+        )
+        sauvegarder_donnees()
+        st.rerun()
+
 
 # --- URL ROUTING & AIDE ---
 query_params = st.query_params
-@st.dialog("❓ Centre d'Aide Intégré BOS2", width="large")
+@st.dialog("❓ Centre d'Aide Intégré B&V", width="large")
 def ouvrir_fenetre_aide():
     astuces = [
         "Utilisez la recherche globale dans le menu de gauche pour retrouver instantanément un produit par son nom, sa référence ou son code RAL.",
@@ -1049,7 +1470,7 @@ def ouvrir_fenetre_aide():
     
     with onglets[0]:
         st.markdown("### 📖 Guide de démarrage rapide")
-        st.write("BOS2 est divisé en plusieurs modules accessibles depuis la barre latérale. Sélectionnez une action ci-dessous pour découvrir comment l'utiliser :")
+        st.write("B&V est divisé en plusieurs modules accessibles depuis la barre latérale. Sélectionnez une action ci-dessous pour découvrir comment l'utiliser :")
         with st.expander("🏭 Création des processus industriels (SOP)", expanded=True):
             st.markdown("""
             - **Créer un nouveau processus :** Saisissez un nom dans le menu latéral gauche et cliquez sur "Créer la fiche".
@@ -1073,7 +1494,7 @@ def ouvrir_fenetre_aide():
             - **Vérification automatique RAL :** Saisissez un code (ex: 3020) et cliquez sur "Vérifier RAL" pour appliquer la teinte hexadécimale officielle.
             - **Créer une Fiche Technique :** Activez le toggle "📝 Créer la Fiche Technique" pour ajouter les conditions d'application et assigner un rédacteur.
             """)
-        with st.expander("🧪 Catalogue des éléments (Additifs)"):
+        with st.expander("🧪 Catalogue des composants (Additifs)"):
             st.markdown("""
             Gérez vos matières premières et additifs d'atelier :
             - **Déclarer un danger :** Sélectionnez "Oui" dans la catégorie Risque/Danger pour afficher une pastille rouge 🔴 d'avertissement sur toutes les interfaces liées.
@@ -1101,9 +1522,9 @@ def ouvrir_fenetre_aide():
         st.markdown("### ❓ Foire Aux Questions (FAQ)")
         faq_data = {
         "Démarrage & Navigation": {
-            "Comment changer la langue du logiciel ?": "Actuellement, BOS2 est disponible uniquement en français. Une version multilingue est prévue dans les mises à jour futures.",
+            "Comment changer la langue du logiciel ?": "Actuellement, B&V est disponible uniquement en français. Une version multilingue est prévue dans les mises à jour futures.",
             "Comment revenir à l'accueil ?": "Cliquez sur le bouton 'Menu Principal / Retour' situé dans la barre latérale gauche.",
-            "Est-ce que je peux ouvrir deux onglets BOS2 ?": "Oui, mais attention : si vous modifiez la même donnée dans deux onglets, la dernière sauvegarde écrasera la première.",
+            "Est-ce que je peux ouvrir deux onglets B&V ?": "Oui, mais attention : si vous modifiez la même donnée dans deux onglets, la dernière sauvegarde écrasera la première.",
             "Comment rafraîchir les données ?": "Utilisez le bouton de rafraîchissement de votre navigateur (F5) ou retournez au menu principal.",
             "Le logiciel est-il compatible tablette ?": "Oui, le design est responsive. Utilisez le 'Mode Grand Écran' pour une meilleure expérience tactile.",
             "Où voir ma version actuelle ?": "La version est affichée dans l'onglet 'Support & Versions' de ce centre d'aide.",
@@ -1189,7 +1610,7 @@ def ouvrir_fenetre_aide():
         st.markdown("### 📞 Support technique & Historique")
         col_sup, col_ver = st.columns(2)
         with col_sup:
-            st.markdown("**Contact Équipe BOS2**")
+            st.markdown("**Contact Équipe B&V**")
             st.markdown("""
             En cas de blocage critique, veuillez contacter :
             - 🏭 **Responsable R&D** (Anomalie sur les formulations)
@@ -1199,13 +1620,13 @@ def ouvrir_fenetre_aide():
         with col_ver:
             st.markdown("**Historique des versions**")
             st.markdown("""
-            **BOS2 v2.0 (Version Actuelle)**
+            **B&V v2.5 (Version Actuelle)**
             - ✔️ Intégration du Centre d'aide interactif complet
             - ✔️ Moteur de recherche globale avancé
             - ✔️ Export Excel universel (Couleurs, Éléments, Mélanges)
             - ✔️ Optimisation anti-lag de l'interface
             
-            **BOS2 v1.5**
+            **B&V v1.5**
             - Intégration du générateur de PDF standardisé (ReportLab)
             - Ajout de l'éditeur de fiches méthodes visuel
             """)
@@ -1236,1211 +1657,5917 @@ if "moved_id" in query_params and "moved_x" in query_params and "moved_y" in que
     except Exception:
         pass
 
-# --- CONTENU DE LA BARRE LATÉRALE ---
+
+
+# =============================================================================
+# BARRE LATÉRALE ET RECHERCHE GLOBALE
+# =============================================================================
+
 with st.sidebar:
-    # Utilisation d'un chemin robuste
     logo_path = os.path.join(os.getcwd(), "Martineau logo.png")
     if os.path.exists(logo_path):
         st.image(logo_path, use_container_width=True)
-    
-    st.markdown('<div style="text-align: center; margin-top: 20px;"><h2>PORTAIL</h2></div>', unsafe_allow_html=True)
-    
+    st.markdown(
+        '<div style="text-align:center;margin-top:16px;"><h2>PORTAIL</h2></div>',
+        unsafe_allow_html=True,
+    )
     if st.button("❓ Centre de formation", use_container_width=True):
         ouvrir_fenetre_aide()
-    
     st.markdown("---")
+
 
 st.markdown("<br>", unsafe_allow_html=True)
 search_icon = get_svg_icon("search")
-st.markdown(f'<div style="display:flex; align-items:center;">{search_icon}<span>RECHERCHE ULTRA-RAPIDE (Filtre instantané)...</span></div>', unsafe_allow_html=True)
-recherche_globale = st.text_input("", label_visibility="collapsed").strip()
+st.markdown(
+    f'<div style="display:flex;align-items:center;">{search_icon}<span>RECHERCHE ULTRA-RAPIDE (Filtre instantané)...</span></div>',
+    unsafe_allow_html=True,
+)
+recherche_globale = st.text_input(
+    "Recherche globale",
+    label_visibility="collapsed",
+    key="recherche_globale_principale",
+).strip()
+
 
 if recherche_globale:
-    icon_chart = get_svg_icon("chart")
-    st.markdown(f"### {icon_chart} Résultats de la recherche globale", unsafe_allow_html=True)
-    
-    resultats_trouves = []
-    db_prep = st.session_state.processus_db.get("preparation_melanges", {})
-    
-    for prod_nom in st.session_state.processus_db.get("creation_processus", {}).keys():
-        if recherche_globale.lower() in prod_nom.lower():
-            resultats_trouves.append({"label": f"Dossier : {prod_nom}", "chemin": "Processus ➔ " + prod_nom, "type": "process", "data": prod_nom})
-            
-    for c in db_prep.get("couleurs", []):
-        if any(recherche_globale.lower() in str(c.get(k, "")).lower() for k in ["ref", "nom_actuel", "nom_futur", "ral", "societe"]):
-            resultats_trouves.append({"label": f"Couleur : {c.get('nom_actuel')} ({c.get('ref')})", "chemin": "Mélanges ➔ Nuancier", "type": "couleur", "data": c})
-            
-    for a in db_prep.get("additifs", []):
-        if any(recherche_globale.lower() in str(a.get(k, "")).lower() for k in ["nom", "code", "designation", "fournisseur"]):
-            resultats_trouves.append({"label": f"Élément : {a.get('nom')} ({a.get('code')})", "chemin": "Mélanges ➔ Catalogue", "type": "element", "data": a})
-            
-    for m in db_prep.get("melanges", []):
-        if any(recherche_globale.lower() in str(m.get(k, "")).lower() for k in ["ref", "nom", "emplacement"]):
-            resultats_trouves.append({"label": f"Mélange : {m.get('nom')} ({m.get('ref')})", "chemin": "Mélanges ➔ Formulations", "type": "melange", "data": m})
+    requete = recherche_globale.lower()
+    resultats = []
+    preparation = st.session_state.processus_db.get("preparation_melanges", {})
 
-    if resultats_trouves:
-        for idx_r, res in enumerate(resultats_trouves[:15]): 
-            col_res_txt, col_res_btn = st.columns([4, 1])
-            with col_res_txt:
-                st.markdown(f"**{res['label']}**")
-                st.caption(f"📍 Chemin : {res['chemin']}")
-            with col_res_btn:
-                if res["type"] in ["couleur", "element", "melange"]:
-                    if st.button("👁️ Voir", key=f"global_res_{idx_r}"):
-                        if res["type"] == "couleur": ouvrir_details_couleur(res["data"])
-                        elif res["type"] == "element": ouvrir_details_element(res["data"])
-                        elif res["type"] == "melange": ouvrir_details_melange(res["data"])
-                else:
-                    if st.button("Accéder", key=f"global_res_{idx_r}"):
-                        st.session_state.groupe_actif = "creation_processus"
-                        st.session_state.produit_selectionne = res["data"]
-                        st.rerun()
-            st.markdown("<hr style='margin: 0.3em 0px; opacity: 0.15;'>", unsafe_allow_html=True)
-            
-        if len(resultats_trouves) > 15:
-            st.caption(f"*... et {len(resultats_trouves)-15} autres résultats trouvés. Affinez votre recherche.*")
-    else:
+    for produit in st.session_state.processus_db.get("creation_processus", {}):
+        if requete in produit.lower():
+            resultats.append(
+                {
+                    "type": "processus",
+                    "label": produit,
+                    "data": produit,
+                }
+            )
+    for couleur in preparation.get("couleurs", []):
+        if any(
+            requete in str(couleur.get(cle, "")).lower()
+            for cle in ["ref", "nom_actuel", "nom_futur", "ral", "societe"]
+        ):
+            resultats.append(
+                {
+                    "type": "couleur",
+                    "label": f"{couleur.get('nom_actuel')} ({couleur.get('ref')})",
+                    "data": couleur,
+                }
+            )
+    for element in preparation.get("additifs", []):
+        if any(
+            requete in str(element.get(cle, "")).lower()
+            for cle in ["nom", "code", "designation", "fournisseur"]
+        ):
+            resultats.append(
+                {
+                    "type": "élément",
+                    "label": f"{element.get('nom')} ({element.get('code')})",
+                    "data": element,
+                }
+            )
+    for melange in preparation.get("melanges", []):
+        if any(
+            requete in str(melange.get(cle, "")).lower()
+            for cle in ["ref", "nom", "emplacement"]
+        ):
+            resultats.append(
+                {
+                    "type": "mélange",
+                    "label": f"{melange.get('nom')} ({melange.get('ref')})",
+                    "data": melange,
+                }
+            )
+
+    if not resultats:
         st.info("Aucun résultat trouvé.")
-    st.markdown("---")
+    else:
+        with st.expander(
+            f"Résultats de la recherche ({len(resultats)})",
+            expanded=True,
+        ):
+            for index_resultat, resultat in enumerate(resultats[:20]):
+                col_texte, col_action = st.columns([4, 1])
+                col_texte.markdown(
+                    f"**{resultat['type'].title()} :** {resultat['label']}"
+                )
+                if resultat["type"] == "couleur":
+                    if col_action.button("Voir", key=f"search_color_{index_resultat}"):
+                        ouvrir_details_couleur(resultat["data"])
+                elif resultat["type"] == "élément":
+                    if col_action.button("Voir", key=f"search_element_{index_resultat}"):
+                        ouvrir_details_element(resultat["data"])
+                elif resultat["type"] == "mélange":
+                    if col_action.button("Voir", key=f"search_mix_{index_resultat}"):
+                        ouvrir_details_melange(resultat["data"])
+                else:
+                    if col_action.button("Accéder", key=f"search_process_{index_resultat}"):
+                        st.session_state.groupe_actif = "creation_processus"
+                        st.session_state.produit_selectionne = resultat["data"]
+                        st.rerun()
+
+
+# =============================================================================
+# PORTAIL PRINCIPAL
+# =============================================================================
 
 if st.session_state.groupe_actif is None:
     st.title("Portail Industriel")
-    st.markdown("### Sélectionnez votre espace de travail :")
-    c_g1, c_g2 = st.columns(2)
-    with c_g1:
-        if st.button(f"CRÉATION DES PROCESSUS", type="primary", use_container_width=True):
+    st.markdown("### Sélectionnez votre espace de travail")
+    col_processus, col_preparation = st.columns(2)
+    with col_processus:
+        if st.button(
+            "CRÉATION DES PROCESSUS",
+            type="primary",
+            use_container_width=True,
+        ):
             st.session_state.groupe_actif = "creation_processus"
             st.rerun()
-    with c_g2:
-        if st.button(f"PRÉPARATION DES MÉLANGES", type="primary", use_container_width=True):
+    with col_preparation:
+        if st.button(
+            "PRÉPARATION DES MÉLANGES",
+            type="primary",
+            use_container_width=True,
+        ):
             st.session_state.groupe_actif = "preparation_melanges"
             st.session_state.sub_section_melange = "🎨 Nuancier de couleurs"
             st.rerun()
     st.stop()
 
-G_ACTIF = st.session_state.groupe_actif
 
-if st.sidebar.button(f"Menu Principal / Retour"):
+G_ACTIF = st.session_state.groupe_actif
+if st.sidebar.button("Menu Principal / Retour", use_container_width=True):
     st.session_state.groupe_actif = None
+    st.session_state.produit_selectionne = None
     st.rerun()
 
-# ---------------------------------------------------------
-# MODULE 1 : CRÉATION DES PROCESSUS
-# ---------------------------------------------------------
+
+# =============================================================================
+# MODULE 1 — CRÉATION DES PROCESSUS
+# =============================================================================
+
 if G_ACTIF == "creation_processus":
-    db_courante = st.session_state.processus_db[G_ACTIF]
-    st.sidebar.title("🏗️ Édition SOP")
-    recherche_sidebar = st.sidebar.text_input("🔍 Filtrer la liste...", "").strip()
-    liste_produits = sorted(list(db_courante.keys()))
-    if recherche_sidebar: liste_produits = sorted([p for p in liste_produits if recherche_sidebar.lower() in p.lower()])
+    base_processus = st.session_state.processus_db["creation_processus"]
+    st.sidebar.title("Édition SOP")
+    filtre_processus = st.sidebar.text_input("Filtrer la liste").strip().lower()
+    noms_processus = sorted(
+        [
+            nom
+            for nom in base_processus
+            if not filtre_processus or filtre_processus in nom.lower()
+        ],
+        key=str.lower,
+    )
 
-    if liste_produits: st.info(f"📊 **Nombre de processus :** {len(liste_produits)} | **Premier :** {liste_produits[0]} | **Dernier :** {liste_produits[-1]}")
-    else: st.sidebar.warning("Aucun processus trouvé")
-
-    producto_index = liste_produits.index(st.session_state.produit_selectionne) if st.session_state.produit_selectionne in liste_produits else 0
-    if liste_produits:
-        produit_selectionne = st.sidebar.selectbox("Choisir un processus actif :", liste_produits, index=producto_index)
+    if noms_processus:
+        selection_actuelle = st.session_state.produit_selectionne
+        index_selection = (
+            noms_processus.index(selection_actuelle)
+            if selection_actuelle in noms_processus
+            else 0
+        )
+        produit_selectionne = st.sidebar.selectbox(
+            "Processus actif",
+            noms_processus,
+            index=index_selection,
+        )
         st.session_state.produit_selectionne = produit_selectionne
     else:
         produit_selectionne = None
+        st.sidebar.info("Aucun processus enregistré.")
 
     st.sidebar.markdown("---")
-    st.sidebar.subheader("➕ Nouvel Fichier")
+    st.sidebar.subheader("Nouveau fichier")
     nouveau_nom = st.sidebar.text_input("Nom du processus")
-    if st.sidebar.button("Créer la fiche"):
-        if nouveau_nom and nouveau_nom not in db_courante:
-            st.session_state.processus_db[G_ACTIF][nouveau_nom] = {"etapes": [], "ressources": []}
-            st.session_state.produit_selectionne = nouveau_nom
+    if st.sidebar.button("Créer la fiche", use_container_width=True):
+        nom_propre = nouveau_nom.strip()
+        if not nom_propre:
+            st.sidebar.error("Le nom est obligatoire.")
+        elif nom_propre in base_processus:
+            st.sidebar.error("Ce processus existe déjà.")
+        else:
+            base_processus[nom_propre] = {"etapes": [], "ressources": []}
+            st.session_state.produit_selectionne = nom_propre
             sauvegarder_donnees()
             st.rerun()
 
-    st.title("🏗️ Création des Processus")
+    st.title("Création des Processus")
     if produit_selectionne:
-        if "mode_grand_ecran" not in st.session_state: st.session_state.mode_grand_ecran = False
-        col_titre, col_btn_mode = st.columns([3, 1])
-        with col_titre: st.subheader(f"📦 Processus : {produit_selectionne}")
-        with col_btn_mode:
-            if st.button("🖥️ Basculer Grand Écran"):
-                st.session_state.mode_grand_ecran = not st.session_state.mode_grand_ecran
-                st.rerun()
+        col_titre, col_mode = st.columns([3, 1])
+        col_titre.subheader(f"Processus : {produit_selectionne}")
+        if "mode_grand_ecran" not in st.session_state:
+            st.session_state.mode_grand_ecran = False
+        if col_mode.button("Basculer Grand Écran", use_container_width=True):
+            st.session_state.mode_grand_ecran = not st.session_state.mode_grand_ecran
+            st.rerun()
 
-        etapes = db_courante[produit_selectionne].setdefault("etapes", [])
+        etapes = base_processus[produit_selectionne].setdefault("etapes", [])
         if not st.session_state.mode_grand_ecran:
-            if st.button("➕ Créer une étape", type="primary"): ouvrir_formulaire_etape(G_ACTIF, produit_selectionne)
+            if st.button("Ajouter une étape", type="primary"):
+                ouvrir_formulaire_etape("creation_processus", produit_selectionne)
             st.markdown("---")
-            for i, etape in enumerate(list(etapes)):
-                with st.expander(f"🛑 Étape {i+1} : {etape['titre']}", expanded=False):
-                    col_t, col_m = st.columns([1, 1])
-                    with col_t:
-                        interpreter_texte_avec_images(etape['description'], etape.get("inline_images", {}))
-                        key_del = f"del_confirm_etp_{produit_selectionne}_{i}"
-                        if key_del not in st.session_state: st.session_state[key_del] = False
-                        if not st.session_state[key_del]:
-                            if st.button("🗑️ Supprimer l'étape", key=f"del_etp_{i}"):
-                                st.session_state[key_del] = True
-                                st.rerun()
-                        else:
-                            st.warning("💥 Confirmer la suppression ?")
-                            c_del_col1, c_del_col2 = st.columns(2)
-                            with c_del_col1:
-                                if st.button("Oui, effacer", key=f"del_etp_yes_{i}", type="primary"):
-                                    st.session_state.processus_db[G_ACTIF][produit_selectionne]["etapes"].pop(i)
-                                    st.session_state[key_del] = False
-                                    sauvegarder_donnees()
-                                    st.rerun()
-                            with c_del_col2:
-                                if st.button("Annuler", key=f"del_etp_no_{i}"):
-                                    st.session_state[key_del] = False
-                                    st.rerun()
-                    with col_m:
-                        if etape.get("is_local") and etape.get("media_data"):
-                            afficher_image_base64(etape["media_data"]["data"])
-        else:
-            for i, etape in enumerate(etapes):
-                st.markdown(f"### Étape {i+1} : {etape['titre']}")
-                interpreter_texte_avec_images(etape['description'], etape.get("inline_images", {}))
-                if etape.get("is_local") and etape.get("media_data"): afficher_image_base64(etape["media_data"]["data"])
+
+        if not etapes:
+            st.info("Aucune étape enregistrée dans ce processus.")
+
+        for index_etape, etape in enumerate(etapes):
+            if st.session_state.mode_grand_ecran:
+                st.markdown(f"### Étape {index_etape + 1} : {etape.get('titre', '-')}")
+                interpreter_texte_avec_images(etape.get("description", ""))
+                if etape.get("is_local") and etape.get("media_data"):
+                    afficher_image_base64(etape["media_data"].get("data"))
                 st.markdown("---")
+            else:
+                with st.expander(
+                    f"Étape {index_etape + 1} : {etape.get('titre', '-')}",
+                    expanded=False,
+                ):
+                    col_description, col_media = st.columns(2)
+                    with col_description:
+                        interpreter_texte_avec_images(etape.get("description", ""))
+                    with col_media:
+                        if etape.get("is_local") and etape.get("media_data"):
+                            afficher_image_base64(etape["media_data"].get("data"))
+                    cle_confirmation = f"delete_step_{produit_selectionne}_{index_etape}"
+                    if st.button("Supprimer l'étape", key=f"ask_{cle_confirmation}"):
+                        st.session_state[cle_confirmation] = True
+                    if st.session_state.get(cle_confirmation, False):
+                        col_oui, col_non = st.columns(2)
+                        if col_oui.button("Confirmer", key=f"yes_{cle_confirmation}"):
+                            etapes.pop(index_etape)
+                            st.session_state[cle_confirmation] = False
+                            sauvegarder_donnees()
+                            st.rerun()
+                        if col_non.button("Annuler", key=f"no_{cle_confirmation}"):
+                            st.session_state[cle_confirmation] = False
+                            st.rerun()
 
-# ---------------------------------------------------------
-# MODULE 2 : PRÉPARATION DES MÉLANGES
-# ---------------------------------------------------------
+
+# =============================================================================
+# MODULE 2 — PRÉPARATION DES MÉLANGES
+# =============================================================================
+
 elif G_ACTIF == "preparation_melanges":
-    choix_section = st.sidebar.radio("Sélectionnez la section :", ["🎨 Nuancier de couleurs", "🧪 Catalogue des éléments", "🔢 Référentiel des codes RAL", "⚗️ Formulations d'atelier", "📐 Fiches Méthode"])
+    sections_preparation = [
+        "🎨 Nuancier de couleurs",
+        "🧪 Catalogue des éléments",
+        "🔢 Référentiel des codes RAL",
+        "⚗️ Formulations d'atelier",
+        "📐 Fiches Méthode",
+    ]
+    choix_section = st.sidebar.radio(
+        "Sélectionnez la section",
+        sections_preparation,
+        key="navigation_preparation",
+    )
     st.session_state.sub_section_melange = choix_section
-    st.markdown(f"## {st.session_state.sub_section_melange}")
+    st.markdown(f"## {choix_section}")
 
-    fiches_m = st.session_state.processus_db["preparation_melanges"].setdefault("fiches_methode", [])
-    liste_couleurs = st.session_state.processus_db["preparation_melanges"].setdefault("couleurs", [])
-    liste_additifs = st.session_state.processus_db["preparation_melanges"].setdefault("additifs", [])
-    liste_melanges = st.session_state.processus_db["preparation_melanges"].setdefault("melanges", [])
+    preparation = st.session_state.processus_db["preparation_melanges"]
+    fiches_m = preparation.setdefault("fiches_methode", [])
+    liste_couleurs = preparation.setdefault("couleurs", [])
+    liste_additifs = preparation.setdefault("additifs", [])
+    liste_melanges = preparation.setdefault("melanges", [])
+
+    # ========================================================================
+    # OUTILS VISUELS ET FONCTIONNELS COMMUNS AUX SECTIONS DE PRÉPARATION
+    # À conserver juste avant le premier :
+    # if choix_section == "🎨 Nuancier de couleurs":
+    # ========================================================================
+
+    import copy
+    import hashlib
+    import html as html_lib
+    import math
+
+
+    def pro_texte(valeur):
+        return str(valeur or "").strip()
+
+
+    def pro_naturel(valeur):
+        return [
+            int(partie) if partie.isdigit() else partie.lower()
+            for partie in re.split(r"(\d+)", pro_texte(valeur))
+        ]
+
+
+    def pro_date_maintenant():
+        return datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
+
+
+    def pro_couleur_valide(valeur, defaut="#D8DEE4"):
+        valeur = pro_texte(valeur)
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", valeur):
+            return valeur.upper()
+        return defaut
+
+
+    def pro_identifiant_unique(prefixe, donnees, cle):
+        numero = 1
+        valeurs = {pro_texte(item.get(cle)).lower() for item in donnees}
+        candidat = prefixe
+        while candidat.lower() in valeurs:
+            numero += 1
+            candidat = f"{prefixe}-{numero}"
+        return candidat
+
+
+    def pro_entete_section(surtitre, titre, description, statistiques, badge="BASE B&V"):
+        cartes = "".join(
+            f"""
+            <div style="min-width:110px;padding:8px 12px;background:rgba(255,254,251,.08);border:1px solid rgba(217,191,145,.20);border-radius:8px;">
+                <div style="color:#D9BF91;font-size:9.5px;font-weight:800;text-transform:uppercase;">{html_lib.escape(str(libelle))}</div>
+                <div style="color:#FFFEFB;font-family:Georgia,serif;font-size:20px;margin-top:2px;">{html_lib.escape(str(valeur))}</div>
+            </div>
+            """
+            for libelle, valeur in statistiques
+        )
+        st.markdown(
+            f"""
+            <div style="margin:2px 0 16px 0;padding:16px 18px;color:#FFFEFB;background:linear-gradient(135deg,rgba(20,34,53,.98),rgba(32,52,77,.94));border:1px solid rgba(200,165,107,.36);border-radius:12px;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:260px;">
+                        <div style="color:#D9BF91;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">{html_lib.escape(surtitre)}</div>
+                        <div style="font-family:Georgia,serif;font-size:26px;line-height:1.15;margin-top:4px;">{html_lib.escape(titre)}</div>
+                        <div style="max-width:760px;color:rgba(255,254,251,.68);font-size:12.5px;margin-top:5px;">{html_lib.escape(description)}</div>
+                    </div>
+                    <div style="color:#142235;background:#D9BF91;padding:6px 10px;border-radius:999px;font-size:10px;font-weight:800;">{html_lib.escape(badge)}</div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                    {cartes}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    def pro_barre_resultats(nombre, total, libelle="résultats"):
+        st.markdown(
+            f"""
+            <div style="
+                min-height:42px;
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                gap:12px;
+                padding:8px 12px;
+                margin:8px 0 10px 0;
+                color:#344A63;
+                background:rgba(255,254,251,.78);
+                border:1px solid rgba(20,34,53,.13);
+                border-radius:9px;
+                font-size:12px;
+                font-weight:700;
+            ">
+                <span>{nombre} {html_lib.escape(libelle)}</span>
+                <span style="color:#6D7F91;">Total enregistré : {total}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+    def pro_paginer(liste, prefixe, taille_defaut=25):
+        if not liste:
+            return [], 1, 1
+
+        col_taille, col_page = st.columns([1, 1])
+        tailles = [10, 25, 50, 100, 200]
+        index_taille = tailles.index(taille_defaut) if taille_defaut in tailles else 1
+
+        with col_taille:
+            taille = st.selectbox(
+                "Lignes par page",
+                tailles,
+                index=index_taille,
+                key=f"{prefixe}_taille_page",
+            )
+
+        nombre_pages = max(1, math.ceil(len(liste) / taille))
+        cle_page = f"{prefixe}_numero_page"
+        ancienne_page = int(st.session_state.get(cle_page, 1))
+        ancienne_page = min(max(1, ancienne_page), nombre_pages)
+        st.session_state[cle_page] = ancienne_page
+
+        with col_page:
+            page = st.number_input(
+                "Page",
+                min_value=1,
+                max_value=nombre_pages,
+                step=1,
+                key=cle_page,
+            )
+
+        debut = (int(page) - 1) * taille
+        fin = debut + taille
+        return liste[debut:fin], int(page), nombre_pages
+
+
+    def pro_export_json(donnees, nom_fichier, key):
+        contenu = json.dumps(donnees, ensure_ascii=False, indent=2).encode("utf-8")
+        st.download_button(
+            "⬇️ Sauvegarde JSON",
+            data=contenu,
+            file_name=nom_fichier,
+            mime="application/json",
+            use_container_width=True,
+            key=key,
+        )
+
+
+    def pro_audit_donnees(donnees, champs_obligatoires, cle_unique=None):
+        manquants = []
+        doublons = []
+        valeurs_vues = {}
+
+        for index_item, item in enumerate(donnees):
+            champs_vides = [
+                libelle
+                for cle, libelle in champs_obligatoires
+                if not pro_texte(item.get(cle))
+            ]
+            if champs_vides:
+                manquants.append((index_item, champs_vides))
+
+            if cle_unique:
+                valeur = pro_texte(item.get(cle_unique)).lower()
+                if valeur:
+                    if valeur in valeurs_vues:
+                        doublons.append((valeurs_vues[valeur], index_item, valeur))
+                    else:
+                        valeurs_vues[valeur] = index_item
+
+        return manquants, doublons
+
+
+    def pro_afficher_audit(donnees, champs_obligatoires, cle_unique, prefixe):
+        manquants, doublons = pro_audit_donnees(
+            donnees,
+            champs_obligatoires,
+            cle_unique,
+        )
+        with st.expander("🛡️ Contrôle qualité des données", expanded=False):
+            if not manquants and not doublons:
+                st.success("Aucune anomalie structurelle détectée.")
+            if manquants:
+                st.warning(f"{len(manquants)} fiche(s) comportent des champs essentiels vides.")
+                for index_item, champs in manquants[:25]:
+                    st.caption(f"Ligne {index_item + 1} : {', '.join(champs)}")
+            if doublons:
+                st.error(f"{len(doublons)} doublon(s) potentiel(s) détecté(s).")
+                for premier, second, valeur in doublons[:25]:
+                    st.caption(
+                        f"Valeur « {valeur} » présente aux lignes {premier + 1} et {second + 1}."
+                    )
+
+
+    def pro_total_dosages(composants):
+        totaux = {}
+        for composant in composants:
+            dosage = pro_texte(composant.get("dosage")).replace(",", ".")
+            resultat = re.fullmatch(r"\s*([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z%]+)\s*", dosage)
+            if resultat:
+                valeur = float(resultat.group(1))
+                unite = resultat.group(2).lower()
+                totaux[unite] = totaux.get(unite, 0.0) + valeur
+        return totaux
+
+
+    # ========================================================================
+    # SECTION 1 — NUANCIER DE COULEURS
+    # ========================================================================
 
     if choix_section == "🎨 Nuancier de couleurs":
-        @st.dialog("➕ Ajouter une nouvelle couleur", width="large")
+        nombre_couleurs_ft = sum(1 for item in liste_couleurs if item.get("has_ft"))
+        nombre_couleurs_verifiees = sum(
+            1 for item in liste_couleurs if item.get("statut") == "Vérifier"
+        )
+        nombre_couleurs_ral = sum(1 for item in liste_couleurs if pro_texte(item.get("ral")))
+
+        pro_entete_section(
+            "Référentiel chromatique",
+            "Nuancier de couleurs",
+            "Centralisez les références, appellations, clients, codes RAL et fiches techniques de vos teintes industrielles.",
+            [
+                ("Couleurs", len(liste_couleurs)),
+                ("Avec FT", nombre_couleurs_ft),
+                ("Vérifiées", nombre_couleurs_verifiees),
+                ("Avec RAL", nombre_couleurs_ral),
+            ],
+            "NUANCIER INDUSTRIEL",
+        )
+
+
+        @st.dialog("Ajouter une nouvelle couleur", width="large")
         def ouvrir_ajout_couleur():
-            if "add_ral" not in st.session_state: st.session_state["add_ral"] = ""
-            if "add_hex" not in st.session_state: st.session_state["add_hex"] = "#3B82F6"
+            st.markdown("### Nouvelle référence couleur")
+            st.caption("Les informations sont enregistrées dans le nuancier B&V existant.")
 
-            c_ref = st.text_input("Référence (Code unique)")
-            c_actuel = st.text_input("Nom actuel")
-            c_futur = st.text_input("Futur nom")
-            c_societe = st.text_input("Société / Client")
-            c_type = st.selectbox("Type de couleur", ["Opaque", "Translucide", "2"])
-            c_statut = st.radio("Statut :", ["Pas vérifié", "Vérifier"], key="radio_statut_add_col", horizontal=True)
+            onglet_identite, onglet_visuel, onglet_ft = st.tabs(
+                ["Identité", "Nuance et statut", "Fiche Technique"]
+            )
 
-            activer_ft = st.toggle("📝 Créer la Fiche Technique (FT)", value=False)
-            
-            valeurs_dynamiques = {}
-            if activer_ft:
-                # Appel de la fonction de saisie dynamique
-                valeurs_dynamiques = render_dynamic_ft_inputs({}, "add_couleur")
-                m_comm_glob = st.text_area("Commentaires Généraux (FT)")
-                ft_redacteur = st.selectbox("Rédacteur :", OPTIONS_REDACTEURS, index=0, key="select_red_add_col")
-            
-            if st.button("Enregistrer la couleur", type="primary", key="btn_save_color"):
-                # ... (votre logique de sauvegarde)
-                # Assurez-vous d'inclure "specs_dynamiques": valeurs_dynamiques dans votre dictionnaire
-                st.session_state.processus_db["preparation_melanges"]["couleurs"].append({
-                    # ... vos champs ...
-                    "fiche_technique": {
-                        "specs_dynamiques": valeurs_dynamiques,
-                        "redacteur": ft_redacteur,
-                        # ... autres champs ...
+            with onglet_identite:
+                col_identite_1, col_identite_2 = st.columns(2)
+                with col_identite_1:
+                    c_ref = st.text_input(
+                        "Référence (code unique) *",
+                        key="pro_add_color_ref",
+                    )
+                    c_actuel = st.text_input(
+                        "Nom actuel",
+                        key="pro_add_color_name",
+                    )
+                    c_futur = st.text_input(
+                        "Futur nom",
+                        key="pro_add_color_future",
+                    )
+                with col_identite_2:
+                    c_societe = st.text_input(
+                        "Société / Client",
+                        key="pro_add_color_company",
+                    )
+                    c_type = st.selectbox(
+                        "Type de couleur",
+                        ["Opaque", "Translucide", "2"],
+                        key="pro_add_color_type",
+                    )
+                    commentaire_court = st.text_input(
+                        "Commentaire court",
+                        key="pro_add_color_comment",
+                    )
+
+            with onglet_visuel:
+                col_visuel_1, col_visuel_2 = st.columns(2)
+                with col_visuel_1:
+                    c_ral = st.text_input(
+                        "Code RAL",
+                        value=st.session_state.get("add_ral", ""),
+                        placeholder="Exemple : 5015",
+                        key="pro_add_color_ral",
+                    )
+                    c_statut = st.radio(
+                        "Statut",
+                        ["Pas vérifié", "Vérifier"],
+                        horizontal=True,
+                        key="pro_add_color_status",
+                    )
+                with col_visuel_2:
+                    numero_ral = "".join(filter(str.isdigit, c_ral))
+                    couleur_ral = RAL_DICT.get(numero_ral)
+                    valeur_initiale = couleur_ral or st.session_state.get(
+                        "add_hex",
+                        "#3B82F6",
+                    )
+                    c_hex = st.color_picker(
+                        "Nuance personnalisée",
+                        pro_couleur_valide(valeur_initiale, "#3B82F6"),
+                        key="pro_add_color_hex",
+                    )
+                    if couleur_ral:
+                        st.success(f"RAL {numero_ral} reconnu : {couleur_ral}")
+                    elif c_ral:
+                        st.warning("Code RAL absent du référentiel. La nuance manuelle sera utilisée.")
+
+            with onglet_ft:
+                activer_ft = st.toggle(
+                    "Créer la Fiche Technique (FT)",
+                    value=False,
+                    key="pro_add_color_has_ft",
+                )
+                valeurs_dynamiques = {}
+                commentaire_global = ""
+                conditions = ""
+                redacteur = OPTIONS_REDACTEURS[0]
+
+                # Dans la partie Fiche Technique de ouvrir_ajout_couleur() :
+                if activer_ft:
+                    valeurs_dynamiques = render_dynamic_ft_inputs({}, "add_couleur")
+                    conditions = st.text_area(
+                        "Conditions d'application",
+                        key="pro_add_color_conditions",
+                    )
+                    commentaire_global = st.text_area(
+                        "Commentaires généraux (FT)",
+                        key="pro_add_color_global_comment",
+                    )
+                    redacteur = st.selectbox(
+                        "Rédacteur / Modifié par",
+                        OPTIONS_REDACTEURS,
+                        key="pro_add_color_writer",
+                    )
+
+            if st.button(
+                "Enregistrer la couleur",
+                type="primary",
+                use_container_width=True,
+                key="pro_add_color_save",
+            ):
+                reference = c_ref.strip()
+                if not reference:
+                    st.error("La référence est obligatoire.")
+                    return
+
+                if any(pro_texte(item.get("ref")).lower() == reference.lower() for item in liste_couleurs):
+                    st.error("Cette référence existe déjà dans le nuancier.")
+                    return
+
+                numero_ral = "".join(filter(str.isdigit, c_ral))
+                couleur_finale = RAL_DICT.get(numero_ral, c_hex) if numero_ral else c_hex
+                date_creation = pro_date_maintenant()
+                if activer_ft:
+                    specs_dynamiques = extraire_specs_du_state("add_couleur")
+                else:
+                    specs_dynamiques = {}
+                liste_couleurs.append(
+                    {
+                        "ref": reference,
+                        "nom_actuel": c_actuel.strip(),
+                        "nom_futur": c_futur.strip(),
+                        "ral": c_ral.strip(),
+                        "societe": c_societe.strip(),
+                        "type": c_type,
+                        "visuel": couleur_finale,
+                        "statut": c_statut,
+                        "commentaire": commentaire_court.strip(),
+                        "commentaire_global": commentaire_global.strip(),
+                        "has_ft": activer_ft,
+                        "fiche_technique": {
+                            "specs_dynamiques": specs_dynamiques,
+                            "date_creation": date_creation,
+                            "date_derniere_maj": date_creation,
+                            "date_avant_derniere_maj": "-",
+                            "redacteur": redacteur,
+                        },
                     }
-                })
-                afficher_animation_validation("Couleur ajoutée")
-                st.rerun()    
-            
-            c_ral_col, c_chk_col, c_hex_col = st.columns([2, 1, 2])
-            with c_ral_col: c_ral = st.text_input("Code RAL", value=st.session_state["add_ral"])
-            with c_chk_col:
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(f"Vérifier RAL", key="btn_check_add_ral"):
-                    num_ral = ''.join(filter(str.isdigit, c_ral.strip()))
-                    if num_ral in RAL_DICT:
-                        st.session_state["add_hex"] = RAL_DICT[num_ral]
-                        st.session_state["add_ral"] = c_ral
-            with c_hex_col: c_hex = st.color_picker("Sélectionner la nuance", value=st.session_state["add_hex"])
-
-            activer_ft = st.toggle("📝 Créer la Fiche Technique (FT)", value=False)
-            ft_cond, m_comm_glob = "", ""
-            ft_redacteur = OPTIONS_REDACTEURS[0]
-            if activer_ft:
-                st.markdown("##### Spécifications de la Fiche Technique")
-                ft_cond = st.text_area("Conditions d'application")
-                m_comm_glob = st.text_area("Commentaires Généraux (FT)")
-                ft_redacteur = st.selectbox("Rédacteur / Modifié par :", OPTIONS_REDACTEURS, index=0)
-
-            if st.button("Enregistrer la couleur", type="primary"):
-                if c_ref:
-                    num_ral = ''.join(filter(str.isdigit, c_ral.strip()))
-                    couleur_finale = RAL_DICT.get(num_ral, c_hex) if num_ral else c_hex
-                    today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
-                    
-                    st.session_state.processus_db["preparation_melanges"]["couleurs"].append({
-                        "ref": c_ref, "nom_actuel": c_actuel, "nom_futur": c_futur,
-                        "ral": c_ral, "societe": c_societe, "type": c_type, "visuel": couleur_finale,
-                        "commentaire_global": m_comm_glob, "has_ft": activer_ft,
-                        "fiche_technique": {"specs_dynamiques": valeurs_dynamiques, "date_creation": today_str, "date_derniere_maj": today_str, "date_avant_derniere_maj": "-", "conditions": ft_cond, "redacteur": ft_redacteur}
-                    })
-                    st.session_state.pop("add_ral", None)
-                    st.session_state.pop("add_hex", None)
-                    sauvegarder_donnees()
-                    afficher_animation_validation("Couleur ajoutée")
-                    st.rerun()
-
-        @st.dialog("✏️ Modifier une couleur", width="large")
-        def ouvrir_modif_couleur(index, couleur_data):
-            # --- EXEMPLE D'INTERFACE DYNAMIQUE POUR LES CHAMPS FT ---        
-            if f"temp_ref_{index}" not in st.session_state:
-                st.session_state[f"temp_ref_{index}"] = couleur_data.get("ref", "")
-                st.session_state[f"temp_actuel_{index}"] = couleur_data.get("nom_actuel", "")
-                st.session_state[f"temp_futur_{index}"] = couleur_data.get("nom_futur", "")
-                st.session_state[f"temp_soc_{index}"] = couleur_data.get("societe", "")
-                st.session_state[f"temp_type_{index}"] = couleur_data.get("type", "Opaque")
-                st.session_state[f"temp_ral_{index}"] = couleur_data.get("ral", "")
-                st.session_state[f"temp_hex_{index}"] = couleur_data.get("visuel", "#3B82F6")
-
-            m_ref = st.text_input("Référence", key=f"temp_ref_{index}")
-            m_actuel = st.text_input("Nom actuel", key=f"temp_actuel_{index}")
-            m_futur = st.text_input("Futur nom", key=f"temp_futur_{index}")
-            m_societe = st.text_input("Société / Client", key=f"temp_soc_{index}")
-            m_type = st.selectbox("Type", ["Opaque", "Translucide", "2"], index=["Opaque", "Translucide", "2"].index(st.session_state[f"temp_type_{index}"]), key=f"temp_type_{index}")
-
-            c_ral_col, c_chk_col, c_hex_col = st.columns([2, 1, 2])
-            with c_ral_col: m_ral = st.text_input("Code RAL", key=f"temp_ral_{index}")
-            with c_chk_col:
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("Vérifier RAL", key=f"btn_check_{index}"):
-                    num_ral = ''.join(filter(str.isdigit, m_ral.strip()))
-                    if num_ral in RAL_DICT:
-                        st.session_state[f"temp_hex_{index}"] = RAL_DICT[num_ral]
-            with c_hex_col: m_hex = st.color_picker("Ajuster la nuance", key=f"temp_hex_{index}")
-
-            has_ft_init = couleur_data.get("has_ft", False)
-            activer_ft = st.toggle("📝 Gérer la Fiche Technique (FT)", value=has_ft_init)
-
-            ft_old = couleur_data.get("fiche_technique", {})
-            ft_cond = ft_old.get("conditions", "")
-            m_comm_glob = couleur_data.get("commentaire_global", "")
-            idx_redacteur = OPTIONS_REDACTEURS.index(ft_old.get("redacteur", "Labo / R&D")) if ft_old.get("redacteur", "Labo / R&D") in OPTIONS_REDACTEURS else 0
-            m_redacteur = OPTIONS_REDACTEURS[idx_redacteur]
-
-            if activer_ft:
-                st.markdown("##### Spécifications de la Fiche Technique")
-                ft_cond = st.text_area("Conditions d'application", value=ft_cond)
-                m_comm_glob = st.text_area("Commentaires Généraux (FT)", value=m_comm_glob)
-                m_redacteur = st.selectbox("Rédacteur / Modifié par :", OPTIONS_REDACTEURS, index=idx_redacteur)
-
-            if st.button("Mettre à jour", type="primary"):
-                today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
-                d_crea, d_der, d_av = gerer_historique_dates(ft_old, today_str)
-                
-                st.session_state.processus_db["preparation_melanges"]["couleurs"][index] = {
-                    "ref": m_ref, "nom_actuel": m_actuel, "nom_futur": m_futur,
-                    "ral": m_ral, "societe": m_societe, "type": m_type, "visuel": m_hex,
-                    "commentaire_global": m_comm_glob, "has_ft": activer_ft,
-                    "fiche_technique": {"date_creation": d_crea, "date_derniere_maj": d_der, "date_avant_derniere_maj": d_av, "conditions": ft_cond, "redacteur": m_redacteur}
-                }
-                for k in [f"temp_ref_{index}", f"temp_actuel_{index}", f"temp_futur_{index}", f"temp_soc_{index}", f"temp_type_{index}", f"temp_ral_{index}", f"temp_hex_{index}"]:
-                    st.session_state.pop(k, None)
+                )
+                st.session_state.pop("add_ral", None)
+                st.session_state.pop("add_hex", None)
                 sauvegarder_donnees()
+                afficher_animation_validation("Couleur ajoutée")
+                st.session_state.pop("dialog_actif", None)
                 st.rerun()
 
-        if st.button("Ajouter une couleur", type="primary"): ouvrir_ajout_couleur()
-        
-        if liste_couleurs:
-            with st.expander("🔍 Outils de filtrage et de tri du nuancier", expanded=True):
-                c_f1, c_f2, c_f3, c_f4, c_f5, c_f6 = st.columns([1, 1, 1, 1, 1.2, 0.8])
-                with c_f1: filtre_ref = st.text_input("Filtrer par Référence", "")
-                with c_f2: filtre_nom = st.text_input("Filtrer par Nom Actuel/Futur", "")
-                with c_f3: filtre_ral = st.text_input("Filtrer par RAL", "")
-                with c_f4: filtre_soc = st.text_input("Filtrer par Société", "")
-                with c_f5: tri_colonne = st.selectbox("Trier par :", ["Référence", "Nom actuel", "Nom futur", "RAL", "Société", "Type de couleur"])
-                with c_f6: sens_tri = st.selectbox("Ordre :", ["Croissant ⬆️", "Décroissant ⬇️"])
 
-            couleurs_filtrees = []
-            for idx, c in enumerate(liste_couleurs):
-                m_ref = filtre_ref.lower() in c.get("ref", "").lower()
-                m_nom = (filtre_nom.lower() in c.get("nom_actuel", "").lower()) or (filtre_nom.lower() in c.get("nom_futur", "").lower())
-                m_ral = filtre_ral.lower() in c.get("ral", "").lower()
-                m_soc = filtre_soc.lower() in c.get("societe", "").lower()
-                if m_ref and m_nom and m_ral and m_soc: couleurs_filtrees.append({"index_origine": idx, "data": c})
+        @st.dialog("Modifier une couleur", width="large")
+        def ouvrir_modif_couleur(index, couleur_data):
+            st.markdown(f"### {couleur_data.get('nom_actuel') or couleur_data.get('ref')}")
 
-            mapping_cles = {"Référence": "ref", "Nom actuel": "nom_actuel", "Nom futur": "nom_futur", "RAL": "ral", "Société": "societe", "Type de couleur": "type"}
-            couleurs_filtrees.sort(key=lambda x: [int(t) if t.isdigit() else t for t in re.split(r'(\d+)', str(x["data"].get(mapping_cles[tri_colonne], "")).lower())], reverse=(sens_tri == "Décroissant ⬇️"))
+            onglet_identite, onglet_visuel, onglet_ft = st.tabs(
+                ["Identité", "Nuance et statut", "Fiche Technique"]
+            )
 
-            col_info, col_export = st.columns([4, 1])
-            with col_info:
-                st.info(f"📊 **Nombre de couleurs :** {len(couleurs_filtrees)}")
-            with col_export:
-                donnees_a_exporter = [item["data"] for item in couleurs_filtrees]
-                excel_data, nom_fichier, mime_type = generer_fichier_export(donnees_a_exporter, "Export_Couleurs")
-                if excel_data:
-                    st.download_button("📥 Exporter Excel", data=excel_data, file_name=nom_fichier, mime=mime_type, use_container_width=True)
+            with onglet_identite:
+                col_identite_1, col_identite_2 = st.columns(2)
+                with col_identite_1:
+                    m_ref = st.text_input(
+                        "Référence *",
+                        value=couleur_data.get("ref", ""),
+                        key=f"pro_edit_color_ref_{index}",
+                    )
+                    m_actuel = st.text_input(
+                        "Nom actuel",
+                        value=couleur_data.get("nom_actuel", ""),
+                        key=f"pro_edit_color_name_{index}",
+                    )
+                    m_futur = st.text_input(
+                        "Futur nom",
+                        value=couleur_data.get("nom_futur", ""),
+                        key=f"pro_edit_color_future_{index}",
+                    )
+                with col_identite_2:
+                    m_societe = st.text_input(
+                        "Société / Client",
+                        value=couleur_data.get("societe", ""),
+                        key=f"pro_edit_color_company_{index}",
+                    )
+                    types = ["Opaque", "Translucide", "2"]
+                    type_actuel = couleur_data.get("type", "Opaque")
+                    if type_actuel not in types:
+                        types.append(type_actuel)
+                    m_type = st.selectbox(
+                        "Type",
+                        types,
+                        index=types.index(type_actuel),
+                        key=f"pro_edit_color_type_{index}",
+                    )
+                    m_commentaire = st.text_input(
+                        "Commentaire court",
+                        value=couleur_data.get("commentaire", ""),
+                        key=f"pro_edit_color_comment_{index}",
+                    )
 
-            if len(couleurs_filtrees) > MAX_LIGNES_AFFICHAGE:
-                st.warning(f"⚠️ Affichage limité aux {MAX_LIGNES_AFFICHAGE} premiers résultats pour des raisons de fluidité. Utilisez les filtres.")
-            couleurs_a_afficher = couleurs_filtrees[:MAX_LIGNES_AFFICHAGE]
+            with onglet_visuel:
+                col_visuel_1, col_visuel_2 = st.columns(2)
+                with col_visuel_1:
+                    m_ral = st.text_input(
+                        "Code RAL",
+                        value=couleur_data.get("ral", ""),
+                        key=f"pro_edit_color_ral_{index}",
+                    )
+                    statuts = ["Pas vérifié", "Vérifier"]
+                    statut_actuel = couleur_data.get("statut", "Pas vérifié")
+                    if statut_actuel not in statuts:
+                        statut_actuel = "Pas vérifié"
+                    m_statut = st.radio(
+                        "Statut",
+                        statuts,
+                        index=statuts.index(statut_actuel),
+                        horizontal=True,
+                        key=f"pro_edit_color_status_{index}",
+                    )
+                with col_visuel_2:
+                    numero_ral = "".join(filter(str.isdigit, m_ral))
+                    couleur_ral = RAL_DICT.get(numero_ral)
+                    m_hex = st.color_picker(
+                        "Ajuster la nuance",
+                        pro_couleur_valide(couleur_data.get("visuel"), "#3B82F6"),
+                        key=f"pro_edit_color_hex_{index}",
+                    )
+                    if couleur_ral:
+                        st.info(f"Référence officielle disponible : {couleur_ral}")
 
-            thead_ref, thead_act, thead_fut, thead_ral, thead_soc, thead_typ, thead_vis, thead_act2 = st.columns([1.2, 1.6, 1.6, 1.2, 1.6, 1.2, 0.8, 2.5])
-            with thead_ref: st.markdown("**Référence**")
-            with thead_act: st.markdown("**Nom actuel**")
-            with thead_fut: st.markdown("**Futur nom**")
-            with thead_ral: st.markdown("**RAL**")
-            with thead_soc: st.markdown("**Société**")
-            with thead_typ: st.markdown("**Type**")
-            with thead_vis: st.markdown("**Visuel**")
-            with thead_act2: st.markdown("**Actions**")
-            st.markdown("<hr style='margin:4px 0px; border-width:2px; border-color:black;'>", unsafe_allow_html=True)
+            with onglet_ft:
+                ft_ancienne = couleur_data.get("fiche_technique", {})
+                activer_ft = st.toggle(
+                    "Gérer la Fiche Technique (FT)",
+                    value=bool(couleur_data.get("has_ft", False)),
+                    key=f"pro_edit_color_has_ft_{index}",
+                )
+                valeurs_dynamiques = ft_ancienne.get("specs_dynamiques", {})
+                conditions = ft_ancienne.get("conditions", "")
+                commentaire_global = couleur_data.get("commentaire_global", "")
+                redacteur = ft_ancienne.get("redacteur", OPTIONS_REDACTEURS[0])
 
-            for item in couleurs_a_afficher:
-                idx_c = item["index_origine"]
-                c_data = item["data"]
-                trow_ref, trow_act, trow_fut, trow_ral, trow_soc, trow_typ, trow_vis, trow_act2 = st.columns([1.2, 1.6, 1.6, 1.2, 1.6, 1.2, 0.8, 2.5])
-                with trow_ref: st.write(str(c_data.get("ref", "")).title())
-                with trow_act: st.write(str(c_data.get("nom_actuel", "")).title())
-                with trow_fut: st.write(str(c_data.get("nom_futur", "")).title())
-                with trow_ral: st.write(str(c_data.get("ral", "")).title() or "-")
-                with trow_soc: st.write(str(c_data.get("societe", "")).upper())
-                with trow_typ: st.write(str(c_data.get("type", "")).title())
-                with trow_vis: st.markdown(f'<div style="width:22px; height:25px; background-color:{c_data.get("visuel", "#3B82F6")}; border-radius:50%; border:1px solid #000; margin:auto;"></div>', unsafe_allow_html=True)
+                if activer_ft:
+                    valeurs_dynamiques = render_dynamic_ft_inputs(
+                        ft_ancienne,
+                        f"pro_edit_couleur_{index}",
+                    )
+                    conditions = st.text_area(
+                        "Conditions d'application",
+                        value=conditions,
+                        key=f"pro_edit_color_conditions_{index}",
+                    )
+                    commentaire_global = st.text_area(
+                        "Commentaires généraux (FT)",
+                        value=commentaire_global,
+                        key=f"pro_edit_color_global_{index}",
+                    )
+                    index_redacteur = (
+                        OPTIONS_REDACTEURS.index(redacteur)
+                        if redacteur in OPTIONS_REDACTEURS
+                        else 0
+                    )
+                    redacteur = st.selectbox(
+                        "Rédacteur / Modifié par",
+                        OPTIONS_REDACTEURS,
+                        index=index_redacteur,
+                        key=f"pro_edit_color_writer_{index}",
+                    )
+
+            if st.button(
+                "Enregistrer les modifications",
+                type="primary",
+                use_container_width=True,
+                key=f"pro_edit_color_save_{index}",
+            ):
+                reference = m_ref.strip()
+                if not reference:
+                    st.error("La référence est obligatoire.")
+                    return
+
+                doublon = any(
+                    autre_index != index
+                    and pro_texte(item.get("ref")).lower() == reference.lower()
+                    for autre_index, item in enumerate(liste_couleurs)
+                )
+                if doublon:
+                    st.error("Cette référence appartient déjà à une autre couleur.")
+                    return
+
+                date_edition = pro_date_maintenant()
+                date_creation, date_derniere, date_avant = gerer_historique_dates_et_causes(
+                    ft_ancienne,
+                    date_edition,
+                )
+                numero_ral = "".join(filter(str.isdigit, m_ral))
+                nuance_finale = RAL_DICT.get(numero_ral, m_hex) if numero_ral else m_hex
+                if activer_ft:
+                    specs_dynamiques = extraire_specs_du_state(f"pro_edit_couleur_{index}")
+                else:
+                    specs_dynamiques = ft_ancienne.get("specs_dynamiques", {})
+                couleur_mise_a_jour = copy.deepcopy(couleur_data)
+                couleur_mise_a_jour.update(
+                    {
+                        "ref": reference,
+                        "nom_actuel": m_actuel.strip(),
+                        "nom_futur": m_futur.strip(),
+                        "ral": m_ral.strip(),
+                        "societe": m_societe.strip(),
+                        "type": m_type,
+                        "visuel": nuance_finale,
+                        "statut": m_statut,
+                        "commentaire": m_commentaire.strip(),
+                        "commentaire_global": commentaire_global.strip(),
+                        "has_ft": activer_ft,
+                        "fiche_technique": {
+                            **copy.deepcopy(ft_ancienne),
+                            "specs_dynamiques": specs_dynamiques,
+                            "date_creation": date_creation,
+                            "date_derniere_maj": date_derniere,
+                            "date_avant_derniere_maj": date_avant,
+                            "conditions": conditions.strip(),
+                            "redacteur": redacteur,
+                        },
+                    }
+                )
+                liste_couleurs[index] = couleur_mise_a_jour
+                sauvegarder_donnees()
+                afficher_animation_validation("Couleur mise à jour")
+                st.session_state.pop("dialog_actif", None)
+                st.rerun()
+
+
+        barre_action_1, barre_action_2, barre_action_3 = st.columns([1.2, 1, 1])
+        with barre_action_1:
+            if st.button(
+                "＋ Ajouter une couleur",
+                type="primary",
+                use_container_width=True,
+                key="pro_color_add_main",
+            ):
+                st.session_state.dialog_actif = {"type": "ajout_couleur"}
+                st.rerun()
                 
-                with trow_act2:
-                    c_v, c_e, c_d, c_ft = st.columns([1, 1, 1, 1.5])
-                    if c_v.button("👁️", key=f"v_col_{idx_c}"): ouvrir_details_couleur(c_data)
-                    if c_e.button("✏️", key=f"e_col_{idx_c}"): ouvrir_modif_couleur(idx_c, c_data)
-                    
-                    key_del_c = f"del_confirm_col_{idx_c}"
-                    if key_del_c not in st.session_state: st.session_state[key_del_c] = False
-                    if not st.session_state[key_del_c]:
-                        if c_d.button("🗑️", key=f"d_col_{idx_c}"):
-                            st.session_state[key_del_c] = True
-                            st.rerun()
-                    else:
-                        if c_d.button("Oui", key=f"d_col_y_{idx_c}", type="primary"):
-                            st.session_state.processus_db["preparation_melanges"]["couleurs"].pop(idx_c)
-                            st.session_state[key_del_c] = False
-                            sauvegarder_donnees()
-                            st.rerun()
-                        if c_d.button("Non", key=f"d_col_n_{idx_c}"):
-                            st.session_state[key_del_c] = False
-                            st.rerun()
-                            
-                    if c_data.get("has_ft"):
-                        if c_ft.button("📄 FT", key=f"ft_col_{idx_c}"):
-                            ouvrir_visualisation_ft_couleur(c_data)
+        with barre_action_2:
+            excel_couleurs, nom_excel_couleurs, mime_excel_couleurs = generer_fichier_export(
+                liste_couleurs,
+                "Export_Couleurs",
+            )
+            if excel_couleurs:
+                st.download_button(
+                    "⬇️ Exporter Excel",
+                    data=excel_couleurs,
+                    file_name=nom_excel_couleurs,
+                    mime=mime_excel_couleurs,
+                    use_container_width=True,
+                    key="pro_color_export_excel",
+                )
+        with barre_action_3:
+            pro_export_json(
+                liste_couleurs,
+                "Sauvegarde_Couleurs_BOS2.json",
+                "pro_color_export_json",
+            )
+
+        pro_afficher_audit(
+            liste_couleurs,
+            [("ref", "Référence"), ("nom_actuel", "Nom actuel")],
+            "ref",
+            "pro_color_audit",
+        )
+
+        with st.expander("Filtres et organisation du nuancier", expanded=True):
+            filtre_col_1, filtre_col_2, filtre_col_3, filtre_col_4 = st.columns(4)
+            with filtre_col_1:
+                filtre_global_couleur = st.text_input(
+                    "Recherche globale",
+                    placeholder="Réf., nom, société, RAL...",
+                    key="pro_color_filter_global",
+                ).lower().strip()
+            with filtre_col_2:
+                types_disponibles = sorted(
+                    {pro_texte(item.get("type")) for item in liste_couleurs if pro_texte(item.get("type"))}
+                )
+                filtre_type_couleur = st.multiselect(
+                    "Types",
+                    types_disponibles,
+                    key="pro_color_filter_types",
+                )
+            with filtre_col_3:
+                filtre_ft_couleur = st.selectbox(
+                    "Fiche Technique",
+                    ["Toutes", "Avec FT", "Sans FT"],
+                    key="pro_color_filter_ft",
+                )
+            with filtre_col_4:
+                filtre_statut_couleur = st.selectbox(
+                    "Statut",
+                    ["Tous", "Vérifier", "Pas vérifié"],
+                    key="pro_color_filter_status",
+                )
+
+            tri_col_1, tri_col_2 = st.columns([2, 1])
+            with tri_col_1:
+                tri_couleur = st.selectbox(
+                    "Trier par",
+                    ["Référence", "Nom actuel", "Nom futur", "RAL", "Société", "Type"],
+                    key="pro_color_sort",
+                )
+            with tri_col_2:
+                ordre_couleur = st.selectbox(
+                    "Ordre",
+                    ["Croissant", "Décroissant"],
+                    key="pro_color_order",
+                )
+
+        mapping_tri_couleur = {
+            "Référence": "ref",
+            "Nom actuel": "nom_actuel",
+            "Nom futur": "nom_futur",
+            "RAL": "ral",
+            "Société": "societe",
+            "Type": "type",
+        }
+
+        couleurs_filtrees = []
+        for index_couleur, couleur_item in enumerate(liste_couleurs):
+            texte_recherche = " ".join(
+                pro_texte(couleur_item.get(cle))
+                for cle in ["ref", "nom_actuel", "nom_futur", "ral", "societe", "type"]
+            ).lower()
+            if filtre_global_couleur and filtre_global_couleur not in texte_recherche:
+                continue
+            if filtre_type_couleur and couleur_item.get("type") not in filtre_type_couleur:
+                continue
+            if filtre_ft_couleur == "Avec FT" and not couleur_item.get("has_ft"):
+                continue
+            if filtre_ft_couleur == "Sans FT" and couleur_item.get("has_ft"):
+                continue
+            if filtre_statut_couleur != "Tous" and couleur_item.get("statut", "Pas vérifié") != filtre_statut_couleur:
+                continue
+            couleurs_filtrees.append({"index_origine": index_couleur, "data": couleur_item})
+
+        couleurs_filtrees.sort(
+            key=lambda element: pro_naturel(
+                element["data"].get(mapping_tri_couleur[tri_couleur], "")
+            ),
+            reverse=ordre_couleur == "Décroissant",
+        )
+
+        pro_barre_resultats(len(couleurs_filtrees), len(liste_couleurs), "couleurs")
+        couleurs_page, page_couleur, pages_couleur = pro_paginer(
+            couleurs_filtrees,
+            "pro_color_pagination",
+            25,
+        )
+        st.caption(f"Page {page_couleur} sur {pages_couleur}")
+
+        if not couleurs_page:
+            st.info("Aucune couleur ne correspond aux filtres sélectionnés.")
+        else:
+            entete = st.columns([1.1, 1.5, 1.5, 1, 1.4, 1, .7, 2.35])
+            for colonne, libelle in zip(
+                entete,
+                ["Référence", "Nom actuel", "Futur nom", "RAL", "Société", "Type", "Visuel", "Actions"],
+            ):
+                colonne.markdown(f"**{libelle}**")
+            st.markdown("<hr style='margin:4px 0;border-width:2px;border-color:#142235;'>", unsafe_allow_html=True)
+
+            for couleur_ligne in couleurs_page:
+                index_couleur = couleur_ligne["index_origine"]
+                couleur_data = couleur_ligne["data"]
+                ligne = st.columns([1.1, 1.5, 1.5, 1, 1.4, 1, .7, 2.35])
+                ligne[0].write(pro_texte(couleur_data.get("ref")) or "-")
+                ligne[1].write(pro_texte(couleur_data.get("nom_actuel")) or "-")
+                ligne[2].write(pro_texte(couleur_data.get("nom_futur")) or "-")
+                ligne[3].write(pro_texte(couleur_data.get("ral")) or "-")
+                ligne[4].write(pro_texte(couleur_data.get("societe")) or "-")
+                ligne[5].write(pro_texte(couleur_data.get("type")) or "-")
+                ligne[6].markdown(
+                    f"<div style='width:28px;height:28px;margin:auto;background:{pro_couleur_valide(couleur_data.get('visuel'),'#D8DEE4')};border:2px solid #FFFEFB;border-radius:50%;box-shadow:0 0 0 1px rgba(20,34,53,.25),0 4px 9px rgba(16,26,39,.14);'></div>",
+                    unsafe_allow_html=True,
+                )
+
+                action_voir, action_modifier, action_dupliquer, action_supprimer, action_ft = ligne[7].columns(
+                    [1, 1, 1, 1, 1.35]
+                )
+                if action_voir.button("👁", key=f"pro_color_view_{index_couleur}"):
+                    ouvrir_details_couleur(couleur_data)
+                if action_modifier.button("✎", key=f"pro_color_edit_{index_couleur}"):
+                    st.session_state.dialog_actif = {"type": "modif_couleur", "index": index_couleur}
+                    st.rerun()
+                if action_dupliquer.button("⧉", key=f"pro_color_copy_{index_couleur}"):
+                    copie_couleur = copy.deepcopy(couleur_data)
+                    copie_couleur["ref"] = pro_identifiant_unique(
+                        f"{pro_texte(couleur_data.get('ref'))}-COPIE",
+                        liste_couleurs,
+                        "ref",
+                    )
+                    copie_couleur["nom_actuel"] = f"{pro_texte(couleur_data.get('nom_actuel'))} — Copie"
+                    copie_couleur["statut"] = "Pas vérifié"
+                    ft_copie = copie_couleur.setdefault("fiche_technique", {})
+                    ft_copie["date_creation"] = pro_date_maintenant()
+                    ft_copie["date_derniere_maj"] = ft_copie["date_creation"]
+                    ft_copie["date_avant_derniere_maj"] = "-"
+                    liste_couleurs.append(copie_couleur)
+                    sauvegarder_donnees()
+                    st.rerun()
+
+                cle_suppression = f"pro_color_delete_confirm_{index_couleur}"
+                if action_supprimer.button("🗑", key=f"pro_color_delete_{index_couleur}"):
+                    st.session_state[cle_suppression] = True
+                if couleur_data.get("has_ft"):
+                    if action_ft.button("FT", key=f"pro_color_ft_{index_couleur}"):
+                        ouvrir_visualisation_ft_couleur(couleur_data)
+
+                if st.session_state.get(cle_suppression, False):
+                    st.warning(
+                        f"Supprimer définitivement la couleur {couleur_data.get('ref', '')} ?"
+                    )
+                    col_oui, col_non = st.columns(2)
+                    if col_oui.button("Oui, supprimer", key=f"pro_color_delete_yes_{index_couleur}"):
+                        liste_couleurs.pop(index_couleur)
+                        st.session_state[cle_suppression] = False
+                        sauvegarder_donnees()
+                        st.rerun()
+                    if col_non.button("Annuler", key=f"pro_color_delete_no_{index_couleur}"):
+                        st.session_state[cle_suppression] = False
+                        st.rerun()
+
+                st.markdown("<hr style='margin:5px 0;opacity:.16;'>", unsafe_allow_html=True)
+                
+            # --- Réouverture persistante des dialogs ---
+        dialog_actif = st.session_state.get("dialog_actif")
+        if isinstance(dialog_actif, dict):
+            d_type = dialog_actif.get("type")
+            if d_type == "ajout_couleur":
+                ouvrir_ajout_couleur()
+            elif d_type == "modif_couleur":
+                idx = dialog_actif.get("index")
+                if idx is not None and 0 <= idx < len(liste_couleurs):
+                    ouvrir_modif_couleur(idx, liste_couleurs[idx])            
+                
+    # ========================================================================
+    # SECTION 2 — CATALOGUE DES ÉLÉMENTS
+    # ========================================================================
 
     elif choix_section == "🧪 Catalogue des éléments":
-        @st.dialog("➕ Ajouter un élément", width="large")
+        nombre_elements_ft = sum(1 for item in liste_additifs if item.get("has_ft"))
+        nombre_elements_dangereux = sum(
+            1 for item in liste_additifs if item.get("danger") == "Oui"
+        )
+        nombre_elements_verifies = sum(
+            1 for item in liste_additifs if item.get("statut") == "Vérifier"
+        )
+        liste_compartiments = st.session_state.processus_db[
+            "preparation_melanges"
+        ].setdefault("compartiments", ["résine", "peinture"])
+        liste_sous_groupes = st.session_state.processus_db[
+            "preparation_melanges"
+        ].setdefault("sous_groupes", ["Général"])
+
+        pro_entete_section(
+            "Matières et composants",
+            "Catalogue des éléments",
+            "Gérez les matières premières, additifs, fournisseurs, classifications, risques et fiches techniques.",
+            [
+                ("Éléments", len(liste_additifs)),
+                ("Avec FT", nombre_elements_ft),
+                ("Risques", nombre_elements_dangereux),
+                ("Vérifiés", nombre_elements_verifies),
+            ],
+            "CATALOGUE MATIÈRES",
+        )
+
+
+        @st.dialog("Ajouter un élément", width="large")
         def ouvrir_ajout_element_complet():
-            e_nom = st.text_input("Nom de l'élément (Clé unique/Référence)")
-            e_code = st.text_input("Code")
-            e_des = st.text_input("Désignation")
-            e_comm = st.text_input("Commentaire court (Formulation)")
-            e_statut = st.radio("État de l'élément :", ["Pas vérifié", "Vérifier"], index=0, horizontal=True)
+            st.markdown("### Nouvelle matière / nouvel élément")
+            onglet_identite, onglet_classement, onglet_ft = st.tabs(
+                ["Identité", "Classement", "Fiche Technique"]
+            )
 
-            activer_ft = st.toggle("📝 Créer la Fiche Technique (FT)", value=False)
-            
-            st.markdown("##### 🗂️ Classification")
-            liste_compartiments = st.session_state.processus_db["preparation_melanges"].setdefault("compartiments", ["résine", "peinture"])
-            liste_sous_groupes = st.session_state.processus_db["preparation_melanges"].setdefault("sous_groupes", ["Général"])
-            
-            col_c, col_sg = st.columns(2)
-            with col_c:
-                e_compartiments = st.multiselect("Compartiments :", liste_compartiments, default=[])
-                nouveau_comp = st.text_input("➕ Nouveau compartiment :")
-            with col_sg:
-                e_sous_groupe = st.selectbox("Sous-groupe :", liste_sous_groupes, index=0)
-                nouveau_sg = st.text_input("➕ Nouveau sous-groupe :")
-                
-            st.markdown("<br>", unsafe_allow_html=True)
+            with onglet_identite:
+                col_identite_1, col_identite_2 = st.columns(2)
+                with col_identite_1:
+                    e_nom = st.text_input(
+                        "Nom du composant (clé unique) *",
+                        key="pro_add_element_name",
+                    )
+                    e_code = st.text_input("Code", key="pro_add_element_code")
+                    e_des = st.text_input(
+                        "Désignation",
+                        key="pro_add_element_designation",
+                    )
+                with col_identite_2:
+                    e_comm = st.text_input(
+                        "Commentaire court (formulation)",
+                        key="pro_add_element_short_comment",
+                    )
+                    e_statut = st.radio(
+                        "État de l'élément",
+                        ["Pas vérifié", "Vérifier"],
+                        horizontal=True,
+                        key="pro_add_element_status",
+                    )
 
-            e_fourn, e_art, e_des_ach, e_nat, e_dang, e_dang_txt, e_manip, e_comm_glob = "", "", "", "Liquide", "-", "", "", ""
-            ft_redacteur = OPTIONS_REDACTEURS[0]
+            with onglet_classement:
+                col_classement_1, col_classement_2 = st.columns(2)
+                with col_classement_1:
+                    e_compartiments = st.multiselect(
+                        "Compartiments",
+                        liste_compartiments,
+                        key="pro_add_element_compartments",
+                    )
+                    nouveau_compartiment = st.text_input(
+                        "Nouveau compartiment",
+                        key="pro_add_element_new_compartment",
+                    )
+                with col_classement_2:
+                    e_sous_groupe = st.selectbox(
+                        "Sous-groupe",
+                        liste_sous_groupes,
+                        key="pro_add_element_subgroup",
+                    )
+                    nouveau_sous_groupe = st.text_input(
+                        "Nouveau sous-groupe",
+                        key="pro_add_element_new_subgroup",
+                    )
 
-            if activer_ft:
-                st.markdown("##### Spécifications de la Fiche Technique")
-                e_fourn = st.text_input("Fournisseur")
-                e_art = st.text_input("Code Article Achat")
-                e_des_ach = st.text_input("Désignation Achat")
-                e_nat = st.selectbox("Nature", ["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"])         
-                e_dang = st.radio("Risque / Danger ?", ["-", "Non", "Oui"], index=0, horizontal=True)
-                if e_dang == "Oui":
-                    e_dang_txt = st.text_area("Préciser le risque / danger")
+            with onglet_ft:
+                activer_ft = st.toggle(
+                    "Créer la Fiche Technique (FT)",
+                    value=False,
+                    key="pro_add_element_has_ft",
+                )
+                e_fournisseur = ""
+                e_article = ""
+                e_designation_achat = ""
+                e_nature = "Liquide"
+                e_danger = "-"
+                e_danger_texte = ""
+                e_manipulation = ""
+                e_commentaire_global = ""
+                e_redacteur = OPTIONS_REDACTEURS[0]
+                specs_dynamiques = {}
+
+                if activer_ft:
+                    col_ft_1, col_ft_2 = st.columns(2)
+                    with col_ft_1:
+                        e_fournisseur = st.text_input(
+                            "Fournisseur",
+                            key="pro_add_element_supplier",
+                        )
+                        e_article = st.text_input(
+                            "Code Article Achat",
+                            key="pro_add_element_purchase_code",
+                        )
+                        e_designation_achat = st.text_input(
+                            "Désignation Achat",
+                            key="pro_add_element_purchase_name",
+                        )
+                    with col_ft_2:
+                        e_nature = st.selectbox(
+                            "Nature",
+                            ["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"],
+                            index=1,
+                            key="pro_add_element_nature",
+                        )
+                        e_danger = st.radio(
+                            "Risque / Danger ?",
+                            ["-", "Non", "Oui"],
+                            horizontal=True,
+                            key="pro_add_element_danger",
+                        )
+                        if e_danger == "Oui":
+                            e_danger_texte = st.text_area(
+                                "Préciser le risque / danger",
+                                key="pro_add_element_danger_text",
+                            )
+
+                    specs_dynamiques = render_dynamic_ft_inputs({}, "pro_add_element")
+                    e_manipulation = st.text_area(
+                        "Conseils de manipulation",
+                        key="pro_add_element_handling",
+                    )
+                    e_commentaire_global = st.text_area(
+                        "Commentaires généraux (FT)",
+                        key="pro_add_element_global_comment",
+                    )
+                    e_redacteur = st.selectbox(
+                        "Rédacteur / Modifié par",
+                        OPTIONS_REDACTEURS,
+                        key="pro_add_element_writer",
+                    )
+
+            if st.button(
+                "Enregistrer l'élément",
+                type="primary",
+                use_container_width=True,
+                key="pro_add_element_save",
+            ):
+                nom_element = e_nom.strip()
+                if not nom_element:
+                    st.error("Le nom du composant est obligatoire.")
+                    return
+                if any(
+                    pro_texte(item.get("nom")).lower() == nom_element.lower()
+                    for item in liste_additifs
+                ):
+                    st.error("Un élément portant ce nom existe déjà.")
+                    return
+
+                compartiments_finaux = list(e_compartiments)
+                nouveau_compartiment = nouveau_compartiment.strip()
+                if nouveau_compartiment:
+                    if nouveau_compartiment not in liste_compartiments:
+                        liste_compartiments.append(nouveau_compartiment)
+                    if nouveau_compartiment not in compartiments_finaux:
+                        compartiments_finaux.append(nouveau_compartiment)
+
+                nouveau_sous_groupe = nouveau_sous_groupe.strip()
+                if nouveau_sous_groupe:
+                    if nouveau_sous_groupe not in liste_sous_groupes:
+                        liste_sous_groupes.append(nouveau_sous_groupe)
+                    sous_groupe_final = nouveau_sous_groupe
+                else:
+                    sous_groupe_final = e_sous_groupe
                     
-                e_manip = st.text_area("Conseils de manipulation (Optionnel)")
-                e_comm_glob = st.text_area("Commentaires Généraux (FT)")
-                ft_redacteur = st.selectbox("Rédacteur / Modifié par :", OPTIONS_REDACTEURS, index=0)
+                if activer_ft:
+                    specs_dynamiques = extraire_specs_du_state("pro_add_element")
+                else:
+                    specs_dynamiques = {}
+                    
+                date_creation = pro_date_maintenant()
+                liste_additifs.append(
+                    {
+                        "nom": nom_element,
+                        "code": e_code.strip(),
+                        "designation": e_des.strip(),
+                        "statut": e_statut,
+                        "compartiments": compartiments_finaux,
+                        "sous_groupe": sous_groupe_final,
+                        "fournisseur": e_fournisseur.strip(),
+                        "code_article": e_article.strip(),
+                        "designation_achat": e_designation_achat.strip(),
+                        "nature": e_nature,
+                        "danger": e_danger,
+                        "danger_texte": e_danger_texte.strip() if e_danger == "Oui" else "",
+                        "manipulation": e_manipulation.strip(),
+                        "commentaire": e_comm.strip(),
+                        "commentaire_global": e_commentaire_global.strip(),
+                        "has_ft": activer_ft,
+                        "fiche_technique": {
+                            "specs_dynamiques": specs_dynamiques,
+                            "date_creation": date_creation,
+                            "date_derniere_maj": date_creation,
+                            "date_avant_derniere_maj": "-",
+                            "redacteur": e_redacteur,
+                        },
+                    }
+                )
+                sauvegarder_donnees()
+                afficher_animation_validation("Élément ajouté")
+                st.session_state.pop("dialog_actif", None)              
+                st.rerun()
 
-            if st.button("Enregistrer l'élément", type="primary"):
-                if e_nom:
-                    comps_finaux = list(e_compartiments)
-                    if nouveau_comp.strip() and nouveau_comp.strip() not in liste_compartiments:
-                        st.session_state.processus_db["preparation_melanges"]["compartiments"].append(nouveau_comp.strip())
-                        comps_finaux.append(nouveau_comp.strip())
-                        
-                    if nouveau_sg.strip() and nouveau_sg.strip() not in liste_sous_groupes:
-                        st.session_state.processus_db["preparation_melanges"]["sous_groupes"].append(nouveau_sg.strip())
-                        sg_final = nouveau_sg.strip()
-                    else:
-                        sg_final = e_sous_groupe
 
-                    today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
-                    st.session_state.processus_db["preparation_melanges"]["additifs"].append({
-                        "nom": e_nom, "code": e_code, "designation": e_des, "statut": e_statut,
-                        "compartiments": comps_finaux, "sous_groupe": sg_final,
-                        "fournisseur": e_fourn, "code_article": e_art, "designation_achat": e_des_ach,
-                        "nature": e_nat, "danger": e_dang, "danger_texte": e_dang_txt, "manipulation": e_manip,
-                        "commentaire": e_comm, "commentaire_global": e_comm_glob, "has_ft": activer_ft,
-                        "fiche_technique": {"date_creation": today_str, "date_derniere_maj": today_str, "date_avant_derniere_maj": "-", "redacteur": ft_redacteur}
-                    })
+        @st.dialog("Modifier un élément", width="large")
+        def ouvrir_modif_element_complet(index, data):
+            st.markdown(f"### {data.get('nom', 'Élément')}")
+            onglet_identite, onglet_classement, onglet_ft = st.tabs(
+                ["Identité", "Classement", "Fiche Technique"]
+            )
+
+            with onglet_identite:
+                col_identite_1, col_identite_2 = st.columns(2)
+                with col_identite_1:
+                    m_nom = st.text_input(
+                        "Nom du composant ",
+                        value=data.get("nom", ""),
+                        key=f"pro_edit_element_name_{index}",
+                    )
+                    m_code = st.text_input(
+                        "Code",
+                        value=data.get("code", ""),
+                        key=f"pro_edit_element_code_{index}",
+                    )
+                    m_designation = st.text_input(
+                        "Désignation",
+                        value=data.get("designation", ""),
+                        key=f"pro_edit_element_designation_{index}",
+                    )
+                with col_identite_2:
+                    m_commentaire = st.text_input(
+                        "Commentaire court (formulation)",
+                        value=data.get("commentaire", ""),
+                        key=f"pro_edit_element_short_comment_{index}",
+                    )
+                    statuts = ["Pas vérifié", "Vérifier"]
+                    statut_actuel = data.get("statut", "Pas vérifié")
+                    if statut_actuel not in statuts:
+                        statut_actuel = "Pas vérifié"
+                    m_statut = st.radio(
+                        "État de l'élément",
+                        statuts,
+                        index=statuts.index(statut_actuel),
+                        horizontal=True,
+                        key=f"pro_edit_element_status_{index}",
+                    )
+
+            with onglet_classement:
+                compartiments_actuels = [
+                    valeur
+                    for valeur in data.get("compartiments", [])
+                    if valeur in liste_compartiments
+                ]
+                sous_groupe_actuel = data.get("sous_groupe", "Général")
+                if sous_groupe_actuel not in liste_sous_groupes:
+                    liste_sous_groupes.append(sous_groupe_actuel)
+
+                col_classement_1, col_classement_2 = st.columns(2)
+                with col_classement_1:
+                    m_compartiments = st.multiselect(
+                        "Compartiments",
+                        liste_compartiments,
+                        default=compartiments_actuels,
+                        key=f"pro_edit_element_compartments_{index}",
+                    )
+                    nouveau_compartiment = st.text_input(
+                        "Nouveau compartiment",
+                        key=f"pro_edit_element_new_compartment_{index}",
+                    )
+                with col_classement_2:
+                    m_sous_groupe = st.selectbox(
+                        "Sous-groupe",
+                        liste_sous_groupes,
+                        index=liste_sous_groupes.index(sous_groupe_actuel),
+                        key=f"pro_edit_element_subgroup_{index}",
+                    )
+                    nouveau_sous_groupe = st.text_input(
+                        "Nouveau sous-groupe",
+                        key=f"pro_edit_element_new_subgroup_{index}",
+                    )
+
+            with onglet_ft:
+                fiche_ancienne = data.get("fiche_technique", {})
+                activer_ft = st.toggle(
+                    "Gérer la Fiche Technique (FT)",
+                    value=bool(data.get("has_ft", False)),
+                    key=f"pro_edit_element_has_ft_{index}",
+                )
+                m_fournisseur = data.get("fournisseur", "")
+                m_article = data.get("code_article", "")
+                m_designation_achat = data.get("designation_achat", "")
+                m_nature = data.get("nature", "Liquide")
+                m_danger = data.get("danger", "-")
+                m_danger_texte = data.get("danger_texte", "")
+                m_manipulation = data.get("manipulation", "")
+                m_commentaire_global = data.get("commentaire_global", "")
+                m_redacteur = fiche_ancienne.get("redacteur", OPTIONS_REDACTEURS[0])
+                specs_dynamiques = fiche_ancienne.get("specs_dynamiques", {})
+
+                if activer_ft:
+                    col_ft_1, col_ft_2 = st.columns(2)
+                    with col_ft_1:
+                        m_fournisseur = st.text_input(
+                            "Fournisseur",
+                            value=m_fournisseur,
+                            key=f"pro_edit_element_supplier_{index}",
+                        )
+                        m_article = st.text_input(
+                            "Code Article Achat",
+                            value=m_article,
+                            key=f"pro_edit_element_purchase_code_{index}",
+                        )
+                        m_designation_achat = st.text_input(
+                            "Désignation Achat",
+                            value=m_designation_achat,
+                            key=f"pro_edit_element_purchase_name_{index}",
+                        )
+                    with col_ft_2:
+                        natures = ["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"]
+                        if m_nature not in natures:
+                            natures.append(m_nature)
+                        m_nature = st.selectbox(
+                            "Nature",
+                            natures,
+                            index=natures.index(m_nature),
+                            key=f"pro_edit_element_nature_{index}",
+                        )
+                        dangers = ["-", "Non", "Oui"]
+                        if m_danger not in dangers:
+                            m_danger = "-"
+                        m_danger = st.radio(
+                            "Risque / Danger ?",
+                            dangers,
+                            index=dangers.index(m_danger),
+                            horizontal=True,
+                            key=f"pro_edit_element_danger_{index}",
+                        )
+                        if m_danger == "Oui":
+                            m_danger_texte = st.text_area(
+                                "Préciser le risque / danger",
+                                value=m_danger_texte,
+                                key=f"pro_edit_element_danger_text_{index}",
+                            )
+
+                    specs_dynamiques = render_dynamic_ft_inputs(
+                        fiche_ancienne,
+                        f"pro_edit_element_{index}",
+                    )
+                    m_manipulation = st.text_area(
+                        "Conseils de manipulation",
+                        value=m_manipulation,
+                        key=f"pro_edit_element_handling_{index}",
+                    )
+                    m_commentaire_global = st.text_area(
+                        "Commentaires généraux (FT)",
+                        value=m_commentaire_global,
+                        key=f"pro_edit_element_global_comment_{index}",
+                    )
+                    index_redacteur = (
+                        OPTIONS_REDACTEURS.index(m_redacteur)
+                        if m_redacteur in OPTIONS_REDACTEURS
+                        else 0
+                    )
+                    m_redacteur = st.selectbox(
+                        "Rédacteur / Modifié par",
+                        OPTIONS_REDACTEURS,
+                        index=index_redacteur,
+                        key=f"pro_edit_element_writer_{index}",
+                    )
+
+            if st.button(
+                "Enregistrer les modifications",
+                type="primary",
+                use_container_width=True,
+                key=f"pro_edit_element_save_{index}",
+            ):
+                nom_element = m_nom.strip()
+                if not nom_element:
+                    st.error("Le nom du composant est obligatoire.")
+                    return
+                if any(
+                    autre_index != index
+                    and pro_texte(item.get("nom")).lower() == nom_element.lower()
+                    for autre_index, item in enumerate(liste_additifs)
+                ):
+                    st.error("Ce nom appartient déjà à un autre élément.")
+                    return
+
+                compartiments_finaux = list(m_compartiments)
+                nouveau_compartiment = nouveau_compartiment.strip()
+                if nouveau_compartiment:
+                    if nouveau_compartiment not in liste_compartiments:
+                        liste_compartiments.append(nouveau_compartiment)
+                    if nouveau_compartiment not in compartiments_finaux:
+                        compartiments_finaux.append(nouveau_compartiment)
+
+                nouveau_sous_groupe = nouveau_sous_groupe.strip()
+                if nouveau_sous_groupe:
+                    if nouveau_sous_groupe not in liste_sous_groupes:
+                        liste_sous_groupes.append(nouveau_sous_groupe)
+                    sous_groupe_final = nouveau_sous_groupe
+                else:
+                    sous_groupe_final = m_sous_groupe
+
+                date_creation, date_derniere, date_avant = gerer_historique_dates_et_causes(
+                    fiche_ancienne,
+                    pro_date_maintenant(),
+                )
+                if activer_ft:
+                    specs_dynamiques = extraire_specs_du_state(f"pro_edit_element_{index}")
+                else:
+                    specs_dynamiques = fiche_ancienne.get("specs_dynamiques", {})
+                element_modifie = copy.deepcopy(data)
+                element_modifie.update(
+                    {
+                        "nom": nom_element,
+                        "code": m_code.strip(),
+                        "designation": m_designation.strip(),
+                        "statut": m_statut,
+                        "compartiments": compartiments_finaux,
+                        "sous_groupe": sous_groupe_final,
+                        "fournisseur": m_fournisseur.strip(),
+                        "code_article": m_article.strip(),
+                        "designation_achat": m_designation_achat.strip(),
+                        "nature": m_nature,
+                        "danger": m_danger,
+                        "danger_texte": m_danger_texte.strip() if m_danger == "Oui" else "",
+                        "manipulation": m_manipulation.strip(),
+                        "commentaire": m_commentaire.strip(),
+                        "commentaire_global": m_commentaire_global.strip(),
+                        "has_ft": activer_ft,
+                        "fiche_technique": {
+                            **copy.deepcopy(fiche_ancienne),
+                            "specs_dynamiques": specs_dynamiques,
+                            "date_creation": date_creation,
+                            "date_derniere_maj": date_derniere,
+                            "date_avant_derniere_maj": date_avant,
+                            "redacteur": m_redacteur,
+                        },
+                    }
+                )
+                liste_additifs[index] = element_modifie
+                sauvegarder_donnees()
+                afficher_animation_validation("Élément mis à jour")
+                st.session_state.pop("dialog_actif", None)
+                st.rerun()
+
+
+        barre_element_1, barre_element_2, barre_element_3 = st.columns([1.2, 1, 1])
+        with barre_element_1:
+            if st.button(
+                "＋ Ajouter un élément",
+                type="primary",
+                use_container_width=True,
+                key="pro_element_add_main",
+            ):
+                st.session_state.dialog_actif = {"type": "ajout_element"}
+                st.rerun()
+        with barre_element_2:
+            excel_elements, nom_excel_elements, mime_excel_elements = generer_fichier_export(
+                liste_additifs,
+                "Export_Elements",
+            )
+            if excel_elements:
+                st.download_button(
+                    "⬇️ Exporter Excel",
+                    data=excel_elements,
+                    file_name=nom_excel_elements,
+                    mime=mime_excel_elements,
+                    use_container_width=True,
+                    key="pro_element_export_excel",
+                )
+        with barre_element_3:
+            pro_export_json(
+                liste_additifs,
+                "Sauvegarde_Elements_BOS2.json",
+                "pro_element_export_json",
+            )
+
+        pro_afficher_audit(
+            liste_additifs,
+            [("nom", "Nom"), ("code", "Code")],
+            "nom",
+            "pro_element_audit",
+        )
+
+        with st.expander("Filtres et organisation du catalogue", expanded=True):
+            filtre_element_1, filtre_element_2, filtre_element_3, filtre_element_4 = st.columns(4)
+            with filtre_element_1:
+                recherche_element = st.text_input(
+                    "Recherche globale",
+                    placeholder="Nom, code, fournisseur...",
+                    key="pro_element_filter_global",
+                ).lower().strip()
+            with filtre_element_2:
+                compartiments_filtre = st.multiselect(
+                    "Compartiments",
+                    liste_compartiments,
+                    key="pro_element_filter_compartments",
+                )
+            with filtre_element_3:
+                sous_groupes_filtres = st.multiselect(
+                    "Sous-groupes",
+                    liste_sous_groupes,
+                    key="pro_element_filter_subgroups",
+                )
+            with filtre_element_4:
+                filtre_danger = st.selectbox(
+                    "Risque",
+                    ["Tous", "Oui", "Non", "Non renseigné"],
+                    key="pro_element_filter_danger",
+                )
+
+            tri_element_1, tri_element_2, filtre_element_ft, filtre_element_statut = st.columns(4)
+            with tri_element_1:
+                tri_element = st.selectbox(
+                    "Trier par",
+                    ["Nom", "Code", "Fournisseur", "Sous-groupe"],
+                    key="pro_element_sort",
+                )
+            with tri_element_2:
+                ordre_element = st.selectbox(
+                    "Ordre",
+                    ["Croissant", "Décroissant"],
+                    key="pro_element_order",
+                )
+            with filtre_element_ft:
+                filtre_ft_element = st.selectbox(
+                    "Fiche Technique",
+                    ["Toutes", "Avec FT", "Sans FT"],
+                    key="pro_element_filter_ft",
+                )
+            with filtre_element_statut:
+                filtre_statut_element = st.selectbox(
+                    "Statut",
+                    ["Tous", "Vérifier", "Pas vérifié"],
+                    key="pro_element_filter_status",
+                )
+
+        mapping_tri_element = {
+            "Nom": "nom",
+            "Code": "code",
+            "Fournisseur": "fournisseur",
+            "Sous-groupe": "sous_groupe",
+        }
+        elements_filtres = []
+        for index_element, element_item in enumerate(liste_additifs):
+            texte_recherche = " ".join(
+                pro_texte(element_item.get(cle))
+                for cle in ["nom", "code", "designation", "fournisseur", "sous_groupe", "commentaire"]
+            ).lower()
+            if recherche_element and recherche_element not in texte_recherche:
+                continue
+            if compartiments_filtre and not any(
+                compartiment in element_item.get("compartiments", [])
+                for compartiment in compartiments_filtre
+            ):
+                continue
+            if sous_groupes_filtres and element_item.get("sous_groupe", "Général") not in sous_groupes_filtres:
+                continue
+            danger_item = element_item.get("danger", "-")
+            if filtre_danger == "Oui" and danger_item != "Oui":
+                continue
+            if filtre_danger == "Non" and danger_item != "Non":
+                continue
+            if filtre_danger == "Non renseigné" and danger_item not in ["", "-"]:
+                continue
+            if filtre_ft_element == "Avec FT" and not element_item.get("has_ft"):
+                continue
+            if filtre_ft_element == "Sans FT" and element_item.get("has_ft"):
+                continue
+            if filtre_statut_element != "Tous" and element_item.get("statut", "Pas vérifié") != filtre_statut_element:
+                continue
+            elements_filtres.append({"index_origine": index_element, "data": element_item})
+
+        elements_filtres.sort(
+            key=lambda element: pro_naturel(
+                element["data"].get(mapping_tri_element[tri_element], "")
+            ),
+            reverse=ordre_element == "Décroissant",
+        )
+        pro_barre_resultats(len(elements_filtres), len(liste_additifs), "éléments")
+
+
+        def pro_afficher_tableau_elements(liste_tableau, prefixe_tableau):
+            elements_page, page_element, pages_element = pro_paginer(
+                liste_tableau,
+                f"pro_element_page_{prefixe_tableau}",
+                25,
+            )
+            st.caption(f"Page {page_element} sur {pages_element}")
+            if not elements_page:
+                st.info("Aucun élément dans cette vue.")
+                return
+
+            entete = st.columns([1.35, .9, 1.4, 1.2, 1.25, 1.25, 2.15])
+            for colonne, libelle in zip(
+                entete,
+                ["Nom", "Code", "Désignation", "Fournisseur", "Compartiments", "Commentaire", "Actions"],
+            ):
+                colonne.markdown(f"**{libelle}**")
+            st.markdown("<hr style='margin:4px 0;border-width:2px;border-color:#142235;'>", unsafe_allow_html=True)
+
+            for element_ligne in elements_page:
+                index_element = element_ligne["index_origine"]
+                element_data = element_ligne["data"]
+                ligne = st.columns([1.35, .9, 1.4, 1.2, 1.25, 1.25, 2.15])
+                indicateur = "🔴 " if element_data.get("danger") == "Oui" else ""
+                ligne[0].markdown(f"**{indicateur}{html_lib.escape(pro_texte(element_data.get('nom')) or '-')}**")
+                ligne[1].write(pro_texte(element_data.get("code")) or "-")
+                ligne[2].write(pro_texte(element_data.get("designation")) or "-")
+                ligne[3].write(pro_texte(element_data.get("fournisseur")) or "-")
+                ligne[4].write(", ".join(element_data.get("compartiments", [])) or "-")
+                ligne[5].write(pro_texte(element_data.get("commentaire")) or "-")
+
+                action_voir, action_modifier, action_dupliquer, action_supprimer, action_ft = ligne[6].columns(
+                    [1, 1, 1, 1, 1.3]
+                )
+                if action_voir.button("👁", key=f"pro_element_view_{prefixe_tableau}_{index_element}"):
+                    ouvrir_details_element(element_data)
+                if action_modifier.button("✎", key=f"pro_element_edit_{prefixe_tableau}_{index_element}"):
+                    st.session_state.dialog_actif = {"type": "modif_element", "index": index_element}
+                    st.rerun()
+                if action_dupliquer.button("⧉", key=f"pro_element_copy_{prefixe_tableau}_{index_element}"):
+                    copie_element = copy.deepcopy(element_data)
+                    copie_element["nom"] = pro_identifiant_unique(
+                        f"{pro_texte(element_data.get('nom'))} — Copie",
+                        liste_additifs,
+                        "nom",
+                    )
+                    if copie_element.get("code"):
+                        copie_element["code"] = pro_identifiant_unique(
+                            f"{pro_texte(element_data.get('code'))}-C",
+                            liste_additifs,
+                            "code",
+                        )
+                    copie_element["statut"] = "Pas vérifié"
+                    ft_copie = copie_element.setdefault("fiche_technique", {})
+                    ft_copie["date_creation"] = pro_date_maintenant()
+                    ft_copie["date_derniere_maj"] = ft_copie["date_creation"]
+                    ft_copie["date_avant_derniere_maj"] = "-"
+                    liste_additifs.append(copie_element)
                     sauvegarder_donnees()
                     st.rerun()
 
-        @st.dialog("✏️ Modifier un élément", width="large")
-        def ouvrir_modif_element_complet(index, data):
-            m_nom = st.text_input("Nom de l'élément", value=data.get("nom", ""))
-            m_code = st.text_input("Code", value=data.get("code", ""))
-            m_des = st.text_input("Désignation", value=data.get("designation", ""))
-            m_comm = st.text_input("Commentaire court (Formulation)", value=data.get("commentaire", ""))
-            m_statut = st.radio("État de l'élément :", ["Pas vérifié", "Vérifier"], index=["Pas vérifié", "Vérifier"].index(data.get("statut", "Pas vérifié")), horizontal=True)
+                cle_suppression = f"pro_element_delete_confirm_{index_element}"
+                if action_supprimer.button("🗑", key=f"pro_element_delete_{prefixe_tableau}_{index_element}"):
+                    st.session_state[cle_suppression] = True
+                if element_data.get("has_ft"):
+                    if action_ft.button("FT", key=f"pro_element_ft_{prefixe_tableau}_{index_element}"):
+                        ouvrir_visualisation_ft_additif(element_data)
 
-            st.markdown("##### 🗂️ Classification")
-            liste_compartiments = st.session_state.processus_db["preparation_melanges"].setdefault("compartiments", ["résine", "peinture"])
-            liste_sous_groupes = st.session_state.processus_db["preparation_melanges"].setdefault("sous_groupes", ["Général"])
-            
-            comps_actuels = data.get("compartiments", [])
-            def_comps = [c for c in comps_actuels if c in liste_compartiments]
-            sg_actuel = data.get("sous_groupe", "Général")
-            if sg_actuel not in liste_sous_groupes: sg_actuel = "Général"
-            
-            col_c, col_sg = st.columns(2)
-            with col_c:
-                m_compartiments = st.multiselect("Compartiments :", liste_compartiments, default=def_comps)
-                nouveau_comp_m = st.text_input("➕ Nouveau compartiment :")
-            with col_sg:
-                m_sous_groupe = st.selectbox("Sous-groupe :", liste_sous_groupes, index=liste_sous_groupes.index(sg_actuel))
-                nouveau_sg_m = st.text_input("➕ Nouveau sous-groupe :")
-                
-            st.markdown("<br>", unsafe_allow_html=True)
+                if st.session_state.get(cle_suppression, False):
+                    st.warning(f"Supprimer définitivement {element_data.get('nom', '')} ?")
+                    col_oui, col_non = st.columns(2)
+                    if col_oui.button("Oui, supprimer", key=f"pro_element_delete_yes_{prefixe_tableau}_{index_element}"):
+                        liste_additifs.pop(index_element)
+                        st.session_state[cle_suppression] = False
+                        sauvegarder_donnees()
+                        st.rerun()
+                    if col_non.button("Annuler", key=f"pro_element_delete_no_{prefixe_tableau}_{index_element}"):
+                        st.session_state[cle_suppression] = False
+                        st.rerun()
 
-            has_ft_init = data.get("has_ft", False)
-            activer_ft = st.toggle("📝 Gérer la Fiche Technique (FT)", value=has_ft_init)
+                st.markdown("<hr style='margin:5px 0;opacity:.16;'>", unsafe_allow_html=True)
 
-            m_fourn = data.get("fournisseur", "")
-            m_art = data.get("code_article", "")
-            m_des_ach = data.get("designation_achat", "")
-            m_nat = data.get("nature", "Liquide")
-            
-            m_dang = data.get("danger", "-")
-            if m_dang not in ["-", "Non", "Oui"]: m_dang = "-"
-            
-            m_dang_txt = data.get("danger_texte", "")
-            m_manip = data.get("manipulation", "")
-            m_comm_glob = data.get("commentaire_global", "")
-            
-            ft_old = data.get("fiche_technique", {})
-            idx_redacteur = OPTIONS_REDACTEURS.index(ft_old.get("redacteur", "Labo / R&D")) if ft_old.get("redacteur", "Labo / R&D") in OPTIONS_REDACTEURS else 0
-            m_redacteur = OPTIONS_REDACTEURS[idx_redacteur]
 
-            if activer_ft:
-                st.markdown("##### Spécifications de la Fiche Technique")
-                m_fourn = st.text_input("Fournisseur", value=m_fourn)
-                m_art = st.text_input("Code Article Achat", value=m_art)
-                m_des_ach = st.text_input("Désignation Achat", value=m_des_ach)
-                m_nat = st.selectbox("Nature", ["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"], index=["-", "Liquide", "Poudre", "Granulé", "Gel", "Autre"].index(m_nat))
-                
-                m_dang = st.radio("Risque / Danger ?", ["-", "Non", "Oui"], index=["-", "Non", "Oui"].index(m_dang), horizontal=True)
-                if m_dang == "Oui":
-                    m_dang_txt = st.text_area("Préciser le risque / danger", value=m_dang_txt)
+        noms_onglets_elements = ["Tous les éléments"] + [
+            f"{compartiment.capitalize()}"
+            for compartiment in liste_compartiments
+        ]
+        onglets_elements = st.tabs(noms_onglets_elements)
+        with onglets_elements[0]:
+            pro_afficher_tableau_elements(elements_filtres, "tous")
+
+        for index_compartiment, compartiment in enumerate(liste_compartiments):
+            with onglets_elements[index_compartiment + 1]:
+                elements_compartiment = [
+                    item
+                    for item in elements_filtres
+                    if compartiment in item["data"].get("compartiments", [])
+                ]
+                sous_groupes_presents = sorted(
+                    {
+                        item["data"].get("sous_groupe", "Général")
+                        for item in elements_compartiment
+                    }
+                )
+                if not sous_groupes_presents:
+                    st.info(f"Aucun élément classé dans « {compartiment} ».")
+                for sous_groupe in sous_groupes_presents:
+                    st.markdown(f"##### Sous-groupe : {sous_groupe}")
+                    elements_sous_groupe = [
+                        item
+                        for item in elements_compartiment
+                        if item["data"].get("sous_groupe", "Général") == sous_groupe
+                    ]
+                    prefixe = f"comp_{index_compartiment}_{re.sub(r'[^a-zA-Z0-9]+', '_', sous_groupe)}"
+                    pro_afficher_tableau_elements(elements_sous_groupe, prefixe)    
                     
-                m_manip = st.text_area("Conseils de manipulation", value=m_manip)
-                m_comm_glob = st.text_area("Commentaires Généraux (FT)", value=m_comm_glob)
-                m_redacteur = st.selectbox("Rédacteur / Modifié par :", OPTIONS_REDACTEURS, index=idx_redacteur)
-
-            if st.button("Mettre à jour l'élément", type="primary"):
-                comps_finaux = list(m_compartiments)
-                if nouveau_comp_m.strip() and nouveau_comp_m.strip() not in liste_compartiments:
-                    st.session_state.processus_db["preparation_melanges"]["compartiments"].append(nouveau_comp_m.strip())
-                    comps_finaux.append(nouveau_comp_m.strip())
-                    
-                if nouveau_sg_m.strip() and nouveau_sg_m.strip() not in liste_sous_groupes:
-                    st.session_state.processus_db["preparation_melanges"]["sous_groupes"].append(nouveau_sg_m.strip())
-                    sg_final = nouveau_sg_m.strip()
-                else:
-                    sg_final = m_sous_groupe
-
-                today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
-                d_crea, d_der, d_av = gerer_historique_dates(ft_old, today_str)
-
-                st.session_state.processus_db["preparation_melanges"]["additifs"][index] = {
-                    "nom": m_nom, "code": m_code, "designation": m_des, "statut": m_statut,
-                    "compartiments": comps_finaux, "sous_groupe": sg_final,
-                    "fournisseur": m_fourn, "code_article": m_art, "designation_achat": m_des_ach,
-                    "nature": m_nat, "danger": m_dang, "danger_texte": m_dang_txt if m_dang == "Oui" else "",
-                    "manipulation": m_manip, "commentaire": m_comm, "commentaire_global": m_comm_glob, "has_ft": activer_ft,
-                    "fiche_technique": {"date_creation": d_crea, "date_derniere_maj": d_der, "date_avant_derniere_maj": d_av, "redacteur": m_redacteur}
-                }
-                sauvegarder_donnees()
-                st.rerun()
-
-        if st.button("Ajouter un élément", type="primary"):
-            ouvrir_ajout_element_complet()
-
-        if liste_additifs:
-            with st.expander("🔍 Outils de filtrage (Global)", expanded=True):
-                liste_compartiments = st.session_state.processus_db["preparation_melanges"].setdefault("compartiments", ["résine", "peinture"])
-                e_f1, e_f2, e_f3, e_f4 = st.columns([1.5, 1.5, 1.5, 1])
-                with e_f1: filtre_e_nom = st.text_input("Filtrer par Nom", "")
-                with e_f2: filtre_e_emp = st.text_input("Filtrer par Code", "")
-                with e_f3: tri_e_colonne = st.selectbox("Trier par :", ["Nom", "Code", "Fournisseur", "Sous-groupe"])
-                with e_f4: sens_e_tri = st.selectbox("Ordre :", ["Croissant ⬆️", "Décroissant ⬇️"], key="sens_e")
-
-            # Filtrage global
-            elements_filtres = []
-            for idx, a in enumerate(liste_additifs):
-                match_nom = filtre_e_nom.lower() in a.get("nom", "").lower()
-                match_code = filtre_e_emp.lower() in a.get("code", "").lower()
-                if match_nom and match_code:
-                    elements_filtres.append({"index_origine": idx, "data": a})
-            
-            tri_cle = {"Nom": "nom", "Code": "code", "Fournisseur": "fournisseur", "Sous-groupe": "sous_groupe"}[tri_e_colonne]
-            elements_filtres.sort(key=lambda x: str(x["data"].get(tri_cle, "")).lower(), reverse=(sens_e_tri == "Décroissant ⬇️"))
-
-            col_info_el, col_export_el = st.columns([4, 1])
-            with col_info_el:
-                st.info(f"📊 **Nombre total d'éléments trouvés :** {len(elements_filtres)}")
-            with col_export_el:
-                donnees_el_export = [item["data"] for item in elements_filtres]
-                excel_data, nom_fichier, mime_type = generer_fichier_export(donnees_el_export, "Export_Elements")
-                if excel_data:
-                    st.download_button("📥 Exporter Excel", data=excel_data, file_name=nom_fichier, mime=mime_type, use_container_width=True)
-
-            # FONCTION RÉUTILISABLE POUR AFFICHER UN TABLEAU D'ÉLÉMENTS
-            def afficher_tableau_elements(liste_a_afficher, prefix_tab):
-                if not liste_a_afficher:
-                    st.warning("Aucun élément dans cette section.")
-                    return
-                
-                if len(liste_a_afficher) > MAX_LIGNES_AFFICHAGE:
-                    st.warning(f"⚠️ Affichage limité aux {MAX_LIGNES_AFFICHAGE} premiers résultats.")
-                elements_pagines = liste_a_afficher[:MAX_LIGNES_AFFICHAGE]
-
-                thead = st.columns([1.5, 1, 1.5, 1.5, 1.5, 1.5, 1.5])
-                thead[0].markdown("**Nom**")
-                thead[1].markdown("**Code**")
-                thead[2].markdown("**Désignation**")
-                thead[3].markdown("**Fournisseur**")
-                thead[4].markdown("**Compartiments**")
-                thead[5].markdown("**Commentaire**")
-                thead[6].markdown("**Actions**")
-                st.markdown("<hr style='margin:4px 0px; border-width:2px; border-color:black;'>", unsafe_allow_html=True)
-
-                for item in elements_filtres:
-                    idx_a = item["index_origine"]
-                    a_data = item["data"]
-                    
-                    is_verified = a_data.get("statut") == "Vérifier"
-                    txt_style = "color: ##FF0003; font-weight: bold;" if is_verified else "color: inherit;"
+                    # --- Réouverture persistante des dialogs ---
+        dialog_actif = st.session_state.get("dialog_actif")
+        if isinstance(dialog_actif, dict):
+            d_type = dialog_actif.get("type")
+            if d_type == "ajout_element":
+                ouvrir_ajout_element_complet()
+            elif d_type == "modif_element":
+                idx = dialog_actif.get("index")
+                if idx is not None and 0 <= idx < len(liste_additifs):
+                    ouvrir_modif_element_complet(idx, liste_additifs[idx])
                     
                     
-                    row = st.columns([1.5, 1, 1.5, 1.5, 1.5, 1.5, 1.5])
-                    
-                    pastille = "🔴 " if is_verified else ""
-                    row[0].markdown(f'<span style="{txt_style}">{pastille}{str(a_data.get("nom", "-")).title()}</span>', unsafe_allow_html=True)
-                    row[1].write(str(a_data.get("code", "-")).upper())
-                    row[2].write(str(a_data.get("designation", "-")).title())
-                    row[3].write(str(a_data.get("fournisseur", "-") if a_data.get("fournisseur") else "-").upper())
-                    
-                    comps = a_data.get("compartiments", [])
-                    row[4].write(", ".join(comps) if comps else "-")
-                    
-                    row[5].write(str(a_data.get("commentaire", "-")))
-                    
-                    c_v, c_edit, c_del, c_ft = row[6].columns([1, 1, 1, 1.5])
-                    if c_v.button("👁️", key=f"v_add_{prefix_tab}_{idx_a}"):
-                        ouvrir_details_element(a_data)
-                    
-                    if c_edit.button("✏️", key=f"ed_add_{prefix_tab}_{idx_a}"):
-                        ouvrir_modif_element_complet(idx_a, a_data)
-                    
-                    key_del_a = f"del_confirm_add_{idx_a}" # Clé globale pour l'élément pour éviter les bugs entre onglets
-                    if key_del_a not in st.session_state: st.session_state[key_del_a] = False
-                    if not st.session_state[key_del_a]:
-                        if c_del.button("🗑️", key=f"del_add_{prefix_tab}_{idx_a}"):
-                            st.session_state[key_del_a] = True
-                            st.rerun()
-                    else:
-                        if c_del.button("Oui", key=f"d_add_y_{prefix_tab}_{idx_a}", type="primary"):
-                            st.session_state.processus_db["preparation_melanges"]["additifs"].pop(idx_a)
-                            st.session_state[key_del_a] = False
-                            sauvegarder_donnees()
-                            st.rerun()
-                        if c_del.button("Non", key=f"d_add_n_{prefix_tab}_{idx_a}"):
-                            st.session_state[key_del_a] = False
-                            st.rerun()
-                    
-                    if a_data.get("has_ft"):
-                        if c_ft.button("📄 FT", key=f"ft_add_{prefix_tab}_{idx_a}"):
-                            ouvrir_visualisation_ft_additif(a_data)
-
-            # ONGLET DYNAMIQUES
-            noms_onglets = ["🗂️ Tous les éléments"] + [f"📁 {c.capitalize()}" for c in liste_compartiments]
-            onglets_comp = st.tabs(noms_onglets)
-            
-            with onglets_comp[0]:
-                afficher_tableau_elements(elements_filtres, "tous")
-                
-            for i, comp in enumerate(liste_compartiments):
-                with onglets_comp[i+1]:
-                    # Filtrer les éléments de ce compartiment
-                    elements_du_comp = [e for e in elements_filtres if comp in e["data"].get("compartiments", [])]
-                    
-                    if not elements_du_comp:
-                        st.info(f"Aucun élément n'est classé dans le compartiment : {comp}.")
-                    else:
-                        # Identifier les sous-groupes uniques dans ce compartiment
-                        sgs_presents = sorted(list(set([e["data"].get("sous_groupe", "Général") for e in elements_du_comp])))
-                        
-                        for sg in sgs_presents:
-                            st.markdown(f"#### 📂 Sous-groupe : {sg}")
-                            elements_sg = [e for e in elements_du_comp if e["data"].get("sous_groupe", "Général") == sg]
-                            afficher_tableau_elements(elements_sg, f"comp_{i}_sg_{sg.replace(' ', '_')}")
+    # ========================================================================
+    # SECTION 3 — RÉFÉRENTIEL DES CODES RAL
+    # ========================================================================
 
     elif choix_section == "🔢 Référentiel des codes RAL":
-        @st.dialog("➕ Ajouter un nouveau RAL au nuancier", width="large")
-        def ouvrir_ajout_ral_base():
-            r_code = st.text_input("Code RAL (ex: 5015)")
-            r_nom = st.text_input("Nom officiel de la teinte")
-            r_hex = st.color_picker("Sélectionner la valeur Hexadécimale", "#FFFFFF")
-            if st.button("Enregistrer dans le catalogue", type="primary"):
-                if r_code and r_nom:
-                    RAL_DICT[r_code.strip()] = r_hex
-                    st.session_state.processus_db["preparation_melanges"].setdefault("base_rals", []).append(
-                        {"code": r_code.strip(), "nom": r_nom.strip(), "visuel": r_hex}
-                    )
-                    sauvegarder_donnees()
-                    st.rerun()
+        rals_personnalises = st.session_state.processus_db[
+            "preparation_melanges"
+        ].setdefault("base_rals", [])
 
-        if st.button("Ajouter une nuance RAL", type="primary"): ouvrir_ajout_ral_base()
-        catalogue_complet_ral = [{"code": code_r, "nom": f"Teinte RAL CLASSIC {code_r}", "visuel": hex_r} for code_r, hex_r in RAL_DICT.items()]
-
-        with st.expander("🔍 Filtrer et trier le catalogue complet des RALs", expanded=True):
-            r_f1, r_f2, r_f3 = st.columns([2, 2, 1])
-            with r_f1: filtre_r_code = st.text_input("Filtrer par Code RAL", "")
-            with r_f2: filtre_r_nom = st.text_input("Filtrer par Libellé", "")
-            with r_f3: sens_r_tri = st.selectbox("Ordre de tri :", ["Croissant ⬆️", "Décroissant ⬇️"])
-
-        rals_filtres = [r for r in catalogue_complet_ral if (filtre_r_code in r["code"]) and (filtre_r_nom.lower() in r["nom"].lower())]
-        rals_filtres.sort(key=lambda x: int(x["code"]) if x["code"].isdigit() else x["code"], reverse=(sens_r_tri == "Décroissant ⬇️"))
-
-        if len(rals_filtres) > MAX_LIGNES_AFFICHAGE:
-            st.warning(f"⚠️ Affichage limité aux {MAX_LIGNES_AFFICHAGE} premiers résultats. Utilisez les filtres.")
-        rals_a_afficher = rals_filtres[:MAX_LIGNES_AFFICHAGE]
-
-        if rals_filtres: st.info(f"📊 **Nombre de codes RAL :** {len(rals_filtres)} | **Premier affiché :** RAL {rals_a_afficher[0]['code']} | **Dernier affiché :** RAL {rals_a_afficher[-1]['code']}")
-
-        th_r_code, th_r_nom, th_r_vis, th_r_act = st.columns([2, 4, 2, 2])
-        with th_r_code: st.markdown("**Code RAL**")
-        with th_r_nom: st.markdown("**Désignation**")
-        with th_r_vis: st.markdown("**Visuel de la teinte**")
-        with th_r_act: st.markdown("**Action**")
-        st.markdown("<hr style='margin:4px 0px; border-width:2px; border-color:black;'>", unsafe_allow_html=True)
-
-        for idx_r, r_data in enumerate(rals_a_afficher):
-            tr_r_code, tr_r_nom, tr_r_vis, tr_r_act = st.columns([2, 4, 2, 2])
-            with tr_r_code: st.write(f"<b>RAL {r_data['code']}</b>", unsafe_allow_html=True)
-            with tr_r_nom: st.write(r_data['nom'])
-            with tr_r_vis: st.markdown(f'<div style="width:50px; height:24px; background-color:{r_data["visuel"]}; border-radius:4px; border:1px solid #1E293B;"></div>', unsafe_allow_html=True)
-            with tr_r_act:
-                if st.button("Utiliser", key=f"use_ral_{idx_r}_{r_data['code']}"):
-                    st.session_state["add_ral"] = r_data['code']
-                    st.session_state["add_hex"] = r_data['visuel']
-                    st.toast(f"RAL {r_data['code']} copié. Ouvrez l'ajout de couleur !")
-
-    elif choix_section == "⚗️ Formulations d'atelier":
-        @st.dialog("➕ Créer un mélange", width="large")
-        def ouvrir_ajout_melange_complet():
-            m_ref = st.text_input("Référence du mélange")
-            m_nom = st.text_input("Nom du mélange")
-            m_cat = st.selectbox("Catégorie", ["Mélange Couleurs", "Autre Mélange"])
-            m_emp = st.text_input("Emplacement de stockage")
-            m_comm = st.text_input("Commentaire court (Formulation)")
-            m_statut = st.radio("État du mélange :", ["Pas vérifié", "Vérifier"], index=0, horizontal=True)
-            
-            activer_ft = st.toggle("📝 Créer la Fiche Technique (FT)", value=False)
-            ft_aspect, ft_visco, ft_densite, ft_sechage, ft_cond, m_comm_glob = "", "", "", "", "", ""
-            ft_redacteur = OPTIONS_REDACTEURS[0]
-            
-            if activer_ft:
-                st.markdown("##### Spécifications Physico-Chimiques (FT)")
-                col_ft1, col_ft2 = st.columns(2)
-                with col_ft1:
-                    ft_aspect = st.text_input("Aspect / Finition")
-                    ft_visco = st.text_input("Viscosité attendue")
-                    ft_densite = st.text_input("Densité")
-                with col_ft2:
-                    ft_sechage = st.text_input("Temps de séchage")
-                ft_cond = st.text_area("Conditions d'application")
-                m_comm_glob = st.text_area("Commentaires Généraux (FT)")
-                ft_redacteur = st.selectbox("Rédacteur / Modifié par :", OPTIONS_REDACTEURS, index=0)
-
-            if "tmp_form_state" not in st.session_state: st.session_state.tmp_form_state = {}
-
-            st.markdown("---")
-            container_selection = st.container()
-
-            st.markdown("#### ➕ Ajouter des composants")
-            recherche_filtre_c = st.text_input("🔍 Filtrer les composants (Nom, Réf, Code RAL, Élément existant) :").strip()
-
-            st.markdown("**🎨 Couleurs du Nuancier :**")
-            couleurs_trouvees = [c for c in liste_couleurs if not recherche_filtre_c or (recherche_filtre_c.lower() in c["nom_actuel"].lower() or recherche_filtre_c.lower() in c["ref"].lower() or recherche_filtre_c.lower() in c.get("ral", "").lower())]
-            for idx, c in enumerate(couleurs_trouvees if recherche_filtre_c else couleurs_trouvees[:5]):
-                key_c = f"color_{c['ref']}"
-                if key_c not in st.session_state.tmp_form_state:
-                    col_chk, col_vis = st.columns([7, 1])
-                    with col_chk:
-                        st.checkbox(f"{c['nom_actuel']} ({c['ref']})", value=False, key=f"chk_add_c_{idx}_{c['ref']}",
-                                    on_change=add_tmp_item, args=("tmp_form_state", key_c, {"type": "couleur", "ref": c['ref'], "nom": c['nom_actuel'], "dosage": "100g", "commentaire_composant": ""}))
-                    with col_vis: st.markdown(f'<div style="width:22px; height:22px; background-color:{c["visuel"]}; border-radius:50%; border:1px solid #000; margin-top:5px;"></div>', unsafe_allow_html=True)
-
-            st.markdown("**🔢 Codes RAL du catalogue :**")
-            rals_trouves = [(code_ral, hex_ral) for code_ral, hex_ral in RAL_DICT.items() if not recherche_filtre_c or recherche_filtre_c.lower() in code_ral]
-            for idx, (code_ral, hex_ral) in enumerate(rals_trouves if recherche_filtre_c else rals_trouves[:5]):
-                key_ral = f"ral_std_{code_ral}"
-                if key_ral not in st.session_state.tmp_form_state:
-                    col_chk_r, col_vis_r = st.columns([7, 1])
-                    with col_chk_r:
-                        st.checkbox(f"RAL {code_ral}", value=False, key=f"chk_add_ral_{idx}_{code_ral}",
-                                    on_change=add_tmp_item, args=("tmp_form_state", key_ral, {"type": "ral_officiel", "ref": f"RAL {code_ral}", "nom": f"RAL {code_ral}", "visuel": hex_ral, "dosage": "100g", "commentaire_composant": ""}))
-                    with col_vis_r: st.markdown(f'<div style="width:22px; height:22px; background-color:{hex_ral}; border-radius:50%; border:1px solid #000; margin-top:5px;"></div>', unsafe_allow_html=True)
-
-            st.markdown("**⚗️ Mélanges existants (Bases) :**")
-            melanges_trouves = [mel for mel in liste_melanges if not recherche_filtre_c or (recherche_filtre_c.lower() in mel["nom"].lower() or recherche_filtre_c.lower() in mel["ref"].lower())]
-            for idx, mel in enumerate(melanges_trouves if recherche_filtre_c else melanges_trouves[:5]):
-                key_m_exist = f"melange_base_{mel['ref']}"
-                if key_m_exist not in st.session_state.tmp_form_state:
-                    col_chk_m, _ = st.columns([7, 1])
-                    with col_chk_m:
-                        st.checkbox(f"Mélange : {mel['nom']} ({mel['ref']})", value=False, key=f"chk_add_mel_{idx}_{mel['ref']}",
-                                    on_change=add_tmp_item, args=("tmp_form_state", key_m_exist, {"type": "melange_base", "ref": mel['ref'], "nom": mel['nom'], "dosage": "500g", "commentaire_composant": ""}))
-
-            st.markdown("**🧪 Éléments (Additifs) :**")
-            elements_trouves = [a for a in liste_additifs if not recherche_filtre_c or recherche_filtre_c.lower() in a["nom"].lower()]
-            for idx, a in enumerate(elements_trouves if recherche_filtre_c else elements_trouves[:5]):
-                key_a = f"additif_{a['nom']}"
-                if key_a not in st.session_state.tmp_form_state:
-                    col_chk_a, _ = st.columns([7, 1])
-                    with col_chk_a:
-                        st.checkbox(f"Élément : {a['nom']}", value=False, key=f"chk_add_add_{idx}_{a['nom']}",
-                                    on_change=add_tmp_item, args=("tmp_form_state", key_a, {"type": "additif", "ref": a['nom'], "nom": a['nom'], "dosage": "10g", "commentaire_composant": ""}))
-
-            with container_selection:
-                st.markdown("### 🛠️ Composants de ce mélange :")
-                cles_existantes = list(st.session_state.tmp_form_state.keys())
-                if cles_existantes:
-                    for idx, k in enumerate(cles_existantes):
-                        v = st.session_state.tmp_form_state.get(k)
-                        if not v: continue
-                        col_chk, col_vis = st.columns([7, 1])
-                        with col_chk:
-                            label_aff = "ÉLÉMENT" if v['type'] == "additif" else v['type'].upper()
-                            label_affichage = f"[{label_aff}] {v['nom']} ({v['ref']})"
-                            widget_k = f"form_item_chk_{idx}_{v['ref']}"
-                            
-                            is_checked = st.checkbox(label_affichage, value=True, key=widget_k, on_change=remove_tmp_item_cb, args=("tmp_form_state", widget_k, k))
-                            if is_checked:
-                                st.session_state.tmp_form_state[k]["dosage"] = st.text_input(f"Dosage pour {v['nom']}", value=v["dosage"], key=f"dos_form_item_{idx}_{v['ref']}")
-                                st.session_state.tmp_form_state[k]["commentaire_composant"] = st.text_input(f"Commentaire pour {v['nom']}", value=v.get("commentaire_composant", ""), key=f"comm_form_item_{idx}_{v['ref']}")
-                        with col_vis:
-                            if v.get("visuel"): st.markdown(f'<div style="width:22px; height:22px; background-color:{v["visuel"]}; border-radius:50%; border:1px solid #000; margin-top:5px;"></div>', unsafe_allow_html=True)
-                else:
-                    st.warning("Aucun composant sélectionné dans ce mélange.")
-
-            st.markdown("---")
-            if st.button("Enregistrer la formulation", type="primary"):
-                if m_ref and m_nom:
-                    comp = []
-                    for k, v in st.session_state.tmp_form_state.items():
-                        if est_dosage_valide(v.get("dosage", "")):
-                            item_dict = {"ref": v["ref"], "nom": v["nom"], "dosage": v["dosage"], "commentaire_composant": v.get("commentaire_composant", "")}
-                            if v["type"] == "couleur":
-                                couleur_trouvee = next((x for x in liste_couleurs if x["ref"] == v["ref"]), None)
-                                item_dict.update({"type": "couleur", "nom": couleur_trouvee["nom_actuel"] if couleur_trouvee else v["nom"], "visuel": couleur_trouvee["visuel"] if couleur_trouvee else "#CCCCCC"})
-                            elif v["type"] == "ral_officiel":
-                                item_dict.update({"type": "ral_officiel", "visuel": v["visuel"]})
-                            elif v["type"] == "melange_base":
-                                item_dict.update({"type": "melange_base", "visuel": "#CBD5E1"})
-                            else:
-                                item_dict.update({"type": "additif", "visuel": "#E2E8F0"})
-                            comp.append(item_dict)
-                    
-                    today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
-                    st.session_state.processus_db["preparation_melanges"]["melanges"].append({
-                        "ref": m_ref, "nom": m_nom, "categorie_choisie": m_cat, "emplacement": m_emp,
-                        "commentaire": m_comm, "commentaire_global": m_comm_glob,
-                        "couleurs_associees": comp, "statut": m_statut, "has_ft": activer_ft,
-                        "fiche_technique": {
-                            "date_creation": today_str, "date_derniere_maj": today_str, "date_avant_derniere_maj": "-",
-                            "aspect": ft_aspect, "viscosite": ft_visco, "densite": ft_densite, "sechage": ft_sechage, "conditions": ft_cond, "redacteur": ft_redacteur
-                        }
-                    })
-                    st.session_state.tmp_form_state = {}
-                    sauvegarder_donnees()
-                    st.rerun()
-
-        @st.dialog("✏️ Modifier une fiche de mélange", width="large")
-        def ouvrir_modification_melange_complet(index, melange_data):
-            init_key = f"mod_init_{index}"
-            if init_key not in st.session_state:
-                st.session_state.tmp_mod_state = {}
-                for c in melange_data.get("couleurs_associees", []):
-                    type_c = c.get("type", "couleur")
-                    key = f"{type_c}_{c['ref']}"
-                    st.session_state.tmp_mod_state[key] = {"type": type_c, "ref": c["ref"], "nom": c.get("nom", ""), "dosage": c["dosage"], "visuel": c.get("visuel"), "commentaire_composant": c.get("commentaire_composant", "")}
-                st.session_state[init_key] = True
-
-            if "tmp_mod_state" not in st.session_state: st.session_state.tmp_mod_state = {}
-
-            m_ref = st.text_input("Référence du mélange", value=melange_data.get("ref", ""))
-            m_nom = st.text_input("Nom du mélange", value=melange_data.get("nom", ""))
-            m_cat = st.selectbox("Catégorie de rangement", ["Mélange Couleurs", "Autre Mélange"], index=["Mélange Couleurs", "Autre Mélange"].index(melange_data.get("categorie_choisie", "Mélange Couleurs")))
-            m_statut = st.radio("État du mélange :", ["Pas vérifié", "Vérifier"], index=["Pas vérifié", "Vérifier"].index(melange_data.get("statut", "Pas vérifié")), horizontal=True)
-            
-            if melange_data.get("image_rendu"):
-                st.caption("Aperçu de l'image actuelle :")
-                afficher_image_base64(melange_data["image_rendu"]["data"], width=100)
-            m_img_file = st.file_uploader("Remplacer ou importer l'image du mélange", type=["png", "jpg", "jpeg", "webp"])
-            
-            m_emp = st.text_input("Emplacement de stockage", value=melange_data.get("emplacement", ""))
-            m_comm = st.text_input("Commentaire court (Formulation)", value=melange_data.get("commentaire", ""))
-
-            fiche_tech_existante = melange_data.get("fiche_technique", {})
-            has_ft_init = melange_data.get("has_ft", False)
-            activer_ft = st.toggle("📝 Gérer la Fiche Technique (FT)", value=has_ft_init)
-
-            ft_aspect = fiche_tech_existante.get("aspect", "")
-            ft_visco = fiche_tech_existante.get("viscosite", "")
-            ft_densite = fiche_tech_existante.get("densite", "")
-            ft_sechage = fiche_tech_existante.get("sechage", "")
-            ft_cond = fiche_tech_existante.get("conditions", "")
-            m_comm_glob = melange_data.get("commentaire_global", "")
-            idx_redacteur = OPTIONS_REDACTEURS.index(fiche_tech_existante.get("redacteur", "Labo / R&D")) if fiche_tech_existante.get("redacteur", "Labo / R&D") in OPTIONS_REDACTEURS else 0
-            m_redacteur = OPTIONS_REDACTEURS[idx_redacteur]
-            
-            if activer_ft:
-                st.markdown("##### Spécifications Physico-Chimiques (FT)")
-                col_ft1, col_ft2 = st.columns(2)
-                with col_ft1:
-                    ft_aspect = st.text_input("Aspect / Finition", value=ft_aspect)
-                    ft_visco = st.text_input("Viscosité attendue", value=ft_visco)
-                    ft_densite = st.text_input("Densité", value=ft_densite)
-                with col_ft2:
-                    ft_sechage = st.text_input("Temps de séchage", value=ft_sechage)
-                ft_cond = st.text_area("Conditions d'application idéales", value=ft_cond)
-                m_comm_glob = st.text_area("Commentaires Généraux (FT)", value=m_comm_glob)
-                m_redacteur = st.selectbox("Rédacteur / Modifié par :", OPTIONS_REDACTEURS, index=idx_redacteur)
-
-            st.markdown("---")
-            container_selection_mod = st.container()
-
-            st.markdown("#### ➕ Ajouter des composants")
-            recherche_filtre_m = st.text_input("🔍 Filtrer les composants (Nom, Réf, Code RAL, Élément) :", key=f"rech_mod_{index}").strip()
-
-            st.markdown("**🎨 Couleurs du Nuancier :**")
-            couleurs_t = [c for c in liste_couleurs if not recherche_filtre_m or (recherche_filtre_m.lower() in c["nom_actuel"].lower() or recherche_filtre_m.lower() in c["ref"].lower())]
-            for idx_c, c in enumerate(couleurs_t if recherche_filtre_m else couleurs_t[:5]):
-                key_c = f"color_{c['ref']}"
-                if key_c not in st.session_state.tmp_mod_state:
-                    col_chk, _ = st.columns([7, 1])
-                    with col_chk:
-                        st.checkbox(f"{c['nom_actuel']} ({c['ref']})", value=False, key=f"chk_madd_c_{idx_c}_{c['ref']}",
-                                    on_change=add_tmp_item, args=("tmp_mod_state", key_c, {"type": "couleur", "ref": c['ref'], "nom": c['nom_actuel'], "visuel": c["visuel"], "dosage": "100g", "commentaire_composant": ""}))
-
-            st.markdown("**🧪 Éléments (Additifs) :**")
-            elements_t = [a for a in liste_additifs if not recherche_filtre_m or recherche_filtre_m.lower() in a["nom"].lower()]
-            for idx_a, a in enumerate(elements_t if recherche_filtre_m else elements_t[:5]):
-                key_a = f"additif_{a['nom']}"
-                if key_a not in st.session_state.tmp_mod_state:
-                    col_chk_a, _ = st.columns([7, 1])
-                    with col_chk_a:
-                        st.checkbox(f"Élément : {a['nom']}", value=False, key=f"chk_madd_add_{idx_a}_{a['nom']}",
-                                    on_change=add_tmp_item, args=("tmp_mod_state", key_a, {"type": "additif", "ref": a['nom'], "nom": a['nom'], "visuel": "#E2E8F0", "dosage": "10g", "commentaire_composant": ""}))
-
-            with container_selection_mod:
-                st.markdown("### 🛠️ Composants de ce mélange :")
-                cles_existantes = list(st.session_state.tmp_mod_state.keys())
-
-                if cles_existantes:
-                    for idx_ex, k in enumerate(cles_existantes):
-                        v = st.session_state.tmp_mod_state.get(k)
-                        if not v: continue
-                        col_chk, col_vis = st.columns([7, 1])
-                        with col_chk:
-                            label_aff = "ÉLÉMENT" if v['type'] == "additif" else v['type'].upper()
-                            label_affichage = f"[{label_aff}] {v['nom']} ({v['ref']})"
-                            widget_k = f"mod_item_chk_{idx_ex}_{v['ref']}"
-                            
-                            is_checked = st.checkbox(label_affichage, value=True, key=widget_k, on_change=remove_tmp_item_cb, args=("tmp_mod_state", widget_k, k))
-                            if is_checked:
-                                st.session_state.tmp_mod_state[k]["dosage"] = st.text_input(f"Dosage pour {v['nom']}", value=v["dosage"], key=f"dos_mod_item_{idx_ex}_{v['ref']}")
-                                st.session_state.tmp_mod_state[k]["commentaire_composant"] = st.text_input(f"Commentaire pour {v['nom']}", value=v.get("commentaire_composant", ""), key=f"comm_mod_item_{idx_ex}_{v['ref']}")
-                        with col_vis:
-                            if v.get("visuel"): st.markdown(f'<div style="width:22px; height:22px; background-color:{v["visuel"]}; border-radius:50%; border:1px solid #000; margin-top:5px;"></div>', unsafe_allow_html=True)
-                else:
-                    st.warning("Aucun composant sélectionné dans ce mélange.")
-
-            st.markdown("---")
-            if st.button("Mettre à jour le mélange", type="primary"):
-                comp_finaux = []
-                for k, v in st.session_state.tmp_mod_state.items():
-                    if est_dosage_valide(v.get("dosage", "")):
-                        item_dict = {"ref": v["ref"], "nom": v["nom"], "dosage": v["dosage"], "commentaire_composant": v.get("commentaire_composant", "")}
-                        if v["type"] == "couleur":
-                            couleur_trouvee = next((x for x in liste_couleurs if x["ref"] == v["ref"]), None)
-                            item_dict.update({"type": "couleur", "nom": couleur_trouvee["nom_actuel"] if couleur_trouvee else v["nom"], "visuel": couleur_trouvee["visuel"] if couleur_trouvee else v.get("visuel", "#CCCCCC")})
-                        elif v["type"] == "ral_officiel":
-                            item_dict.update({"type": "ral_officiel", "visuel": v["visuel"]})
-                        elif v["type"] == "melange_base":
-                            item_dict.update({"type": "melange_base", "visuel": "#CBD5E1"})
-                        else:
-                            item_dict.update({"type": "additif", "visuel": "#E2E8F0"})
-                        comp_finaux.append(item_dict)
-
-                today_str = datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
-                d_crea, d_der, d_av = gerer_historique_dates(fiche_tech_existante, today_str)
-
-                fiche_tech_finale = {"date_creation": d_crea, "date_derniere_maj": d_der, "date_avant_derniere_maj": d_av}
-                if activer_ft:
-                    fiche_tech_finale.update({"aspect": ft_aspect, "viscosite": ft_visco, "densite": ft_densite, "sechage": ft_sechage, "conditions": ft_cond, "redacteur": m_redacteur})
-
-                img_final = encoder_fichier_local(m_img_file) if m_img_file else melange_data.get("image_rendu")
-                st.session_state.processus_db["preparation_melanges"]["melanges"][index] = {
-                    "ref": m_ref, "nom": m_nom, "categorie_choisie": m_cat, "emplacement": m_emp,
-                    "commentaire": m_comm, "commentaire_global": m_comm_glob, "couleurs_associees": comp_finaux,
-                    "statut": m_statut, "has_ft": activer_ft, "fiche_technique": fiche_tech_finale, "image_rendu": img_final
+        catalogue_ral_map = {
+            str(code): {
+                "code": str(code),
+                "nom": f"Teinte RAL CLASSIC {code}",
+                "visuel": valeur,
+                "origine": "Officiel",
+            }
+            for code, valeur in RAL_DICT.items()
+        }
+        for ral_personnalise in rals_personnalises:
+            code_personnalise = pro_texte(ral_personnalise.get("code"))
+            if code_personnalise:
+                catalogue_ral_map[code_personnalise] = {
+                    "code": code_personnalise,
+                    "nom": pro_texte(ral_personnalise.get("nom")) or f"RAL {code_personnalise}",
+                    "visuel": pro_couleur_valide(ral_personnalise.get("visuel"), "#FFFFFF"),
+                    "origine": "Personnalisé",
                 }
-                st.session_state.tmp_mod_state.clear()
-                if init_key in st.session_state: del st.session_state[init_key]
+        catalogue_ral = list(catalogue_ral_map.values())
+
+        pro_entete_section(
+            "Standardisation des teintes",
+            "Référentiel des codes RAL",
+            "Consultez le catalogue RAL, ajoutez vos nuances internes et recherchez la teinte la plus proche d'une couleur.",
+            [
+                ("Codes", len(catalogue_ral)),
+                ("Officiels", len(RAL_DICT)),
+                ("Personnalisés", len(rals_personnalises)),
+                ("Série 9000", sum(1 for item in catalogue_ral if item["code"].startswith("9"))),
+            ],
+            "RÉFÉRENTIEL RAL",
+        )
+
+
+        @st.dialog("Ajouter une nuance RAL", width="large")
+        def ouvrir_ajout_ral_base():
+            col_ral_1, col_ral_2 = st.columns(2)
+            with col_ral_1:
+                r_code = st.text_input(
+                    "Code RAL *",
+                    placeholder="Exemple : 5015-BIS",
+                    key="pro_add_ral_code",
+                )
+                r_nom = st.text_input(
+                    "Nom de la teinte *",
+                    key="pro_add_ral_name",
+                )
+            with col_ral_2:
+                r_hex = st.color_picker(
+                    "Valeur hexadécimale",
+                    "#FFFFFF",
+                    key="pro_add_ral_hex",
+                )
+                st.markdown(
+                    f"<div style='height:82px;background:{r_hex};border:1px solid rgba(20,34,53,.28);border-radius:10px;'></div>",
+                    unsafe_allow_html=True,
+                )
+
+            if st.button(
+                "Enregistrer dans le catalogue",
+                type="primary",
+                use_container_width=True,
+                key="pro_add_ral_save",
+            ):
+                code = r_code.strip()
+                nom = r_nom.strip()
+                if not code or not nom:
+                    st.error("Le code et le nom sont obligatoires.")
+                    return
+                if code in catalogue_ral_map:
+                    st.error("Ce code existe déjà dans le référentiel.")
+                    return
+
+                rals_personnalises.append(
+                    {"code": code, "nom": nom, "visuel": r_hex}
+                )
+                sauvegarder_donnees()
+                afficher_animation_validation("Nuance RAL ajoutée")
+                st.rerun()
+
+
+        @st.dialog("Modifier une nuance personnalisée", width="large")
+        def pro_modifier_ral_personnalise(index_ral, ral_data):
+            code_modifie = st.text_input(
+                "Code RAL",
+                value=ral_data.get("code", ""),
+                key=f"pro_edit_ral_code_{index_ral}",
+            )
+            nom_modifie = st.text_input(
+                "Nom",
+                value=ral_data.get("nom", ""),
+                key=f"pro_edit_ral_name_{index_ral}",
+            )
+            couleur_modifiee = st.color_picker(
+                "Valeur hexadécimale",
+                pro_couleur_valide(ral_data.get("visuel"), "#FFFFFF"),
+                key=f"pro_edit_ral_hex_{index_ral}",
+            )
+
+            if st.button(
+                "Enregistrer la nuance",
+                type="primary",
+                use_container_width=True,
+                key=f"pro_edit_ral_save_{index_ral}",
+            ):
+                code = code_modifie.strip()
+                nom = nom_modifie.strip()
+                if not code or not nom:
+                    st.error("Le code et le nom sont obligatoires.")
+                    return
+                doublon = any(
+                    autre_index != index_ral
+                    and pro_texte(item.get("code")).lower() == code.lower()
+                    for autre_index, item in enumerate(rals_personnalises)
+                ) or (code in RAL_DICT)
+                if doublon:
+                    st.error("Ce code est déjà utilisé.")
+                    return
+
+                rals_personnalises[index_ral] = {
+                    **copy.deepcopy(ral_data),
+                    "code": code,
+                    "nom": nom,
+                    "visuel": couleur_modifiee,
+                }
                 sauvegarder_donnees()
                 st.rerun()
 
-        if st.button("Créer une fiche de mélange", type="primary"):
-            ouvrir_ajout_melange_complet()
 
-        if liste_melanges:
-            with st.expander("🔍 Outils de filtrage et de tri de l'atelier de mélanges", expanded=True):
-                m_f1, m_f2, m_f3, m_f4, m_f5 = st.columns([1.5, 2, 1.5, 2, 1])
-                with m_f1: filtre_m_ref = st.text_input("Filtrer par Référence Mélange", "")
-                with m_f2: filtre_m_nom = st.text_input("Filtrer par Nom du Mélange", "")
-                with m_f3: filtre_m_emp = st.text_input("Filtrer par Emplacement", "")
-                with m_f4: tri_m_colonne = st.selectbox("Trier la table par :", ["Référence", "Nom mélange", "Emplacement", "Commentaire"])
-                with m_f5: sens_m_tri = st.selectbox("Ordre table :", ["Croissant ⬆️", "Décroissant ⬇️"])
+        barre_ral_1, barre_ral_2 = st.columns([1.2, 1])
+        with barre_ral_1:
+            if st.button(
+                "＋ Ajouter une nuance personnalisée",
+                type="primary",
+                use_container_width=True,
+                key="pro_ral_add_main",
+            ):
+                ouvrir_ajout_ral_base()
+        with barre_ral_2:
+            pro_export_json(
+                catalogue_ral,
+                "Referentiel_RAL_BOS2.json",
+                "pro_ral_export_json",
+            )
 
-            melanges_filtres = []
-            for idx, m in enumerate(liste_melanges):
-                if (filtre_m_ref.lower() in str(m.get("ref", "")).lower()) and (filtre_m_nom.lower() in str(m.get("nom", "")).lower()) and (filtre_m_emp.lower() in str(m.get("emplacement", "")).lower()):
-                    melanges_filtres.append({"index_origine": idx, "data": m})
+        with st.expander("🎯 Rechercher la couleur RAL la plus proche", expanded=False):
+            col_proche_1, col_proche_2 = st.columns([1, 2])
+            with col_proche_1:
+                couleur_recherchee = st.color_picker(
+                    "Couleur à comparer",
+                    "#3B82F6",
+                    key="pro_ral_nearest_color",
+                )
+            with col_proche_2:
+                def pro_hex_rgb(couleur):
+                    couleur = pro_couleur_valide(couleur, "#000000").lstrip("#")
+                    return tuple(int(couleur[position:position + 2], 16) for position in (0, 2, 4))
 
-            mapping_m_cles = {"Référence": "ref", "Nom mélange": "nom", "Emplacement": "emplacement", "Commentaire": "commentaire"}
-            melanges_filtres.sort(key=lambda x: [int(t) if t.isdigit() else t for t in re.split(r'(\d+)', str(x["data"].get(mapping_m_cles[tri_m_colonne], "")).lower())], reverse=(sens_m_tri == "Décroissant ⬇️"))
+                cible_r, cible_g, cible_b = pro_hex_rgb(couleur_recherchee)
+                proximites = []
+                for ral_item in catalogue_ral:
+                    ral_r, ral_g, ral_b = pro_hex_rgb(ral_item["visuel"])
+                    distance = math.sqrt(
+                        (cible_r - ral_r) ** 2
+                        + (cible_g - ral_g) ** 2
+                        + (cible_b - ral_b) ** 2
+                    )
+                    proximites.append((distance, ral_item))
+                proximites.sort(key=lambda item: item[0])
 
-            col_info_mel, col_export_mel = st.columns([4, 1])
-            with col_info_mel:
-                st.info(f"📊 **Nombre de mélanges trouvés :** {len(melanges_filtres)}")
-            with col_export_mel:
-                donnees_mel_export = [item["data"] for item in melanges_filtres]
-                excel_data, nom_fichier, mime_type = generer_fichier_export(donnees_mel_export, "Export_Melanges")
-                if excel_data:
-                    st.download_button("📥 Exporter Excel", data=excel_data, file_name=nom_fichier, mime=mime_type, use_container_width=True)
+                for distance, ral_proche in proximites[:5]:
+                    st.markdown(
+                        f"""
+                        <div style="display:flex;align-items:center;gap:10px;padding:7px 9px;margin-bottom:5px;background:rgba(255,254,251,.72);border:1px solid rgba(20,34,53,.12);border-radius:8px;">
+                            <div style="width:30px;height:30px;background:{ral_proche['visuel']};border:1px solid rgba(20,34,53,.25);border-radius:6px;"></div>
+                            <div style="flex:1;"><b>RAL {html_lib.escape(ral_proche['code'])}</b><br><span style="font-size:11px;color:#6D7F91;">{html_lib.escape(ral_proche['nom'])}</span></div>
+                            <div style="font-size:11px;color:#6D7F91;">écart {distance:.1f}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
-            melanges_couleurs = [item for item in melanges_filtres if item["data"].get("categorie_choisie", "Mélange Couleurs") == "Mélange Couleurs"]
-            autres_melanges = [item for item in melanges_filtres if item["data"].get("categorie_choisie", "Mélange Couleurs") != "Mélange Couleurs"]
+        with st.expander("Filtres du référentiel", expanded=True):
+            filtre_ral_1, filtre_ral_2, filtre_ral_3, filtre_ral_4 = st.columns(4)
+            with filtre_ral_1:
+                filtre_code_ral = st.text_input(
+                    "Code RAL",
+                    key="pro_ral_filter_code",
+                ).strip().lower()
+            with filtre_ral_2:
+                filtre_nom_ral = st.text_input(
+                    "Désignation",
+                    key="pro_ral_filter_name",
+                ).strip().lower()
+            with filtre_ral_3:
+                filtre_origine_ral = st.selectbox(
+                    "Origine",
+                    ["Toutes", "Officiel", "Personnalisé"],
+                    key="pro_ral_filter_origin",
+                )
+            with filtre_ral_4:
+                ordre_ral = st.selectbox(
+                    "Ordre",
+                    ["Croissant", "Décroissant"],
+                    key="pro_ral_order",
+                )
 
-            onglet_c1, onglet_c2 = st.tabs(["🎨 Mélanges Couleurs", "⚙️ Autres Mélanges"])
+        rals_filtres = []
+        for ral_item in catalogue_ral:
+            if filtre_code_ral and filtre_code_ral not in ral_item["code"].lower():
+                continue
+            if filtre_nom_ral and filtre_nom_ral not in ral_item["nom"].lower():
+                continue
+            if filtre_origine_ral != "Toutes" and ral_item["origine"] != filtre_origine_ral:
+                continue
+            rals_filtres.append(ral_item)
 
-            def afficher_tableau_melanges(liste_m_categorie, identifiant_unique):
-                if liste_m_categorie:
-                    if len(liste_m_categorie) > MAX_LIGNES_AFFICHAGE:
-                        st.warning(f"⚠️ Affichage limité aux {MAX_LIGNES_AFFICHAGE} premiers résultats. Utilisez les filtres.")
-                    liste_a_afficher = liste_m_categorie[:MAX_LIGNES_AFFICHAGE]
+        rals_filtres.sort(
+            key=lambda item: pro_naturel(item["code"]),
+            reverse=ordre_ral == "Décroissant",
+        )
+        pro_barre_resultats(len(rals_filtres), len(catalogue_ral), "codes RAL")
+        rals_page, page_ral, pages_ral = pro_paginer(
+            rals_filtres,
+            "pro_ral_pagination",
+            25,
+        )
+        st.caption(f"Page {page_ral} sur {pages_ral}")
 
-                    th_m_ref, th_m_nom, th_m_vis, th_m_comp, th_m_emp, th_m_com, th_m_act = st.columns([0.8, 1.2, 0.8, 3.2, 1.2, 2.3, 2.5])
-                    with th_m_ref: st.markdown("**Référence**")
-                    with th_m_nom: st.markdown("**Nom mélange**")
-                    with th_m_vis: st.markdown("**Aperçu**")
-                    with th_m_comp: st.markdown("**Couleurs & Éléments**")
-                    with th_m_emp: st.markdown("**Emplacement**")
-                    with th_m_com: st.markdown("**Commentaires**")
-                    with th_m_act: st.markdown("**Actions**")
-                    st.markdown("<hr style='margin:4px 0px; border-width:2px; border-color:black;'>", unsafe_allow_html=True)
+        entete_ral = st.columns([1.2, 2.5, 1.2, 1.1, 2])
+        for colonne, libelle in zip(
+            entete_ral,
+            ["Code", "Désignation", "Origine", "Visuel", "Actions"],
+        ):
+            colonne.markdown(f"**{libelle}**")
+        st.markdown("<hr style='margin:4px 0;border-width:2px;border-color:#142235;'>", unsafe_allow_html=True)
 
-                    for item_m in liste_a_afficher:
-                        idx_m = item_m["index_origine"]
-                        melange = item_m["data"]
-                        is_verified = melange.get("statut") == "Vérifier"
-                        txt_style = "color: #CC0605; font-weight: bold;" if is_verified else "color: inherit;"
-                        row_class = "verified-text" if is_verified else "normal-row"
-                        st.markdown(f'<div class="{row_class}">', unsafe_allow_html=True)
+        for ral_ligne in rals_page:
+            ligne = st.columns([1.2, 2.5, 1.2, 1.1, 2])
+            ligne[0].markdown(f"**RAL {ral_ligne['code']}**")
+            ligne[1].write(ral_ligne["nom"])
+            ligne[2].write(ral_ligne["origine"])
+            ligne[3].markdown(
+                f"<div style='width:52px;height:27px;background:{ral_ligne['visuel']};border:1px solid rgba(20,34,53,.30);border-radius:6px;'></div>",
+                unsafe_allow_html=True,
+            )
 
-                        tr_m_ref, tr_m_nom, tr_m_vis, tr_m_comp, tr_m_emp, tr_m_com, tr_m_act = st.columns([0.8, 1.2, 0.8, 3.2, 1.2, 2.3, 2.5])
-                        
-                        pastille_mel = "🔴 " if is_verified else ""
-                        with tr_m_ref: st.markdown(f'<span style="{txt_style}"><b>{pastille_mel}{str(melange.get("ref", "")).title()}</b></span>', unsafe_allow_html=True)
-                        with tr_m_nom: st.markdown(f'<span style="{txt_style}">{str(melange.get("nom", "")).title()}</span>', unsafe_allow_html=True)
-                        with tr_m_vis:
-                            if melange.get("image_rendu"): afficher_image_base64(melange["image_rendu"]["data"], width=45)
-                            else: st.caption("Pas d'image")
-                        with tr_m_comp:
-                            for t in melange.get("couleurs_associees", []):
-                                type_comp = t.get("type", "couleur")
-                                comm_comp_aff = f" ({t['commentaire_composant']})" if t.get("commentaire_composant") else ""
-                                if type_comp == "couleur":
-                                    st.markdown(f'<div style="display:flex; align-items:center;"><div style="width:14px; height:14px; background-color:{t.get("visuel","#CCCCCC")}; border-radius:50%; margin-right:6px; border:1px solid #333;"></div><span style="{txt_style}">Nuancier : {str(t["nom"]).title()} ➔ <b>{str(t["dosage"]).title()}</b>{comm_comp_aff}</span></div>', unsafe_allow_html=True)
-                                elif type_comp == "melange_base":
-                                    st.markdown(f'<div style="display:flex; align-items:center;"><div style="width:14px; height:14px; background-color:#CBD5E1; border-radius:2px; margin-right:6px; border:1px solid #333;"></div><span style="{txt_style}">Base : {str(t["nom"]).title()} ➔ <b>{str(t["dosage"]).title()}</b>{comm_comp_aff}</span></div>', unsafe_allow_html=True)
-                                else:
-                                    st.markdown(f'<div style="display:flex; align-items:center;"><span style="{txt_style}">Élément : {str(t["nom"]).title()} ➔ <b>{str(t["dosage"]).title()}</b>{comm_comp_aff}</span></div>', unsafe_allow_html=True)
+            bouton_utiliser, bouton_modifier, bouton_supprimer = ligne[4].columns([1.4, 1, 1])
+            if bouton_utiliser.button(
+                "Utiliser",
+                key=f"pro_ral_use_{ral_ligne['code']}",
+            ):
+                st.session_state["add_ral"] = ral_ligne["code"]
+                st.session_state["add_hex"] = ral_ligne["visuel"]
+                st.toast(f"RAL {ral_ligne['code']} préparé pour le nuancier.")
 
-                        with tr_m_emp: st.markdown(f'<span style="{txt_style}">{str(melange.get("emplacement", "")).title()}</span>', unsafe_allow_html=True)
-                        with tr_m_com: st.markdown(f'<span style="{txt_style}">{str(melange.get("commentaire", "")) or "-"}</span>', unsafe_allow_html=True)
-
-                        with tr_m_act:
-                            col_me1, col_me2, col_me3, col_pdf = st.columns([1, 1, 1, 2])
-                            with col_me1:
-                                if st.button("✏️", key=f"edit_m_{identifiant_unique}_{idx_m}"): ouvrir_modification_melange_complet(idx_m, melange)
-                            with col_me2:
-                                if st.button("🗑️", key=f"del_m_{identifiant_unique}_{idx_m}"): st.session_state[f"del_confirm_{identifiant_unique}_{idx_m}"] = True
-                            with col_me3:
-                                if st.button("👁️", key=f"det_m_{identifiant_unique}_{idx_m}"): ouvrir_details_melange(melange)
-                            with col_pdf:
-                                if melange.get("has_ft"):
-                                    if st.button("📄 FT", key=f"view_pdf_{identifiant_unique}_{idx_m}"): ouvrir_visualisation_ft(melange)
-
-                        if st.session_state.get(f"del_confirm_{identifiant_unique}_{idx_m}", False):
-                            st.warning("Supprimer ?")
-                            if st.button("Oui", key=f"y_{identifiant_unique}_{idx_m}"):
-                                st.session_state.processus_db["preparation_melanges"]["melanges"].pop(idx_m)
-                                sauvegarder_donnees()
-                                st.rerun()
-                            if st.button("Non", key=f"n_{identifiant_unique}_{idx_m}"):
-                                st.session_state[f"del_confirm_{identifiant_unique}_{idx_m}"] = False
-                                st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
-                        st.markdown("<hr style='margin:4px 0px; opacity:0.2;'>", unsafe_allow_html=True)
-
-            with onglet_c1: afficher_tableau_melanges(melanges_couleurs, "cat_colors")
-            with onglet_c2: afficher_tableau_melanges(autres_melanges, "cat_others")
-
-    elif choix_section == "📐 Fiches Méthode":
-        @st.dialog("⚙️ Administrer le bloc de méthode", width="large")
-        def ouvrir_edition_bloc_methode(idx_fiche, idx_forme, forme_data):
-            shapes_keys = ["box", "circle", "diamond", "hexagon"]
-            n_shape = st.selectbox("Forme géométrique", shapes_keys, index=shapes_keys.index(forme_data["shape"]) if forme_data["shape"] in shapes_keys else 0)
-            raw_label = forme_data["label"].split("\n")[0]
-            raw_dosage = forme_data["label"].split("\n")[1].replace("(", "").replace(")", "") if "\n" in forme_data["label"] else ""
-            n_nature = st.radio("Nature", ["Titre Formule", "Composant"], index=0 if "\n" not in forme_data["label"] else 1)
-            n_txt = st.text_input("Libellé / Texte", value=raw_label)
-            n_dos = st.text_input("Dosage / Spécification", value=raw_dosage)
-            n_color = st.color_picker("Couleur du bloc", value=forme_data.get("color", "#E0F2FE"))
-
-            if st.button("Enregistrer les modifications", type="primary"):
-                lbl_final = n_txt.upper() if n_nature == "Titre Formule" else n_txt
-                if n_nature == "Composant" and n_dos: lbl_final += f"\n({n_dos})"
-                st.session_state.processus_db["preparation_melanges"]["fiches_methode"][idx_fiche]["formes"][idx_forme].update({"shape": n_shape, "label": lbl_final, "color": n_color})
-                sauvegarder_donnees()
-                st.rerun()
-
-        if "click_node_id" in query_params and "click_fiche_idx" in query_params:
-            try:
-                c_nid = int(query_params["click_node_id"])
-                c_fidx = int(query_params["click_fiche_idx"])
-                st.query_params.clear()
-                if c_fidx < len(fiches_m):
-                    for idx_shape, s in enumerate(fiches_m[c_fidx]["formes"]):
-                        if s["id"] == c_nid: ouvrir_edition_bloc_methode(c_fidx, idx_shape, s)
-            except Exception:
-                pass
-
-        if st.button("Créer une Fiche Méthode (Page vierge)", type="primary"): ouvrir_ajout_fiche_methode()
-        if fiches_m:
-            noms_fiches = [f["nom"] for f in fiches_m]
-            fiche_choisie_nom = st.selectbox("Fiche Méthode active :", noms_fiches)
-            idx_fid = noms_fiches.index(fiche_choisie_nom)
-            fiche = fiches_m[idx_fid]
-
-            st.info(f"📊 **Nombre de fiches méthode :** {len(fiches_m)} | **Première :** {fiches_m[0]['nom']} | **Dernière :** {fiches_m[-1]['nom']}")
-
-            col_outils, col_canvas = st.columns([1, 2])
-            with col_outils:
-                with st.expander("Ajouter un Bloc", expanded=True):
-                    type_f = st.selectbox("Forme", ["box", "circle", "diamond", "hexagon"])
-                    nature = st.radio("Contenu", ["Titre Formule", "Composant"])
-                    txt_p = st.text_input("Nom / Libellé")
-                    dos_p = st.text_input("Dosage")
-                    c_bg = st.color_picker("Couleur", "#E0F2FE")
-                    if st.button("Injecter sur la page", use_container_width=True):
-                        if txt_p:
-                            lbl = txt_p.upper() if nature == "Titre Formule" else txt_p
-                            if nature == "Composant" and dos_p: lbl += f"\n({dos_p})"
-                            fiche["formes"].append({"id": len(fiche["formes"]) + 1, "shape": type_f, "label": lbl, "color": c_bg, "x": None, "y": None})
+            if ral_ligne["origine"] == "Personnalisé":
+                index_personnalise = next(
+                    (
+                        index_ral
+                        for index_ral, item in enumerate(rals_personnalises)
+                        if pro_texte(item.get("code")) == ral_ligne["code"]
+                    ),
+                    None,
+                )
+                if index_personnalise is not None:
+                    if bouton_modifier.button(
+                        "✎",
+                        key=f"pro_ral_edit_{ral_ligne['code']}",
+                    ):
+                        pro_modifier_ral_personnalise(
+                            index_personnalise,
+                            rals_personnalises[index_personnalise],
+                        )
+                    if bouton_supprimer.button(
+                        "🗑",
+                        key=f"pro_ral_delete_{ral_ligne['code']}",
+                    ):
+                        cle_confirmation_ral = f"pro_ral_confirm_{ral_ligne['code']}"
+                        st.session_state[cle_confirmation_ral] = True
+                    cle_confirmation_ral = f"pro_ral_confirm_{ral_ligne['code']}"
+                    if st.session_state.get(cle_confirmation_ral, False):
+                        st.warning(f"Supprimer la nuance RAL {ral_ligne['code']} ?")
+                        col_oui, col_non = st.columns(2)
+                        if col_oui.button("Oui", key=f"pro_ral_delete_yes_{ral_ligne['code']}"):
+                            rals_personnalises.pop(index_personnalise)
+                            st.session_state[cle_confirmation_ral] = False
                             sauvegarder_donnees()
                             st.rerun()
+                        if col_non.button("Non", key=f"pro_ral_delete_no_{ral_ligne['code']}"):
+                            st.session_state[cle_confirmation_ral] = False
+                            st.rerun()
 
-                if len(fiche["formes"]) >= 2:
-                    with st.expander("Lier des blocs", expanded=True):
-                        names = [f["label"].replace('\n', ' ') for f in fiche["formes"]]
-                        f_src = st.selectbox("De :", names, key="src")
-                        f_dst = st.selectbox("Vers :", names, key="dst")
-                        if st.button("Lier les blocs", use_container_width=True):
-                            id_src = next(f["id"] for f in fiche["formes"] if f["label"].replace('\n', ' ') == f_src)
-                            id_dst = next(f["id"] for f in fiche["formes"] if f["label"].replace('\n', ' ') == f_dst)
-                            if id_src != id_dst:
-                                fiche["liaisons"].append({"from": id_src, "to": id_dst})
-                                sauvegarder_donnees()
+            st.markdown("<hr style='margin:5px 0;opacity:.16;'>", unsafe_allow_html=True)
+
+    # ========================================================================
+    # SECTION 4 — FORMULATIONS D'ATELIER
+    # ========================================================================
+
+    elif choix_section == "⚗️ Formulations d'atelier":
+        liste_ateliers = st.session_state.processus_db[
+            "preparation_melanges"
+        ].setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])        
+        nombre_melanges_ft = sum(1 for item in liste_melanges if item.get("has_ft"))
+        nombre_melanges_verifies = sum(
+            1 for item in liste_melanges if item.get("statut") == "Vérifier"
+        )
+        nombre_composants_total = sum(
+            len(item.get("couleurs_associees", [])) for item in liste_melanges
+        )
+
+        pro_entete_section(
+            "Recettes et préparations",
+            "Formulations d'atelier",
+            "Créez et maintenez vos recettes de mélange, dosages, composants, emplacements et fiches techniques.",
+            [
+                ("Mélanges", len(liste_melanges)),
+                ("Avec FT", nombre_melanges_ft),
+                ("Vérifiés", nombre_melanges_verifies),
+                ("Composants", nombre_composants_total),
+            ],
+            "FORMULATION INDUSTRIELLE",
+        )
+
+
+        def pro_candidats_composants(reference_melange_exclue=None):
+            candidats = []
+            for index_couleur_candidate, couleur in enumerate(liste_couleurs):
+                candidats.append(
+                    {
+                        "uid": (
+                            f"couleur|{index_couleur_candidate}|"
+                            f"{pro_texte(couleur.get('ref')) or 'sans-reference'}"
+                        ),
+                        "type": "couleur",
+                        "ref": pro_texte(couleur.get("ref")),
+                        "nom": pro_texte(couleur.get("nom_actuel")) or pro_texte(couleur.get("ref")),
+                        "visuel": pro_couleur_valide(couleur.get("visuel"), "#D8DEE4"),
+                        "dosage": "100g",
+                        "groupe": "Couleurs du nuancier",
+                        "recherche": " ".join(
+                            [
+                                pro_texte(couleur.get("ref")),
+                                pro_texte(couleur.get("nom_actuel")),
+                                pro_texte(couleur.get("nom_futur")),
+                                pro_texte(couleur.get("ral")),
+                            ]
+                        ).lower(),
+                    }
+                )
+
+            for code_ral, valeur_ral in RAL_DICT.items():
+                candidats.append(
+                    {
+                        "uid": f"ral_officiel|RAL {code_ral}",
+                        "type": "ral_officiel",
+                        "ref": f"RAL {code_ral}",
+                        "nom": f"RAL {code_ral}",
+                        "visuel": valeur_ral,
+                        "dosage": "100g",
+                        "groupe": "Codes RAL officiels",
+                        "recherche": f"ral {code_ral}".lower(),
+                    }
+                )
+
+            for index_melange_candidate, melange_base in enumerate(liste_melanges):
+                if reference_melange_exclue and pro_texte(melange_base.get("ref")) == pro_texte(reference_melange_exclue):
+                    continue
+                candidats.append(
+                    {
+                        "uid": (
+                            f"melange_base|{index_melange_candidate}|"
+                            f"{pro_texte(melange_base.get('ref')) or 'sans-reference'}"
+                        ),
+                        "type": "melange_base",
+                        "ref": pro_texte(melange_base.get("ref")),
+                        "nom": pro_texte(melange_base.get("nom")) or pro_texte(melange_base.get("ref")),
+                        "visuel": "#D8DEE4",
+                        "dosage": "500g",
+                        "groupe": "Mélanges existants",
+                        "recherche": " ".join(
+                            [
+                                pro_texte(melange_base.get("ref")),
+                                pro_texte(melange_base.get("nom")),
+                                pro_texte(melange_base.get("emplacement")),
+                            ]
+                        ).lower(),
+                    }
+                )
+
+            for index_additif_candidate, additif in enumerate(liste_additifs):
+                candidats.append(
+                    {
+                        "uid": (
+                            f"additif|{index_additif_candidate}|"
+                            f"{pro_texte(additif.get('nom')) or 'sans-nom'}"
+                        ),
+                        "type": "additif",
+                        "ref": pro_texte(additif.get("nom")),
+                        "nom": pro_texte(additif.get("nom")),
+                        "visuel": "#EAEDEF",
+                        "dosage": "10g",
+                        "groupe": "Composants",
+                        "recherche": " ".join(
+                            [
+                                pro_texte(additif.get("nom")),
+                                pro_texte(additif.get("code")),
+                                pro_texte(additif.get("designation")),
+                            ]
+                        ).lower(),
+                    }
+                )
+            return candidats
+
+
+        def pro_cle_composant_widget(uid):
+            empreinte = hashlib.sha1(str(uid).encode("utf-8")).hexdigest()[:18]
+            return empreinte
+
+
+        def pro_editeur_composants(cle_etat, prefixe_widgets, reference_exclue=None):
+            etat_composants = st.session_state.setdefault(cle_etat, {})
+            candidats = pro_candidats_composants(reference_exclue)
+
+            # Migration des anciennes clés type|référence vers les nouvelles clés
+            # qui contiennent aussi l'index source. Cela évite les collisions quand
+            # plusieurs mélanges ou éléments ont une référence vide ou identique.
+            uids_valides = {candidat["uid"] for candidat in candidats}
+            uids_utilises = set(etat_composants.keys()) & uids_valides
+            for ancien_uid, ancien_composant in list(etat_composants.items()):
+                if ancien_uid in uids_valides:
+                    continue
+                correspondance = next(
+                    (
+                        candidat
+                        for candidat in candidats
+                        if candidat["uid"] not in uids_utilises
+                        and candidat["type"] == ancien_composant.get("type")
+                        and pro_texte(candidat["ref"])
+                        == pro_texte(ancien_composant.get("ref"))
+                    ),
+                    None,
+                )
+                if correspondance is not None:
+                    etat_composants[correspondance["uid"]] = etat_composants.pop(
+                        ancien_uid
+                    )
+                    uids_utilises.add(correspondance["uid"])
+
+            recherche = st.text_input(
+                "Rechercher un composant",
+                placeholder="Nom, référence, code RAL, additif...",
+                key=f"{prefixe_widgets}_search",
+            ).strip().lower()
+
+            groupes = [
+                "Couleurs du nuancier",
+                "Codes RAL officiels",
+                "Mélanges existants",
+                "Composants",
+            ]
+            onglets = st.tabs(groupes)
+
+            for index_groupe, groupe in enumerate(groupes):
+                with onglets[index_groupe]:
+                    candidats_groupe = [
+                        candidat
+                        for candidat in candidats
+                        if candidat["groupe"] == groupe
+                        and (not recherche or recherche in candidat["recherche"])
+                    ]
+                    if not recherche:
+                        candidats_groupe = candidats_groupe[:10]
+                    if not candidats_groupe:
+                        st.info("Aucun composant trouvé dans cette catégorie.")
+
+                    for candidat in candidats_groupe:
+                        uid = candidat["uid"]
+                        empreinte_uid = pro_cle_composant_widget(uid)
+                        cle_case = f"{prefixe_widgets}_candidate_{empreinte_uid}"
+                        coche = st.checkbox(
+                            f"{candidat['nom']} ({candidat['ref']})",
+                            value=uid in etat_composants,
+                            key=cle_case,
+                        )
+                        if coche and uid not in etat_composants:
+                            etat_composants[uid] = {
+                                "type": candidat["type"],
+                                "ref": candidat["ref"],
+                                "nom": candidat["nom"],
+                                "visuel": candidat["visuel"],
+                                "dosage": candidat["dosage"],
+                                "commentaire_composant": "",
+                            }
+                        elif not coche and uid in etat_composants:
+                            etat_composants.pop(uid, None)
+
+            st.markdown("##### Composants sélectionnés")
+            if not etat_composants:
+                st.info("Aucun composant sélectionné.")
+            else:
+                for index_selection, (uid, composant) in enumerate(list(etat_composants.items())):
+                    with st.expander(
+                        f"{composant.get('nom', 'Composant')} — {composant.get('dosage', '-')}",
+                        expanded=True,
+                    ):
+                        col_dosage, col_note = st.columns([1, 2])
+                        with col_dosage:
+                            composant["dosage"] = st.text_input(
+                                "Dosage",
+                                value=pro_texte(composant.get("dosage")),
+                                key=(
+                                    f"{prefixe_widgets}_dosage_{index_selection}_"
+                                    f"{pro_cle_composant_widget(uid)}"
+                                ),
+                            )
+                        with col_note:
+                            composant["commentaire_composant"] = st.text_input(
+                                "Note/Commentaire",
+                                value=pro_texte(composant.get("commentaire_composant")),
+                                key=(
+                                    f"{prefixe_widgets}_note_{index_selection}_"
+                                    f"{pro_cle_composant_widget(uid)}"
+                                ),
+                            )
+                        col_info, col_retrait = st.columns([3, 1])
+                        with col_info:
+                            st.caption(
+                                f"Type : {composant.get('type')} • Référence : {composant.get('ref')}"
+                            )
+                        with col_retrait:
+                            if st.button(
+                                "Retirer",
+                                key=(
+                                    f"{prefixe_widgets}_remove_{index_selection}_"
+                                    f"{pro_cle_composant_widget(uid)}"
+                                ),
+                            ):
+                                etat_composants.pop(uid, None)
                                 st.rerun()
 
-            with col_canvas:
-                list_nodes = []
-                for f in fiche["formes"]:
-                    node_dict = {"id": f["id"], "label": f["label"], "shape": f["shape"], "color": {"background": f.get("color", "#E0F2FE"), "border": "#1E293B"}, "margin": 10}
-                    if f.get("x") is not None and f.get("y") is not None:
-                        node_dict["x"], node_dict["y"] = f["x"], f["y"]
-                    list_nodes.append(node_dict)
+            return etat_composants
 
-                edges_data = [{"from": lien["from"], "to": lien["to"], "arrows": "to", "color": {"color": "#475569"}} for lien in fiche["liaisons"] if "from" in lien]
-                nodes_json, edges_json = json.dumps(list_nodes), json.dumps(edges_data)
 
-                vis_html = f"""
-                <div id="mynetwork" style="width: 100%; height: 580px; background-color: #FAFAFA; border: 2px dashed #CBD5E1; border-radius: 8px;"></div>
-                <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-                <script type="text/javascript">
-                  var container = document.getElementById('mynetwork');
-                  var options = {{ physics: {{ enabled: false }}, interaction: {{ dragNodes: true, dragView: false, zoomView: true }}, nodes: {{ font: {{ size: 14, face: 'Arial' }}, borderWidth: 2 }} }};
-                  var network = new vis.Network(container, {{ nodes: new vis.DataSet({nodes_json}), edges: new vis.DataSet({edges_json}) }}, options);
-                </script>
-                """
-                components.html(vis_html, height=600)
+        def pro_formulation_depuis_etat(etat_composants):
+            resultat = []
+            for composant in etat_composants.values():
+                if not est_dosage_valide(composant.get("dosage")):
+                    continue
+                resultat.append(
+                    {
+                        "type": composant.get("type", "additif"),
+                        "ref": pro_texte(composant.get("ref")),
+                        "nom": pro_texte(composant.get("nom")),
+                        "visuel": pro_couleur_valide(
+                            composant.get("visuel"),
+                            "#EAEDEF",
+                        ),
+                        "dosage": pro_texte(composant.get("dosage")),
+                        "commentaire_composant": pro_texte(
+                            composant.get("commentaire_composant")
+                        ),
+                    }
+                )
+            return resultat
+
+
+        @st.dialog("Créer un mélange", width="large")
+        def ouvrir_ajout_melange_complet():
+            st.markdown("### Nouvelle formulation")
+            onglet_general, onglet_ft, onglet_composants = st.tabs(
+                ["Informations générales", "Fiche Technique", "Composants"]
+            )
+            with onglet_general:
+                col_general_1, col_general_2 = st.columns(2)
+                with col_general_1:
+                    m_ref = st.text_input(
+                        "Référence du mélange *",
+                        key="pro_add_mix_ref",
+                    )
+                    m_nom = st.text_input(
+                        "Nom du mélange *",
+                        key="pro_add_mix_name",
+                    )
+                    m_categorie = st.selectbox(
+                        "Catégorie",
+                        ["Mélange Couleurs", "Autre Mélange"],
+                        key="pro_add_mix_category",
+                    )
+                with col_general_2:
+                    m_emplacement = st.text_input(
+                        "Emplacement de stockage",
+                        key="pro_add_mix_location",
+                    )
+                    m_commentaire = st.text_input(
+
+                        "Commentaire court (formulation)",
+                        key="pro_add_mix_comment",
+                    )
+                    # --- NOUVEAU : Choix des Ateliers & Création à la volée ---
+                    m_ateliers = st.multiselect(
+                        "Ateliers (Compartiments)",
+                        liste_ateliers,
+                        key="pro_add_mix_ateliers",
+                    )
+                    nouveau_atelier = st.text_input(
+                        "Nouveau compartiment Atelier",
+                        key="pro_add_mix_new_atelier",
+                    )
+                    m_statut = st.radio(
+                        "État du mélange",
+                        ["Pas vérifié", "Vérifier"],
+                        horizontal=True,
+                        key="pro_add_mix_status",
+                    )
+                m_image = st.file_uploader(
+                    "Image du mélange (optionnel)",
+                    type=["png", "jpg", "jpeg", "webp"],
+                    key="pro_add_mix_image",
+                )
+
+            with onglet_ft:
+                activer_ft = st.toggle(
+                    "Créer la Fiche Technique (FT)",
+                    value=False,
+                    key="pro_add_mix_has_ft",
+                )
+                commentaire_global = ""
+                ft_redacteur = OPTIONS_REDACTEURS[0]
+                specs_dynamiques = {}
+
+                if activer_ft:
+                    # --- NOUVEAU : Spécifications physico-chimiques dynamiques ---
+                    specs_dynamiques = render_dynamic_ft_inputs({}, "pro_add_mix")
+                    
+                    commentaire_global = st.text_area(
+                        "Commentaires généraux (FT)",
+                        key="pro_add_mix_global_comment",
+                    )
+                    ft_redacteur = st.selectbox(
+                        "Rédacteur / Modifié par",
+                        OPTIONS_REDACTEURS,
+                        key="pro_add_mix_writer",
+                    )
+
+            with onglet_composants:
+                composants_selectionnes = pro_editeur_composants(
+                    "pro_add_mix_components_state",
+                    "pro_add_mix_components",
+                )
+
+            if st.button(
+                "Enregistrer la formulation",
+                type="primary",
+                use_container_width=True,
+                key="pro_add_mix_save",
+            ):
+                reference = m_ref.strip()
+                nom = m_nom.strip()
+                if not reference or not nom:
+                    st.error("La référence et le nom du mélange sont obligatoires.")
+                    return
+                if any(
+                    pro_texte(item.get("ref")).lower() == reference.lower()
+                    for item in liste_melanges
+                ):
+                    st.error("Cette référence de mélange existe déjà.")
+                    return
+
+                # --- NOUVEAU : Traitement du nouveau compartiment Atelier ---
+                ateliers_finaux = list(m_ateliers)
+                nouveau_atelier_clean = nouveau_atelier.strip()
+                if nouveau_atelier_clean:
+                    if nouveau_atelier_clean not in liste_ateliers:
+                        liste_ateliers.append(nouveau_atelier_clean)
+                    if nouveau_atelier_clean not in ateliers_finaux:
+                        ateliers_finaux.append(nouveau_atelier_clean)
+
+                composants_finaux = pro_formulation_depuis_etat(composants_selectionnes)
+                date_creation = pro_date_maintenant()
+                image_finale = encoder_fichier_local(m_image) if m_image else None
+
+                # --- NOUVEAU : Extraction explicite des specs dynamiques ---
+                specs_dynamiques = extraire_specs_du_state("pro_add_mix") if activer_ft else {}
+
+                liste_melanges.append(
+                    {
+                        "ref": reference,
+                        "nom": nom,
+                        "categorie_choisie": m_categorie,
+                        "ateliers": ateliers_finaux,  # <-- NOUVEAU : Sauvegarde des ateliers
+                        "emplacement": m_emplacement.strip(),
+                        "commentaire": m_commentaire.strip(),
+                        "commentaire_global": commentaire_global.strip(),
+                        "couleurs_associees": composants_finaux,
+                        "statut": m_statut,
+                        "has_ft": activer_ft,
+                        "fiche_technique": {
+                            "date_creation": date_creation,
+                            "date_derniere_maj": date_creation,
+                            "date_avant_derniere_maj": "-",
+                            "redacteur": ft_redacteur,
+                            "specs_dynamiques": specs_dynamiques,
+                        },
+                        "image_rendu": image_finale,
+                    }
+                )
+                st.session_state["pro_add_mix_components_state"] = {}
+                sauvegarder_donnees()
+                afficher_animation_validation("Formulation créée")
+                st.session_state.pop("dialog_actif", None)
+                st.rerun()
+
+
+        @st.dialog("Modifier une fiche de mélange", width="large")
+        def ouvrir_modification_melange_complet(index, melange_data):
+            cle_initialisation = f"pro_edit_mix_initialized_{index}"
+            cle_etat_composants = f"pro_edit_mix_components_state_{index}"
+
+            if not st.session_state.get(cle_initialisation):
+                etat_initial = {}
+                for index_composant_initial, composant in enumerate(
+                    melange_data.get("couleurs_associees", [])
+                ):
+                    uid = (
+                        f"{composant.get('type', 'additif')}|existant|"
+                        f"{index_composant_initial}|{pro_texte(composant.get('ref'))}"
+                    )
+                    etat_initial[uid] = copy.deepcopy(composant)
+                st.session_state[cle_etat_composants] = etat_initial
+                st.session_state[cle_initialisation] = True
+
+            st.markdown(f"### {melange_data.get('nom', 'Mélange')}")
+            onglet_general, onglet_ft, onglet_composants = st.tabs(
+                ["Informations générales", "Fiche Technique", "Composants"]
+            )
+
+            with onglet_general:
+                col_general_1, col_general_2 = st.columns(2)
+                with col_general_1:
+                    m_ref = st.text_input(
+                        "Référence du mélange *",
+                        value=melange_data.get("ref", ""),
+                        key=f"pro_edit_mix_ref_{index}",
+                    )
+                    m_nom = st.text_input(
+                        "Nom du mélange *",
+                        value=melange_data.get("nom", ""),
+                        key=f"pro_edit_mix_name_{index}",
+                    )
+                    categories = ["Mélange Couleurs", "Autre Mélange"]
+                    categorie_actuelle = melange_data.get(
+                        "categorie_choisie",
+                        "Mélange Couleurs",
+                    )
+                    if categorie_actuelle not in categories:
+                        categories.append(categorie_actuelle)
+                    m_categorie = st.selectbox(
+                        "Catégorie",
+                        categories,
+                        index=categories.index(categorie_actuelle),
+                        key=f"pro_edit_mix_category_{index}",
+                    )
+                with col_general_2:
+                    m_emplacement = st.text_input(
+                        "Emplacement de stockage",
+                        value=melange_data.get("emplacement", ""),
+                        key=f"pro_edit_mix_location_{index}",
+                    )
+                    m_commentaire = st.text_input(
+                        "Commentaire court (formulation)",
+                        value=melange_data.get("commentaire", ""),
+                        key=f"pro_edit_mix_comment_{index}",
+                    )
+                    ateliers_actuels = [
+                        valeur
+                        for valeur in melange_data.get("ateliers", [])
+                        if valeur in liste_ateliers
+                    ]
+                    m_ateliers = st.multiselect(
+                        "Ateliers (Compartiments)",
+                        liste_ateliers,
+                        default=ateliers_actuels,
+                        key=f"pro_edit_mix_ateliers_{index}",
+                    )
+                    nouveau_atelier = st.text_input(
+                        "Nouveau compartiment Atelier",
+                        key=f"pro_edit_mix_new_atelier_{index}",
+                    )
+                    statuts = ["Pas vérifié", "Vérifier"]
+                    statut_actuel = melange_data.get("statut", "Pas vérifié")
+                    if statut_actuel not in statuts:
+                        statut_actuel = "Pas vérifié"
+                    m_statut = st.radio(
+                        "État du mélange",
+                        statuts,
+                        index=statuts.index(statut_actuel),
+                        horizontal=True,
+                        key=f"pro_edit_mix_status_{index}",
+                    )
+
+                if melange_data.get("image_rendu"):
+                    st.caption("Aperçu de l'image actuelle")
+                    afficher_image_base64(
+                        melange_data["image_rendu"]["data"],
+                        width=120,
+                    )
+                m_image = st.file_uploader(
+                    "Remplacer l'image",
+                    type=["png", "jpg", "jpeg", "webp"],
+                    key=f"pro_edit_mix_image_{index}",
+                )
+                supprimer_image = st.checkbox(
+                    "Supprimer l'image actuelle",
+                    value=False,
+                    key=f"pro_edit_mix_remove_image_{index}",
+                )
+
+            with onglet_ft:
+                fiche_ancienne = melange_data.get("fiche_technique", {})
+                # Migration auto : anciens champs vers specs_dynamiques
+                if not fiche_ancienne.get("specs_dynamiques"):
+                    fiche_ancienne["specs_dynamiques"] = {}
+                    legacy_map = {
+                        "Aspect / Finition": "aspect",
+                        "Viscosité attendue": "viscosite",
+                        "Densité": "densite",
+                        "Temps de séchage": "sechage",
+                        "Conditions d'application": "conditions",
+                    }
+                    for label, key in legacy_map.items():
+                        val = fiche_ancienne.get(key, "")
+                        if str(val).strip():
+                            fiche_ancienne["specs_dynamiques"][label] = val
+                
+                activer_ft = st.toggle(
+                    "Gérer la Fiche Technique (FT)",
+                    value=bool(melange_data.get("has_ft", False)),
+                    key=f"pro_edit_mix_has_ft_{index}",
+                )
+                specs_dynamiques = fiche_ancienne.get("specs_dynamiques", {})
+                commentaire_global = melange_data.get("commentaire_global", "")
+                ft_redacteur = fiche_ancienne.get("redacteur", OPTIONS_REDACTEURS[0])
+                if activer_ft:
+                    specs_dynamiques = render_dynamic_ft_inputs(
+                        fiche_ancienne,
+                        f"pro_edit_mix_{index}",
+                    )
+                    commentaire_global = st.text_area(
+                        "Commentaires généraux (FT)",
+                        value=commentaire_global,
+                        key=f"pro_edit_mix_global_comment_{index}",
+                    )
+                    index_redacteur = (
+                        OPTIONS_REDACTEURS.index(ft_redacteur)
+                        if ft_redacteur in OPTIONS_REDACTEURS
+                        else 0
+                    )
+                    ft_redacteur = st.selectbox(
+                        "Rédacteur / Modifié par",
+                        OPTIONS_REDACTEURS,
+                        index=index_redacteur,
+                        key=f"pro_edit_mix_writer_{index}",
+                    )            
+
+            with onglet_composants:
+                composants_selectionnes = pro_editeur_composants(
+                    cle_etat_composants,
+                    f"pro_edit_mix_components_{index}",
+                    reference_exclue=melange_data.get("ref"),
+                )
+
+            if st.button(
+                "Enregistrer les modifications",
+                type="primary",
+                use_container_width=True,
+                key=f"pro_edit_mix_save_{index}",
+            ):
+                # Récupération EXPLICITE des specs depuis le session_state
+                if activer_ft:
+                    specs_dynamiques = extraire_specs_du_state(f"pro_edit_mix_{index}")
+                else:
+                    specs_dynamiques = fiche_ancienne.get("specs_dynamiques", {})
+                reference = m_ref.strip()
+                nom = m_nom.strip()
+                if not reference or not nom:
+                    st.error("La référence et le nom sont obligatoires.")
+                    return
+                if any(
+                    autre_index != index
+                    and pro_texte(item.get("ref")).lower() == reference.lower()
+                    for autre_index, item in enumerate(liste_melanges)
+                ):
+                    st.error("Cette référence appartient déjà à un autre mélange.")
+                    return
+
+                composants_finaux = pro_formulation_depuis_etat(composants_selectionnes)
+                date_creation, date_derniere, date_avant = gerer_historique_dates_et_causes(
+                    fiche_ancienne,
+                    pro_date_maintenant(),
+                )
+                specs_dynamiques = {
+                } if activer_ft else {}
+
+                if supprimer_image:
+                    image_finale = None
+                elif m_image:
+                    image_finale = encoder_fichier_local(m_image)
+                else:
+                    image_finale = melange_data.get("image_rendu")
+                    
+                # Récupération EXPLICITE des specs depuis le session_state
+                if activer_ft:
+                    specs_dynamiques = extraire_specs_du_state(f"pro_edit_mix_{index}")
+                else:
+                    specs_dynamiques = fiche_ancienne.get("specs_dynamiques", {})
+                ateliers_finaux = list(m_ateliers)
+                nouveau_atelier_clean = nouveau_atelier.strip()
+                if nouveau_atelier_clean:
+                    if nouveau_atelier_clean not in liste_ateliers:
+                        liste_ateliers.append(nouveau_atelier_clean)
+                    if nouveau_atelier_clean not in ateliers_finaux:
+                        ateliers_finaux.append(nouveau_atelier_clean)                    
+                melange_modifie = copy.deepcopy(melange_data)
+                melange_modifie.update(
+                    {
+                        "ref": reference,
+                        "nom": nom,
+                        "categorie_choisie": m_categorie,
+                        "emplacement": m_emplacement.strip(),
+                        "commentaire": m_commentaire.strip(),
+                        "commentaire_global": commentaire_global.strip(),
+                        "couleurs_associees": composants_finaux,
+                        "statut": m_statut,
+                        "ateliers": ateliers_finaux,
+                        "has_ft": activer_ft,
+                        "fiche_technique": {
+                            **copy.deepcopy(fiche_ancienne),
+                            "date_creation": date_creation,
+                            "date_derniere_maj": date_derniere,
+                            "date_avant_derniere_maj": date_avant,
+                            "redacteur": ft_redacteur,
+                            "specs_dynamiques": specs_dynamiques,
+                        },
+                        "image_rendu": image_finale,
+                    }
+                )
+                liste_melanges[index] = melange_modifie
+                st.session_state.pop(cle_initialisation, None)
+                st.session_state.pop(cle_etat_composants, None)
+                sauvegarder_donnees()
+                afficher_animation_validation("Mélange mis à jour")
+                st.session_state.pop("dialog_actif", None)
+                st.rerun()
+
+        barre_melange_1, barre_melange_2, barre_melange_3 = st.columns([1.2, 1, 1])
+        with barre_melange_1:
+            if st.button(
+                "＋ Créer une fiche de mélange",
+                type="primary",
+                use_container_width=True,
+                key="pro_mix_add_main",
+            ):
+                st.session_state["pro_add_mix_components_state"] = {}
+                st.session_state.dialog_actif = {"type": "ajout_melange"}
+                st.rerun()
+        with barre_melange_2:
+            excel_melanges, nom_excel_melanges, mime_excel_melanges = generer_fichier_export(
+                liste_melanges,
+                "Export_Melanges",
+            )
+            if excel_melanges:
+                st.download_button(
+                    "⬇️ Exporter Excel",
+                    data=excel_melanges,
+                    file_name=nom_excel_melanges,
+                    mime=mime_excel_melanges,
+                    use_container_width=True,
+                    key="pro_mix_export_excel",
+                )
+        with barre_melange_3:
+            pro_export_json(
+                liste_melanges,
+                "Sauvegarde_Melanges_BOS2.json",
+                "pro_mix_export_json",
+            )
+
+        pro_afficher_audit(
+            liste_melanges,
+            [("ref", "Référence"), ("nom", "Nom")],
+            "ref",
+            "pro_mix_audit",
+        )
+
+        with st.expander("Filtres et organisation des formulations", expanded=True):
+            filtre_mix_1, filtre_mix_2, filtre_mix_3, filtre_mix_4 = st.columns(4)
+            with filtre_mix_1:
+                recherche_melange = st.text_input(
+                    "Recherche globale",
+                    placeholder="Réf., nom, emplacement, composant...",
+                    key="pro_mix_filter_global",
+                ).lower().strip()
+            with filtre_mix_2:
+                filtre_categorie_melange = st.selectbox(
+                    "Catégorie",
+                    ["Toutes", "Mélange Couleurs", "Autre Mélange"],
+                    key="pro_mix_filter_category",
+                )
+            with filtre_mix_3:
+                filtre_ft_melange = st.selectbox(
+                    "Fiche Technique",
+                    ["Toutes", "Avec FT", "Sans FT"],
+                    key="pro_mix_filter_ft",
+                )
+            with filtre_mix_4:
+                filtre_statut_melange = st.selectbox(
+                    "Statut",
+                    ["Tous", "Vérifier", "Pas vérifié"],
+                    key="pro_mix_filter_status",
+                )
+
+            tri_mix_1, tri_mix_2, filtre_composant_mix = st.columns([1.2, 1, 2])
+            with tri_mix_1:
+                tri_melange = st.selectbox(
+                    "Trier par",
+                    ["Référence", "Nom", "Emplacement", "Nombre de composants"],
+                    key="pro_mix_sort",
+                )
+            with tri_mix_2:
+                ordre_melange = st.selectbox(
+                    "Ordre",
+                    ["Croissant", "Décroissant"],
+                    key="pro_mix_order",
+                )
+            with filtre_composant_mix:
+                composant_recherche = st.text_input(
+                    "Contient le composant",
+                    placeholder="Nom ou référence du composant...",
+                    key="pro_mix_filter_component",
+                ).lower().strip()
+
+        melanges_filtres = []
+        for index_melange, melange_item in enumerate(liste_melanges):
+            texte_composants = " ".join(
+                f"{pro_texte(comp.get('nom'))} {pro_texte(comp.get('ref'))}"
+                for comp in melange_item.get("couleurs_associees", [])
+            ).lower()
+            texte_recherche = " ".join(
+                [
+                    pro_texte(melange_item.get("ref")),
+                    pro_texte(melange_item.get("nom")),
+                    pro_texte(melange_item.get("emplacement")),
+                    pro_texte(melange_item.get("commentaire")),
+                    texte_composants,
+                ]
+            ).lower()
+            if recherche_melange and recherche_melange not in texte_recherche:
+                continue
+            if composant_recherche and composant_recherche not in texte_composants:
+                continue
+            categorie_item = melange_item.get("categorie_choisie", "Mélange Couleurs")
+            if filtre_categorie_melange != "Toutes" and categorie_item != filtre_categorie_melange:
+                continue
+            if filtre_ft_melange == "Avec FT" and not melange_item.get("has_ft"):
+                continue
+            if filtre_ft_melange == "Sans FT" and melange_item.get("has_ft"):
+                continue
+            if filtre_statut_melange != "Tous" and melange_item.get("statut", "Pas vérifié") != filtre_statut_melange:
+                continue
+            melanges_filtres.append({"index_origine": index_melange, "data": melange_item})
+
+        def pro_cle_tri_melange(element):
+            melange = element["data"]
+            if tri_melange == "Référence":
+                return pro_naturel(melange.get("ref"))
+            if tri_melange == "Nom":
+                return pro_naturel(melange.get("nom"))
+            if tri_melange == "Emplacement":
+                return pro_naturel(melange.get("emplacement"))
+            return [len(melange.get("couleurs_associees", []))]
+
+        melanges_filtres.sort(
+            key=pro_cle_tri_melange,
+            reverse=ordre_melange == "Décroissant",
+        )
+        pro_barre_resultats(len(melanges_filtres), len(liste_melanges), "mélanges")
+
+        melanges_couleurs = [
+            item
+            for item in melanges_filtres
+            if item["data"].get("categorie_choisie", "Mélange Couleurs") == "Mélange Couleurs"
+        ]
+        autres_melanges = [
+            item
+            for item in melanges_filtres
+            if item["data"].get("categorie_choisie", "Mélange Couleurs") != "Mélange Couleurs"
+        ]
+
+
+        def pro_afficher_tableau_melanges(liste_tableau, prefixe_tableau):
+            melanges_page, page_melange, pages_melange = pro_paginer(
+                liste_tableau,
+                f"pro_mix_page_{prefixe_tableau}",
+                25,
+            )
+            st.caption(f"Page {page_melange} sur {pages_melange}")
+            if not melanges_page:
+                st.info("Aucun mélange dans cette vue.")
+                return
+
+            entete = st.columns([.9, 1.25, .75, 2.8, 1.1, 1.5, 2.2])
+            for colonne, libelle in zip(
+                entete,
+                ["Référence", "Nom", "Aperçu", "Composants", "Emplacement", "Commentaires", "Actions"],
+            ):
+                colonne.markdown(f"**{libelle}**")
+            st.markdown("<hr style='margin:4px 0;border-width:2px;border-color:#142235;'>", unsafe_allow_html=True)
+
+            for melange_ligne in melanges_page:
+                index_melange = melange_ligne["index_origine"]
+                melange_data = melange_ligne["data"]
+                ligne = st.columns([.9, 1.25, .75, 2.8, 1.1, 1.5, 2.2])
+                verification = "🔴 " if melange_data.get("statut") == "Vérifier" else ""
+                ligne[0].markdown(
+                    f"**{verification}{html_lib.escape(pro_texte(melange_data.get('ref')) or '-')}**"
+                )
+                ligne[1].write(pro_texte(melange_data.get("nom")) or "-")
+                if melange_data.get("image_rendu"):
+                    with ligne[2]:
+                        afficher_image_base64(
+                            melange_data["image_rendu"]["data"],
+                            width=48,
+                        )
+                else:
+                    ligne[2].caption("—")
+
+                composants = melange_data.get("couleurs_associees", [])
+                with ligne[3]:
+                    for composant in composants[:8]:
+                        couleur_composant = pro_couleur_valide(
+                            composant.get("visuel"),
+                            "#EAEDEF",
+                        )
+                        st.markdown(
+                            f"""
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:12px;">
+                                <span style="width:12px;height:12px;flex:0 0 12px;background:{couleur_composant};border:1px solid rgba(20,34,53,.30);border-radius:50%;"></span>
+                                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{html_lib.escape(pro_texte(composant.get('nom')) or '-')}</span>
+                                <b style="margin-left:auto;white-space:nowrap;">{html_lib.escape(pro_texte(composant.get('dosage')) or '-')}</b>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                    if len(composants) > 8:
+                        st.caption(f"+ {len(composants) - 8} autre(s)")
+                    totaux = pro_total_dosages(composants)
+                    if totaux:
+                        resume = " • ".join(
+                            f"{valeur:g} {unite}"
+                            for unite, valeur in sorted(totaux.items())
+                        )
+                        st.caption(f"Total lisible : {resume}")
+
+                ligne[4].write(pro_texte(melange_data.get("emplacement")) or "-")
+                ligne[5].write(pro_texte(melange_data.get("commentaire")) or "-")
+
+                action_voir, action_modifier, action_dupliquer, action_supprimer, action_ft = ligne[6].columns(
+                    [1, 1, 1, 1, 1.3]
+                )
+                if action_voir.button("👁", key=f"pro_mix_view_{prefixe_tableau}_{index_melange}"):
+                    ouvrir_details_melange(melange_data)
+                if action_modifier.button("✎", key=f"pro_mix_edit_{prefixe_tableau}_{index_melange}"):
+                    st.session_state.dialog_actif = {"type": "modif_melange", "index": index_melange}
+                    st.rerun()
+                if action_dupliquer.button("⧉", key=f"pro_mix_copy_{prefixe_tableau}_{index_melange}"):
+                    copie_melange = copy.deepcopy(melange_data)
+                    copie_melange["ref"] = pro_identifiant_unique(
+                        f"{pro_texte(melange_data.get('ref'))}-COPIE",
+                        liste_melanges,
+                        "ref",
+                    )
+                    copie_melange["nom"] = f"{pro_texte(melange_data.get('nom'))} — Copie"
+                    copie_melange["statut"] = "Pas vérifié"
+                    ft_copie = copie_melange.setdefault("fiche_technique", {})
+                    ft_copie["date_creation"] = pro_date_maintenant()
+                    ft_copie["date_derniere_maj"] = ft_copie["date_creation"]
+                    ft_copie["date_avant_derniere_maj"] = "-"
+                    liste_melanges.append(copie_melange)
+                    sauvegarder_donnees()
+                    st.rerun()
+
+                cle_suppression = f"pro_mix_delete_confirm_{index_melange}"
+                if action_supprimer.button("🗑", key=f"pro_mix_delete_{prefixe_tableau}_{index_melange}"):
+                    st.session_state[cle_suppression] = True
+                if melange_data.get("has_ft"):
+                    if action_ft.button("FT", key=f"pro_mix_ft_{prefixe_tableau}_{index_melange}"):
+                        ouvrir_visualisation_ft(melange_data)
+
+                if st.session_state.get(cle_suppression, False):
+                    st.warning(
+                        f"Supprimer définitivement le mélange {melange_data.get('ref', '')} ?"
+                    )
+                    col_oui, col_non = st.columns(2)
+                    if col_oui.button("Oui, supprimer", key=f"pro_mix_delete_yes_{prefixe_tableau}_{index_melange}"):
+                        liste_melanges.pop(index_melange)
+                        st.session_state[cle_suppression] = False
+                        sauvegarder_donnees()
+                        st.rerun()
+                    if col_non.button("Annuler", key=f"pro_mix_delete_no_{prefixe_tableau}_{index_melange}"):
+                        st.session_state[cle_suppression] = False
+                        st.rerun()
+
+                st.markdown("<hr style='margin:5px 0;opacity:.16;'>", unsafe_allow_html=True)
+
+
+        onglet_melanges_couleurs, onglet_autres_melanges = st.tabs(
+            ["Mélanges Couleurs", "Autres Mélanges"]
+        )
+        with onglet_melanges_couleurs:
+            pro_afficher_tableau_melanges(melanges_couleurs, "couleurs")
+        with onglet_autres_melanges:
+            # --- Module de gestion / création / suppression des compartiments Ateliers ---
+            with st.expander("⚙️ Gérer / Supprimer les compartiments Atelier", expanded=False):
+                c_add_at, c_btn_at = st.columns([3, 1])
+                with c_add_at:
+                    nouveau_nom_atelier = st.text_input("Créer un nouvel Atelier", key="input_new_atelier_mgt")
+                with c_btn_at:
+                    st.write("")
+                    st.write("")
+                    if st.button("➕ Ajouter Atelier", key="btn_add_atelier_mgt", use_container_width=True):
+                        at_propre = nouveau_nom_atelier.strip()
+                        if at_propre and at_propre not in liste_ateliers:
+                            liste_ateliers.append(at_propre)
+                            sauvegarder_donnees()
+                            st.rerun()
+        
+                if liste_ateliers:
+                    st.markdown("**Compartiments Ateliers existants :**")
+                    ateliers_a_retirer = []
+                    for idx_at, at_nom in enumerate(liste_ateliers):
+                        col_at_nom, col_at_del = st.columns([4, 1])
+                        col_at_nom.write(f"• **{at_nom}**")
+                        if col_at_del.button("🗑️ Supprimer", key=f"btn_del_atelier_{idx_at}"):
+                            ateliers_a_retirer.append(at_nom)
+        
+                    if ateliers_a_retirer:
+                        for at_rem in ateliers_a_retirer:
+                            liste_ateliers.remove(at_rem)
+                        sauvegarder_donnees()
+                        st.rerun()
+        
+            # --- Sous-onglets par compartiment Atelier ---
+            noms_onglets_ateliers = ["Tous les Autres Mélanges"] + [
+                f"Atelier : {at.capitalize()}" for at in liste_ateliers
+            ]
+            onglets_ateliers = st.tabs(noms_onglets_ateliers)
+        
+            # Onglet Général (Tous)
+            with onglets_ateliers[0]:
+                pro_afficher_tableau_melanges(autres_melanges, "autres_tous")
+        
+            # Onglets spécifiques par Atelier
+            for index_at, at_nom in enumerate(liste_ateliers):
+                with onglets_ateliers[index_at + 1]:
+                    melanges_atelier = [
+                        item
+                        for item in autres_melanges
+                        if at_nom in item["data"].get("ateliers", [])
+                    ]
+                    prefixe_at = f"autres_at_{index_at}_{re.sub(r'[^a-zA-Z0-9]+', '_', at_nom)}"
+                    pro_afficher_tableau_melanges(melanges_atelier, prefixe_at)
             
-            st.markdown(f"**Nombre de fiches méthode affichées : {len(fiches_m)}**")
+            
+            # --- Réouverture persistante des dialogs ---
+        dialog_actif = st.session_state.get("dialog_actif")
+        if isinstance(dialog_actif, dict):
+            d_type = dialog_actif.get("type")
+            if d_type == "ajout_melange":
+                ouvrir_ajout_melange_complet()
+            elif d_type == "modif_melange":
+                idx = dialog_actif.get("index")
+                if idx is not None and 0 <= idx < len(liste_melanges):
+                    ouvrir_modification_melange_complet(idx, liste_melanges[idx])
 
-# --- CENTRALISATION DE L'OUVERTURE PERSISTANTE DES DIALOGS ---
-if st.session_state.active_dialog is not None:
-    dtype, ddata = st.session_state.active_dialog
-    if dtype == "ajout_couleur": ouvrir_ajout_couleur()
-    elif dtype == "mod_couleur": ouvrir_modif_couleur(ddata[0], ddata[1])
-    elif dtype == "ajout_element": ouvrir_ajout_element_complet()
-    elif dtype == "mod_element": ouvrir_modif_element_complet(ddata[0], ddata[1])
-    elif dtype == "ajout_ral": ouvrir_ajout_ral_base()
-    elif dtype == "ajout_melange": ouvrir_ajout_melange_complet()
-    elif dtype == "mod_melange": ouvrir_modification_melange_complet(ddata[0], ddata[1])
-    elif dtype == "details_couleur": ouvrir_details_couleur(ddata)
-    elif dtype == "details_element": abrir_details_element(ddata)
-    elif dtype == "details_melange": ouvrir_details_melange(ddata)
-    elif dtype == "visu_ft_melange": ouvrir_visualisation_ft(ddata)
-    elif dtype == "visu_ft_additif": ouvrir_visualisation_ft_additif(ddata)
-    elif dtype == "visu_ft_couleur": ouvrir_visualisation_ft_couleur(ddata)
-    elif dtype == "ajout_etape": ouvrir_formulaire_etape(ddata[0], ddata[1])
-    elif dtype == "ajout_fiche_methode": ouvrir_ajout_fiche_methode()
-    elif dtype == "aide": ouvrir_fenetre_aide()   
+    elif choix_section == "📐 Fiches Méthode":
+        # =====================================================================
+        # NOUVEL ÉDITEUR DE MIND MAP — STYLE BLANK DIAGRAM / LUCIDCHART
+        # Cette section remplace uniquement l'ancienne section Fiches Méthode.
+        # Toutes les données restent enregistrées dans donnees_bos2.json.
+        # =====================================================================
+
+        import copy
+        import html as html_lib
+        import uuid
+
+        # ---------------------------------------------------------------------
+        # OUTILS INTERNES DU NOUVEL ÉDITEUR
+        # ---------------------------------------------------------------------
+
+        def mm_maintenant():
+            return datetime.datetime.now().strftime("%d/%m/%Y - %H:%M")
+
+
+        def mm_id(prefixe):
+            return f"{prefixe}_{uuid.uuid4().hex[:12]}"
+
+
+        def mm_limite_nombre(valeur, minimum, maximum, defaut):
+            try:
+                valeur_float = float(valeur)
+                return max(minimum, min(maximum, valeur_float))
+            except (TypeError, ValueError):
+                return defaut
+
+
+        def mm_couleur_valide(valeur, defaut):
+            valeur = str(valeur or "").strip()
+            if re.fullmatch(r"#[0-9a-fA-F]{6}", valeur):
+                return valeur.upper()
+            return defaut
+
+
+        def mm_prochain_numero_noeud(fiche):
+            numeros = []
+            for noeud in fiche.get("formes", []):
+                texte_id = str(noeud.get("id", ""))
+                morceaux = re.findall(r"\d+", texte_id)
+                if morceaux:
+                    numeros.append(int(morceaux[-1]))
+            return max(numeros, default=0) + 1
+
+
+        def mm_prochain_numero_liaison(fiche):
+            numeros = []
+            for liaison in fiche.get("liaisons", []):
+                texte_id = str(liaison.get("id", ""))
+                morceaux = re.findall(r"\d+", texte_id)
+                if morceaux:
+                    numeros.append(int(morceaux[-1]))
+            return max(numeros, default=0) + 1
+
+
+        def mm_trouver_fiche(fiche_id):
+            for index_fiche, fiche_item in enumerate(fiches_m):
+                if str(fiche_item.get("id")) == str(fiche_id):
+                    return index_fiche, fiche_item
+            return None, None
+
+
+        def mm_trouver_noeud(fiche, noeud_id):
+            for index_noeud, noeud in enumerate(fiche.get("formes", [])):
+                if str(noeud.get("id")) == str(noeud_id):
+                    return index_noeud, noeud
+            return None, None
+
+
+        def mm_trouver_liaison(fiche, liaison_id):
+            for index_liaison, liaison in enumerate(fiche.get("liaisons", [])):
+                if str(liaison.get("id")) == str(liaison_id):
+                    return index_liaison, liaison
+            return None, None
+
+
+        def mm_marquer_modification(fiche):
+            fiche["date_modification"] = mm_maintenant()
+
+
+        def mm_sauvegarder(fiche=None):
+            if fiche is not None:
+                mm_marquer_modification(fiche)
+            sauvegarder_donnees()
+
+
+        def mm_cle_historique(fiche):
+            return f"mm_historique_{fiche.get('id')}"
+
+
+        def mm_cle_retablir(fiche):
+            return f"mm_retablir_{fiche.get('id')}"
+
+
+        def mm_memoriser_etat(fiche):
+            cle_historique = mm_cle_historique(fiche)
+            historique = st.session_state.setdefault(cle_historique, [])
+            historique.append(
+                {
+                    "formes": copy.deepcopy(fiche.get("formes", [])),
+                    "liaisons": copy.deepcopy(fiche.get("liaisons", [])),
+                    "description": fiche.get("description", ""),
+                    "orientation": fiche.get("orientation", "horizontal"),
+                }
+            )
+            if len(historique) > 40:
+                del historique[:-40]
+            st.session_state[mm_cle_retablir(fiche)] = []
+
+
+        def mm_annuler(fiche):
+            historique = st.session_state.setdefault(mm_cle_historique(fiche), [])
+            if not historique:
+                return False
+
+            etat_courant = {
+                "formes": copy.deepcopy(fiche.get("formes", [])),
+                "liaisons": copy.deepcopy(fiche.get("liaisons", [])),
+                "description": fiche.get("description", ""),
+                "orientation": fiche.get("orientation", "horizontal"),
+            }
+            st.session_state.setdefault(mm_cle_retablir(fiche), []).append(etat_courant)
+
+            ancien_etat = historique.pop()
+            fiche["formes"] = ancien_etat["formes"]
+            fiche["liaisons"] = ancien_etat["liaisons"]
+            fiche["description"] = ancien_etat["description"]
+            fiche["orientation"] = ancien_etat["orientation"]
+            mm_sauvegarder(fiche)
+            return True
+
+
+        def mm_retablir(fiche):
+            pile_retablir = st.session_state.setdefault(mm_cle_retablir(fiche), [])
+            if not pile_retablir:
+                return False
+
+            etat_courant = {
+                "formes": copy.deepcopy(fiche.get("formes", [])),
+                "liaisons": copy.deepcopy(fiche.get("liaisons", [])),
+                "description": fiche.get("description", ""),
+                "orientation": fiche.get("orientation", "horizontal"),
+            }
+            st.session_state.setdefault(mm_cle_historique(fiche), []).append(etat_courant)
+
+            etat_suivant = pile_retablir.pop()
+            fiche["formes"] = etat_suivant["formes"]
+            fiche["liaisons"] = etat_suivant["liaisons"]
+            fiche["description"] = etat_suivant["description"]
+            fiche["orientation"] = etat_suivant["orientation"]
+            mm_sauvegarder(fiche)
+            return True
+
+
+        def mm_nouveau_noeud(
+            fiche,
+            titre="Nouvelle idée",
+            sous_titre="",
+            forme="rounded",
+            categorie="idee",
+            couleur="#F4EBDD",
+            bordure="#9B7740",
+            texte="#142235",
+            x=480,
+            y=320,
+            largeur=190,
+            hauteur=78,
+        ):
+            numero = mm_prochain_numero_noeud(fiche)
+            return {
+                "id": f"n{numero}",
+                "label": str(titre or "Nouvelle idée").strip(),
+                "subtitle": str(sous_titre or "").strip(),
+                "notes": "",
+                "shape": forme,
+                "categorie": categorie,
+                "color": mm_couleur_valide(couleur, "#F4EBDD"),
+                "border_color": mm_couleur_valide(bordure, "#9B7740"),
+                "text_color": mm_couleur_valide(texte, "#142235"),
+                "x": round(float(x), 2),
+                "y": round(float(y), 2),
+                "width": int(mm_limite_nombre(largeur, 110, 420, 190)),
+                "height": int(mm_limite_nombre(hauteur, 54, 220, 78)),
+                "locked": False,
+            }
+
+
+        def mm_nouvelle_liaison(
+            fiche,
+            source,
+            destination,
+            libelle="",
+            couleur="#50657D",
+            style="solid",
+            fleche="to",
+        ):
+            numero = mm_prochain_numero_liaison(fiche)
+            return {
+                "id": f"e{numero}",
+                "from": str(source),
+                "to": str(destination),
+                "label": str(libelle or "").strip(),
+                "color": mm_couleur_valide(couleur, "#50657D"),
+                "style": style,
+                "arrow": fleche,
+                "width": 2,
+            }
+
+
+        def mm_supprimer_noeud(fiche, noeud_id):
+            fiche["formes"] = [
+                noeud
+                for noeud in fiche.get("formes", [])
+                if str(noeud.get("id")) != str(noeud_id)
+            ]
+            fiche["liaisons"] = [
+                liaison
+                for liaison in fiche.get("liaisons", [])
+                if str(liaison.get("from")) != str(noeud_id)
+                and str(liaison.get("to")) != str(noeud_id)
+            ]
+
+
+        def mm_disposition_automatique(fiche, mode):
+            noeuds = fiche.get("formes", [])
+            liaisons = fiche.get("liaisons", [])
+
+            if not noeuds:
+                return
+
+            ids_noeuds = [str(noeud.get("id")) for noeud in noeuds]
+            noeuds_par_id = {str(noeud.get("id")): noeud for noeud in noeuds}
+            enfants = {noeud_id: [] for noeud_id in ids_noeuds}
+            parents = {noeud_id: [] for noeud_id in ids_noeuds}
+
+            for liaison in liaisons:
+                source = str(liaison.get("from"))
+                destination = str(liaison.get("to"))
+                if source in enfants and destination in enfants:
+                    enfants[source].append(destination)
+                    parents[destination].append(source)
+
+            racines = [noeud_id for noeud_id in ids_noeuds if not parents[noeud_id]]
+            racine = racines[0] if racines else ids_noeuds[0]
+
+            niveaux = {racine: 0}
+            file_attente = [racine]
+
+            while file_attente:
+                courant = file_attente.pop(0)
+                for enfant in enfants.get(courant, []):
+                    if enfant not in niveaux:
+                        niveaux[enfant] = niveaux[courant] + 1
+                        file_attente.append(enfant)
+
+            niveau_maximum = max(niveaux.values(), default=0)
+            for noeud_id in ids_noeuds:
+                if noeud_id not in niveaux:
+                    niveau_maximum += 1
+                    niveaux[noeud_id] = niveau_maximum
+
+            groupes = {}
+            for noeud_id, niveau in niveaux.items():
+                groupes.setdefault(niveau, []).append(noeud_id)
+
+            if mode == "horizontal":
+                for niveau, ids_niveau in groupes.items():
+                    hauteur_totale = max(1, len(ids_niveau) - 1) * 135
+                    debut_y = 430 - hauteur_totale / 2
+                    for position, noeud_id in enumerate(ids_niveau):
+                        noeuds_par_id[noeud_id]["x"] = 280 + niveau * 285
+                        noeuds_par_id[noeud_id]["y"] = debut_y + position * 135
+
+            elif mode == "vertical":
+                for niveau, ids_niveau in groupes.items():
+                    largeur_totale = max(1, len(ids_niveau) - 1) * 245
+                    debut_x = 720 - largeur_totale / 2
+                    for position, noeud_id in enumerate(ids_niveau):
+                        noeuds_par_id[noeud_id]["x"] = debut_x + position * 245
+                        noeuds_par_id[noeud_id]["y"] = 180 + niveau * 155
+
+            elif mode == "radial":
+                noeuds_par_id[racine]["x"] = 720
+                noeuds_par_id[racine]["y"] = 430
+
+                for niveau, ids_niveau in groupes.items():
+                    if niveau == 0:
+                        continue
+                    rayon = 180 + (niveau - 1) * 175
+                    nombre = max(1, len(ids_niveau))
+                    for position, noeud_id in enumerate(ids_niveau):
+                        angle = (2 * 3.141592653589793 * position / nombre) - 1.5708
+                        noeuds_par_id[noeud_id]["x"] = 720 + rayon * __import__("math").cos(angle)
+                        noeuds_par_id[noeud_id]["y"] = 430 + rayon * __import__("math").sin(angle)
+
+
+        # ---------------------------------------------------------------------
+        # MIGRATION AUTOMATIQUE DES ANCIENNES FICHES
+        # ---------------------------------------------------------------------
+
+        migration_modifiee = False
+
+        for index_migration, fiche_migration in enumerate(fiches_m):
+            if not isinstance(fiche_migration, dict):
+                fiches_m[index_migration] = {
+                    "id": mm_id("fiche"),
+                    "nom": f"Fiche méthode {index_migration + 1}",
+                    "description": "",
+                    "orientation": "horizontal",
+                    "formes": [],
+                    "liaisons": [],
+                    "date_creation": mm_maintenant(),
+                    "date_modification": mm_maintenant(),
+                }
+                fiche_migration = fiches_m[index_migration]
+                migration_modifiee = True
+
+            if not fiche_migration.get("id"):
+                fiche_migration["id"] = mm_id("fiche")
+                migration_modifiee = True
+
+            fiche_migration.setdefault("nom", f"Fiche méthode {index_migration + 1}")
+            fiche_migration.setdefault("description", "")
+            fiche_migration.setdefault("orientation", "horizontal")
+            fiche_migration.setdefault("formes", [])
+            fiche_migration.setdefault("liaisons", [])
+            fiche_migration.setdefault("date_creation", mm_maintenant())
+            fiche_migration.setdefault("date_modification", mm_maintenant())
+
+            correspondance_ids = {}
+
+            for index_noeud_migration, noeud_migration in enumerate(fiche_migration["formes"]):
+                ancien_id = str(noeud_migration.get("id", index_noeud_migration + 1))
+                nouvel_id = ancien_id if ancien_id.startswith("n") else f"n{ancien_id}"
+                correspondance_ids[ancien_id] = nouvel_id
+
+                if str(noeud_migration.get("id")) != nouvel_id:
+                    noeud_migration["id"] = nouvel_id
+                    migration_modifiee = True
+
+                ancienne_forme = noeud_migration.get("shape", "rounded")
+                mapping_formes = {
+                    "box": "rounded",
+                    "circle": "ellipse",
+                    "diamond": "diamond",
+                    "hexagon": "hexagon",
+                }
+                nouvelle_forme = mapping_formes.get(ancienne_forme, ancienne_forme)
+                if nouvelle_forme not in [
+                    "rounded",
+                    "rectangle",
+                    "ellipse",
+                    "diamond",
+                    "hexagon",
+                    "capsule",
+                ]:
+                    nouvelle_forme = "rounded"
+
+                noeud_migration["shape"] = nouvelle_forme
+                noeud_migration.setdefault("label", "Élément")
+                noeud_migration.setdefault("subtitle", "")
+                noeud_migration.setdefault("notes", "")
+                noeud_migration.setdefault("categorie", "idee")
+                noeud_migration["color"] = mm_couleur_valide(
+                    noeud_migration.get("color"),
+                    "#F4EBDD",
+                )
+                noeud_migration["border_color"] = mm_couleur_valide(
+                    noeud_migration.get("border_color"),
+                    "#9B7740",
+                )
+                noeud_migration["text_color"] = mm_couleur_valide(
+                    noeud_migration.get("text_color"),
+                    "#142235",
+                )
+
+                if noeud_migration.get("x") is None:
+                    noeud_migration["x"] = 340 + (index_noeud_migration % 4) * 250
+                    migration_modifiee = True
+
+                if noeud_migration.get("y") is None:
+                    noeud_migration["y"] = 220 + (index_noeud_migration // 4) * 150
+                    migration_modifiee = True
+
+                noeud_migration["width"] = int(
+                    mm_limite_nombre(noeud_migration.get("width"), 110, 420, 190)
+                )
+                noeud_migration["height"] = int(
+                    mm_limite_nombre(noeud_migration.get("height"), 54, 220, 78)
+                )
+                noeud_migration.setdefault("locked", False)
+
+            for index_liaison_migration, liaison_migration in enumerate(fiche_migration["liaisons"]):
+                if not liaison_migration.get("id"):
+                    liaison_migration["id"] = f"e{index_liaison_migration + 1}"
+                    migration_modifiee = True
+
+                source_ancienne = str(liaison_migration.get("from", ""))
+                destination_ancienne = str(liaison_migration.get("to", ""))
+                liaison_migration["from"] = correspondance_ids.get(
+                    source_ancienne,
+                    source_ancienne if source_ancienne.startswith("n") else f"n{source_ancienne}",
+                )
+                liaison_migration["to"] = correspondance_ids.get(
+                    destination_ancienne,
+                    destination_ancienne if destination_ancienne.startswith("n") else f"n{destination_ancienne}",
+                )
+                liaison_migration.setdefault("label", "")
+                liaison_migration["color"] = mm_couleur_valide(
+                    liaison_migration.get("color"),
+                    "#50657D",
+                )
+                liaison_migration.setdefault("style", "solid")
+                liaison_migration.setdefault("arrow", "to")
+                liaison_migration.setdefault("width", 2)
+
+        if migration_modifiee:
+            sauvegarder_donnees()
+
+
+        # ---------------------------------------------------------------------
+        # DIALOGUES DE GESTION DES FICHES
+        # ---------------------------------------------------------------------
+
+        @st.dialog("Créer un diagramme vierge", width="large")
+        def mm_dialogue_creer_fiche():
+            st.markdown("### Nouveau mind map")
+            st.caption("Créez une page blanche, puis ajoutez vos idées et vos liaisons.")
+
+            nom_fiche = st.text_input(
+                "Nom du diagramme",
+                placeholder="Exemple : Procédure de mélange résine",
+                key="mm_creation_nom",
+            )
+            description_fiche = st.text_area(
+                "Description",
+                placeholder="Objectif du diagramme, version, responsable...",
+                key="mm_creation_description",
+            )
+            modele_fiche = st.radio(
+                "Point de départ",
+                ["Page totalement vierge", "Nœud central prêt à compléter"],
+                horizontal=True,
+                key="mm_creation_modele",
+            )
+
+            if st.button(
+                "Créer le diagramme",
+                type="primary",
+                use_container_width=True,
+                key="mm_creation_validation",
+            ):
+                nom_nettoye = nom_fiche.strip()
+                if not nom_nettoye:
+                    st.error("Le nom du diagramme est obligatoire.")
+                    return
+
+                nouvelle_fiche = {
+                    "id": mm_id("fiche"),
+                    "nom": nom_nettoye,
+                    "description": description_fiche.strip(),
+                    "orientation": "horizontal",
+                    "formes": [],
+                    "liaisons": [],
+                    "date_creation": mm_maintenant(),
+                    "date_modification": mm_maintenant(),
+                }
+
+                if modele_fiche == "Nœud central prêt à compléter":
+                    nouvelle_fiche["formes"].append(
+                        mm_nouveau_noeud(
+                            nouvelle_fiche,
+                            titre=nom_nettoye,
+                            sous_titre="Idée centrale",
+                            forme="rounded",
+                            categorie="racine",
+                            couleur="#142235",
+                            bordure="#B38B4D",
+                            texte="#FFFEFB",
+                            x=720,
+                            y=420,
+                            largeur=230,
+                            hauteur=92,
+                        )
+                    )
+
+                fiches_m.append(nouvelle_fiche)
+                st.session_state.mm_fiche_active_id = nouvelle_fiche["id"]
+                st.session_state.mm_select_fiche_active = nouvelle_fiche["id"]
+                st.session_state.mm_noeud_selectionne = None
+                st.session_state.mm_liaison_selectionnee = None
+                sauvegarder_donnees()
+                st.rerun()
+
+
+        @st.dialog("Paramètres du diagramme", width="large")
+        def mm_dialogue_parametres_fiche(fiche_id):
+            _, fiche_parametres = mm_trouver_fiche(fiche_id)
+            if fiche_parametres is None:
+                st.error("Diagramme introuvable.")
+                return
+
+            nom_modifie = st.text_input(
+                "Nom du diagramme",
+                value=fiche_parametres.get("nom", ""),
+                key=f"mm_param_nom_{fiche_id}",
+            )
+            description_modifiee = st.text_area(
+                "Description",
+                value=fiche_parametres.get("description", ""),
+                key=f"mm_param_description_{fiche_id}",
+            )
+
+            orientations = ["horizontal", "vertical", "radial", "libre"]
+            orientation_actuelle = fiche_parametres.get("orientation", "horizontal")
+            if orientation_actuelle not in orientations:
+                orientation_actuelle = "horizontal"
+
+            orientation_modifiee = st.selectbox(
+                "Orientation préférée",
+                orientations,
+                index=orientations.index(orientation_actuelle),
+                format_func=lambda valeur: {
+                    "horizontal": "Horizontal",
+                    "vertical": "Vertical",
+                    "radial": "Radial",
+                    "libre": "Libre",
+                }[valeur],
+                key=f"mm_param_orientation_{fiche_id}",
+            )
+
+            if st.button(
+                "Enregistrer les paramètres",
+                type="primary",
+                use_container_width=True,
+                key=f"mm_param_save_{fiche_id}",
+            ):
+                if not nom_modifie.strip():
+                    st.error("Le nom du diagramme est obligatoire.")
+                    return
+
+                fiche_parametres["nom"] = nom_modifie.strip()
+                fiche_parametres["description"] = description_modifiee.strip()
+                fiche_parametres["orientation"] = orientation_modifiee
+                mm_sauvegarder(fiche_parametres)
+                st.rerun()
+
+
+        @st.dialog("Supprimer le diagramme", width="small")
+        def mm_dialogue_supprimer_fiche(fiche_id):
+            index_suppression, fiche_suppression = mm_trouver_fiche(fiche_id)
+            if fiche_suppression is None:
+                st.error("Diagramme introuvable.")
+                return
+
+            st.warning(
+                f"Le diagramme « {fiche_suppression.get('nom', 'Sans nom')} » "
+                "et tous ses éléments seront supprimés définitivement."
+            )
+
+            confirmation = st.text_input(
+                "Tapez OUI pour confirmer",
+                key=f"mm_confirm_delete_fiche_{fiche_id}",
+            )
+
+            if st.button(
+                "Supprimer définitivement",
+                type="primary",
+                use_container_width=True,
+                disabled=confirmation.strip().upper() != "OUI",
+                key=f"mm_delete_fiche_{fiche_id}",
+            ):
+                fiches_m.pop(index_suppression)
+                nouvelle_fiche_active = fiches_m[0].get("id") if fiches_m else None
+                st.session_state.mm_fiche_active_id = nouvelle_fiche_active
+                st.session_state.mm_select_fiche_active = nouvelle_fiche_active
+                st.session_state.mm_noeud_selectionne = None
+                st.session_state.mm_liaison_selectionnee = None
+                sauvegarder_donnees()
+                st.rerun()
+
+
+        @st.dialog("Importer un diagramme JSON", width="large")
+        def mm_dialogue_importer_fiche():
+            st.caption(
+                "Importez un diagramme précédemment exporté depuis B&V. "
+                "L'import crée une nouvelle copie et n'écrase aucune fiche."
+            )
+            fichier_importe = st.file_uploader(
+                "Fichier JSON",
+                type=["json"],
+                key="mm_import_json_file",
+            )
+
+            if fichier_importe is not None:
+                try:
+                    contenu_importe = json.loads(
+                        fichier_importe.getvalue().decode("utf-8-sig")
+                    )
+                    if not isinstance(contenu_importe, dict):
+                        raise ValueError("Le fichier doit contenir un objet JSON.")
+
+                    st.success(
+                        f"Diagramme détecté : {contenu_importe.get('nom', 'Sans nom')}"
+                    )
+
+                    if st.button(
+                        "Importer comme nouvelle fiche",
+                        type="primary",
+                        use_container_width=True,
+                        key="mm_import_confirm",
+                    ):
+                        copie_importee = copy.deepcopy(contenu_importe)
+                        copie_importee["id"] = mm_id("fiche")
+                        copie_importee["nom"] = (
+                            str(copie_importee.get("nom", "Diagramme importé")).strip()
+                            + " — Import"
+                        )
+                        copie_importee.setdefault("description", "")
+                        copie_importee.setdefault("orientation", "libre")
+                        copie_importee.setdefault("formes", [])
+                        copie_importee.setdefault("liaisons", [])
+                        copie_importee["date_creation"] = mm_maintenant()
+                        copie_importee["date_modification"] = mm_maintenant()
+
+                        ids_importes = set()
+                        for numero_import, noeud_importe in enumerate(
+                            copie_importee["formes"],
+                            start=1,
+                        ):
+                            ancien_id = str(noeud_importe.get("id", f"n{numero_import}"))
+                            nouvel_id = f"n{numero_import}"
+                            ids_importes.add((ancien_id, nouvel_id))
+                            noeud_importe["id"] = nouvel_id
+
+                        mapping_import = dict(ids_importes)
+                        for numero_liaison, liaison_importee in enumerate(
+                            copie_importee["liaisons"],
+                            start=1,
+                        ):
+                            liaison_importee["id"] = f"e{numero_liaison}"
+                            liaison_importee["from"] = mapping_import.get(
+                                str(liaison_importee.get("from")),
+                                str(liaison_importee.get("from")),
+                            )
+                            liaison_importee["to"] = mapping_import.get(
+                                str(liaison_importee.get("to")),
+                                str(liaison_importee.get("to")),
+                            )
+
+                        fiches_m.append(copie_importee)
+                        st.session_state.mm_fiche_active_id = copie_importee["id"]
+                        st.session_state.mm_select_fiche_active = copie_importee["id"]
+                        sauvegarder_donnees()
+                        st.rerun()
+
+                except Exception as erreur_import:
+                    st.error(f"Import impossible : {erreur_import}")
+
+
+        # ---------------------------------------------------------------------
+        # DIALOGUES DE CRÉATION DES ÉLÉMENTS
+        # ---------------------------------------------------------------------
+
+        @st.dialog("Ajouter un élément au mind map", width="large")
+        def mm_dialogue_ajouter_noeud(fiche_id, parent_id=None):
+            _, fiche_ajout = mm_trouver_fiche(fiche_id)
+            if fiche_ajout is None:
+                st.error("Diagramme introuvable.")
+                return
+
+            st.markdown("### Contenu de l'élément")
+
+            col_contenu_1, col_contenu_2 = st.columns(2)
+
+            with col_contenu_1:
+                titre_noeud = st.text_input(
+                    "Titre",
+                    placeholder="Exemple : Ajouter le durcisseur",
+                    key=f"mm_add_titre_{fiche_id}_{parent_id}",
+                )
+                sous_titre_noeud = st.text_input(
+                    "Sous-titre",
+                    placeholder="Exemple : Dosage 2 %",
+                    key=f"mm_add_subtitle_{fiche_id}_{parent_id}",
+                )
+                categorie_noeud = st.selectbox(
+                    "Catégorie",
+                    ["racine", "idee", "action", "decision", "information", "alerte"],
+                    index=1,
+                    format_func=lambda valeur: {
+                        "racine": "Idée centrale",
+                        "idee": "Idée / Sujet",
+                        "action": "Action",
+                        "decision": "Décision",
+                        "information": "Information",
+                        "alerte": "Alerte / Contrôle",
+                    }[valeur],
+                    key=f"mm_add_categorie_{fiche_id}_{parent_id}",
+                )
+
+            with col_contenu_2:
+                forme_noeud = st.selectbox(
+                    "Forme",
+                    ["rounded", "rectangle", "ellipse", "diamond", "hexagon", "capsule"],
+                    format_func=lambda valeur: {
+                        "rounded": "Rectangle arrondi",
+                        "rectangle": "Rectangle",
+                        "ellipse": "Ellipse",
+                        "diamond": "Losange",
+                        "hexagon": "Hexagone",
+                        "capsule": "Capsule",
+                    }[valeur],
+                    key=f"mm_add_shape_{fiche_id}_{parent_id}",
+                )
+                largeur_noeud = st.slider(
+                    "Largeur",
+                    120,
+                    360,
+                    190,
+                    10,
+                    key=f"mm_add_width_{fiche_id}_{parent_id}",
+                )
+                hauteur_noeud = st.slider(
+                    "Hauteur",
+                    56,
+                    180,
+                    78,
+                    2,
+                    key=f"mm_add_height_{fiche_id}_{parent_id}",
+                )
+
+            st.markdown("##### Couleurs")
+            col_couleur_1, col_couleur_2, col_couleur_3 = st.columns(3)
+
+            couleurs_categories = {
+                "racine": ("#142235", "#B38B4D", "#FFFEFB"),
+                "idee": ("#F4EBDD", "#9B7740", "#142235"),
+                "action": ("#E8F3EF", "#397D67", "#142235"),
+                "decision": ("#FFF5DE", "#A8701E", "#142235"),
+                "information": ("#EAF2F8", "#335D82", "#142235"),
+                "alerte": ("#FCEBEC", "#BA353B", "#66202E"),
+            }
+            couleur_defaut, bordure_defaut, texte_defaut = couleurs_categories[categorie_noeud]
+
+            with col_couleur_1:
+                couleur_noeud = st.color_picker(
+                    "Fond",
+                    couleur_defaut,
+                    key=f"mm_add_color_{fiche_id}_{parent_id}_{categorie_noeud}",
+                )
+            with col_couleur_2:
+                bordure_noeud = st.color_picker(
+                    "Bordure",
+                    bordure_defaut,
+                    key=f"mm_add_border_{fiche_id}_{parent_id}_{categorie_noeud}",
+                )
+            with col_couleur_3:
+                texte_noeud = st.color_picker(
+                    "Texte",
+                    texte_defaut,
+                    key=f"mm_add_text_{fiche_id}_{parent_id}_{categorie_noeud}",
+                )
+
+            notes_noeud = st.text_area(
+                "Notes internes",
+                placeholder="Informations complémentaires visibles dans l'inspecteur...",
+                key=f"mm_add_notes_{fiche_id}_{parent_id}",
+            )
+
+            if st.button(
+                "Ajouter au diagramme",
+                type="primary",
+                use_container_width=True,
+                key=f"mm_add_validate_{fiche_id}_{parent_id}",
+            ):
+                if not titre_noeud.strip():
+                    st.error("Le titre de l'élément est obligatoire.")
+                    return
+
+                mm_memoriser_etat(fiche_ajout)
+
+                position_x = 720
+                position_y = 420
+                noeud_parent = None
+
+                if parent_id:
+                    _, noeud_parent = mm_trouver_noeud(fiche_ajout, parent_id)
+
+                if noeud_parent:
+                    nombre_enfants = sum(
+                        1
+                        for liaison in fiche_ajout.get("liaisons", [])
+                        if str(liaison.get("from")) == str(parent_id)
+                    )
+                    position_x = float(noeud_parent.get("x", 480)) + 285
+                    position_y = float(noeud_parent.get("y", 320)) + (nombre_enfants * 115) - 55
+                elif fiche_ajout.get("formes"):
+                    nombre_noeuds = len(fiche_ajout["formes"])
+                    position_x = 360 + (nombre_noeuds % 4) * 250
+                    position_y = 220 + (nombre_noeuds // 4) * 145
+
+                nouveau_noeud = mm_nouveau_noeud(
+                    fiche_ajout,
+                    titre=titre_noeud,
+                    sous_titre=sous_titre_noeud,
+                    forme=forme_noeud,
+                    categorie=categorie_noeud,
+                    couleur=couleur_noeud,
+                    bordure=bordure_noeud,
+                    texte=texte_noeud,
+                    x=position_x,
+                    y=position_y,
+                    largeur=largeur_noeud,
+                    hauteur=hauteur_noeud,
+                )
+                nouveau_noeud["notes"] = notes_noeud.strip()
+                fiche_ajout["formes"].append(nouveau_noeud)
+
+                if noeud_parent:
+                    fiche_ajout["liaisons"].append(
+                        mm_nouvelle_liaison(
+                            fiche_ajout,
+                            source=parent_id,
+                            destination=nouveau_noeud["id"],
+                        )
+                    )
+
+                st.session_state.mm_noeud_selectionne = nouveau_noeud["id"]
+                st.session_state.mm_liaison_selectionnee = None
+                mm_sauvegarder(fiche_ajout)
+                st.rerun()
+
+
+        @st.dialog("Créer une liaison", width="large")
+        def mm_dialogue_ajouter_liaison(fiche_id, source_preselectionnee=None):
+            _, fiche_liaison = mm_trouver_fiche(fiche_id)
+            if fiche_liaison is None:
+                st.error("Diagramme introuvable.")
+                return
+
+            noeuds_disponibles = fiche_liaison.get("formes", [])
+            if len(noeuds_disponibles) < 2:
+                st.warning("Il faut au moins deux éléments pour créer une liaison.")
+                return
+
+            ids_disponibles = [str(noeud.get("id")) for noeud in noeuds_disponibles]
+            labels_noeuds = {
+                str(noeud.get("id")): noeud.get("label", "Élément")
+                for noeud in noeuds_disponibles
+            }
+
+            index_source = 0
+            if str(source_preselectionnee) in ids_disponibles:
+                index_source = ids_disponibles.index(str(source_preselectionnee))
+
+            col_liaison_1, col_liaison_2 = st.columns(2)
+            with col_liaison_1:
+                source_liaison = st.selectbox(
+                    "Depuis",
+                    ids_disponibles,
+                    index=index_source,
+                    format_func=lambda valeur: labels_noeuds.get(valeur, valeur),
+                    key=f"mm_link_source_{fiche_id}_{source_preselectionnee}",
+                )
+            with col_liaison_2:
+                destinations = [
+                    noeud_id for noeud_id in ids_disponibles if noeud_id != source_liaison
+                ]
+                destination_liaison = st.selectbox(
+                    "Vers",
+                    destinations,
+                    format_func=lambda valeur: labels_noeuds.get(valeur, valeur),
+                    key=f"mm_link_target_{fiche_id}_{source_preselectionnee}_{source_liaison}",
+                )
+
+            libelle_liaison = st.text_input(
+                "Libellé de la liaison",
+                placeholder="Exemple : puis, si oui, contient...",
+                key=f"mm_link_label_{fiche_id}_{source_preselectionnee}",
+            )
+
+            col_style_1, col_style_2, col_style_3 = st.columns(3)
+            with col_style_1:
+                style_liaison = st.selectbox(
+                    "Style",
+                    ["solid", "dashed", "dotted"],
+                    format_func=lambda valeur: {
+                        "solid": "Trait continu",
+                        "dashed": "Tirets",
+                        "dotted": "Pointillés",
+                    }[valeur],
+                    key=f"mm_link_style_{fiche_id}_{source_preselectionnee}",
+                )
+            with col_style_2:
+                fleche_liaison = st.selectbox(
+                    "Flèche",
+                    ["to", "both", "none"],
+                    format_func=lambda valeur: {
+                        "to": "Vers la destination",
+                        "both": "Dans les deux sens",
+                        "none": "Sans flèche",
+                    }[valeur],
+                    key=f"mm_link_arrow_{fiche_id}_{source_preselectionnee}",
+                )
+            with col_style_3:
+                couleur_liaison = st.color_picker(
+                    "Couleur",
+                    "#50657D",
+                    key=f"mm_link_color_{fiche_id}_{source_preselectionnee}",
+                )
+
+            if st.button(
+                "Créer la liaison",
+                type="primary",
+                use_container_width=True,
+                key=f"mm_link_validate_{fiche_id}_{source_preselectionnee}",
+            ):
+                doublon = any(
+                    str(liaison.get("from")) == str(source_liaison)
+                    and str(liaison.get("to")) == str(destination_liaison)
+                    for liaison in fiche_liaison.get("liaisons", [])
+                )
+                if doublon:
+                    st.error("Cette liaison existe déjà.")
+                    return
+
+                mm_memoriser_etat(fiche_liaison)
+                nouvelle_liaison = mm_nouvelle_liaison(
+                    fiche_liaison,
+                    source_liaison,
+                    destination_liaison,
+                    libelle_liaison,
+                    couleur_liaison,
+                    style_liaison,
+                    fleche_liaison,
+                )
+                fiche_liaison["liaisons"].append(nouvelle_liaison)
+                st.session_state.mm_liaison_selectionnee = nouvelle_liaison["id"]
+                st.session_state.mm_noeud_selectionne = None
+                mm_sauvegarder(fiche_liaison)
+                st.rerun()
+
+
+        # ---------------------------------------------------------------------
+        # TRAITEMENT DES ACTIONS ÉMISES PAR LE CANVAS INTERACTIF
+        # ---------------------------------------------------------------------
+
+        action_canvas = str(st.query_params.get("mm_action", ""))
+        fiche_canvas_id = str(st.query_params.get("mm_fiche", ""))
+
+        if action_canvas and fiche_canvas_id:
+            _, fiche_canvas = mm_trouver_fiche(fiche_canvas_id)
+
+            if fiche_canvas is not None:
+                try:
+                    if action_canvas == "move":
+                        noeud_canvas_id = str(st.query_params.get("mm_node", ""))
+                        _, noeud_canvas = mm_trouver_noeud(fiche_canvas, noeud_canvas_id)
+                        if noeud_canvas is not None and not noeud_canvas.get("locked", False):
+                            nouvelle_x = mm_limite_nombre(
+                                st.query_params.get("mm_x"),
+                                -5000,
+                                5000,
+                                noeud_canvas.get("x", 0),
+                            )
+                            nouvelle_y = mm_limite_nombre(
+                                st.query_params.get("mm_y"),
+                                -5000,
+                                5000,
+                                noeud_canvas.get("y", 0),
+                            )
+                            mm_memoriser_etat(fiche_canvas)
+                            noeud_canvas["x"] = round(nouvelle_x, 2)
+                            noeud_canvas["y"] = round(nouvelle_y, 2)
+                            mm_sauvegarder(fiche_canvas)
+                            st.session_state.mm_noeud_selectionne = noeud_canvas_id
+                            st.session_state.mm_liaison_selectionnee = None
+
+                    elif action_canvas == "select_node":
+                        st.session_state.mm_noeud_selectionne = str(
+                            st.query_params.get("mm_node", "")
+                        )
+                        st.session_state.mm_liaison_selectionnee = None
+
+                    elif action_canvas == "select_edge":
+                        st.session_state.mm_liaison_selectionnee = str(
+                            st.query_params.get("mm_edge", "")
+                        )
+                        st.session_state.mm_noeud_selectionne = None
+
+                    elif action_canvas == "add_at":
+                        nouvelle_x = mm_limite_nombre(
+                            st.query_params.get("mm_x"), -5000, 5000, 720
+                        )
+                        nouvelle_y = mm_limite_nombre(
+                            st.query_params.get("mm_y"), -5000, 5000, 420
+                        )
+                        mm_memoriser_etat(fiche_canvas)
+                        noeud_ajoute_canvas = mm_nouveau_noeud(
+                            fiche_canvas,
+                            titre="Nouvelle idée",
+                            x=nouvelle_x,
+                            y=nouvelle_y,
+                        )
+                        fiche_canvas["formes"].append(noeud_ajoute_canvas)
+                        st.session_state.mm_noeud_selectionne = noeud_ajoute_canvas["id"]
+                        st.session_state.mm_liaison_selectionnee = None
+                        mm_sauvegarder(fiche_canvas)
+
+                    elif action_canvas == "connect":
+                        source_canvas = str(st.query_params.get("mm_from", ""))
+                        destination_canvas = str(st.query_params.get("mm_to", ""))
+                        _, source_existe = mm_trouver_noeud(fiche_canvas, source_canvas)
+                        _, destination_existe = mm_trouver_noeud(
+                            fiche_canvas,
+                            destination_canvas,
+                        )
+                        doublon_canvas = any(
+                            str(liaison.get("from")) == source_canvas
+                            and str(liaison.get("to")) == destination_canvas
+                            for liaison in fiche_canvas.get("liaisons", [])
+                        )
+                        if (
+                            source_existe is not None
+                            and destination_existe is not None
+                            and source_canvas != destination_canvas
+                            and not doublon_canvas
+                        ):
+                            mm_memoriser_etat(fiche_canvas)
+                            fiche_canvas["liaisons"].append(
+                                mm_nouvelle_liaison(
+                                    fiche_canvas,
+                                    source_canvas,
+                                    destination_canvas,
+                                )
+                            )
+                            mm_sauvegarder(fiche_canvas)
+
+                    elif action_canvas == "duplicate":
+                        noeud_canvas_id = str(st.query_params.get("mm_node", ""))
+                        _, noeud_canvas = mm_trouver_noeud(fiche_canvas, noeud_canvas_id)
+                        if noeud_canvas is not None:
+                            mm_memoriser_etat(fiche_canvas)
+                            copie_noeud = copy.deepcopy(noeud_canvas)
+                            copie_noeud["id"] = f"n{mm_prochain_numero_noeud(fiche_canvas)}"
+                            copie_noeud["label"] = f"{copie_noeud.get('label', 'Élément')} — copie"
+                            copie_noeud["x"] = float(copie_noeud.get("x", 0)) + 36
+                            copie_noeud["y"] = float(copie_noeud.get("y", 0)) + 36
+                            fiche_canvas["formes"].append(copie_noeud)
+                            st.session_state.mm_noeud_selectionne = copie_noeud["id"]
+                            st.session_state.mm_liaison_selectionnee = None
+                            mm_sauvegarder(fiche_canvas)
+
+                except Exception as erreur_canvas:
+                    st.session_state.mm_derniere_erreur_canvas = str(erreur_canvas)
+
+            st.query_params.clear()
+            st.rerun()
+
+
+        # ---------------------------------------------------------------------
+        # EN-TÊTE ET BARRE DE GESTION DES DIAGRAMMES
+        # ---------------------------------------------------------------------
+
+        st.markdown(
+            """
+            <div style="
+                display:flex;
+                align-items:flex-start;
+                justify-content:space-between;
+                gap:18px;
+                margin:2px 0 18px 0;
+                padding:18px 20px;
+                background:linear-gradient(135deg, rgba(20,34,53,.97), rgba(32,52,77,.94));
+                border:1px solid rgba(200,165,107,.35);
+                border-radius:14px;
+                box-shadow:0 14px 32px rgba(16,26,39,.12);
+            ">
+                <div>
+                    <div style="color:#D9BF91;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;">
+                        Atelier de conception visuelle
+                    </div>
+                    <div style="color:#FFFEFB;font-family:Georgia,serif;font-size:27px;line-height:1.15;margin-top:6px;">
+                        Mind Map — Fiches Méthode
+                    </div>
+                    <div style="color:rgba(255,254,251,.68);font-size:13px;margin-top:7px;max-width:760px;">
+                        Créez, reliez, déplacez et documentez vos éléments sur une page blanche interactive.
+                        Chaque modification est enregistrée dans la base B&V.
+                    </div>
+                </div>
+                <div style="
+                    flex:0 0 auto;
+                    color:#142235;
+                    background:#D9BF91;
+                    padding:7px 11px;
+                    border-radius:999px;
+                    font-size:11px;
+                    font-weight:800;
+                    letter-spacing:.04em;
+                ">
+                    ENREGISTREMENT JSON
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        barre_fiche_1, barre_fiche_2, barre_fiche_3, barre_fiche_4, barre_fiche_5 = st.columns(
+            [1.1, 1.1, 1.1, 1.1, 1.1]
+        )
+
+        with barre_fiche_1:
+            if st.button(
+                "➕ Nouveau diagramme",
+                type="primary",
+                use_container_width=True,
+                key="mm_top_new",
+            ):
+                mm_dialogue_creer_fiche()
+
+        with barre_fiche_2:
+            if st.button(
+                "📥 Importer JSON",
+                use_container_width=True,
+                key="mm_top_import",
+            ):
+                mm_dialogue_importer_fiche()
+
+        if not fiches_m:
+            st.markdown(
+                """
+                <div style="
+                    min-height:430px;
+                    display:flex;
+                    flex-direction:column;
+                    align-items:center;
+                    justify-content:center;
+                    text-align:center;
+                    padding:38px;
+                    background:rgba(255,254,251,.82);
+                    border:1px dashed rgba(155,119,64,.48);
+                    border-radius:16px;
+                    box-shadow:0 10px 26px rgba(16,26,39,.06);
+                ">
+                    <div style="font-size:48px;margin-bottom:12px;">◇</div>
+                    <div style="font-family:Georgia,serif;color:#142235;font-size:25px;">
+                        Votre espace de conception est vide
+                    </div>
+                    <div style="color:#6D7F91;font-size:14px;max-width:570px;margin-top:9px;line-height:1.7;">
+                        Créez un premier diagramme vierge. Vous pourrez ensuite ajouter des idées,
+                        des actions, des décisions et des liaisons, puis déplacer librement chaque élément.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.stop()
+
+        ids_fiches = [str(fiche.get("id")) for fiche in fiches_m]
+        noms_fiches = {
+            str(fiche.get("id")): fiche.get("nom", "Sans nom")
+            for fiche in fiches_m
+        }
+
+        fiche_active_id = st.session_state.get("mm_fiche_active_id")
+        if fiche_active_id not in ids_fiches:
+            fiche_active_id = ids_fiches[0]
+
+        if st.session_state.get("mm_select_fiche_active") not in ids_fiches:
+            st.session_state.mm_select_fiche_active = fiche_active_id
+
+        with barre_fiche_3:
+            fiche_active_id = st.selectbox(
+                "Diagramme actif",
+                ids_fiches,
+                format_func=lambda valeur: noms_fiches.get(valeur, valeur),
+                label_visibility="collapsed",
+                key="mm_select_fiche_active",
+            )
+            st.session_state.mm_fiche_active_id = fiche_active_id
+
+        index_fiche_active, fiche_active = mm_trouver_fiche(fiche_active_id)
+
+        with barre_fiche_4:
+            if st.button(
+                "⚙️ Paramètres",
+                use_container_width=True,
+                key=f"mm_top_settings_{fiche_active_id}",
+            ):
+                mm_dialogue_parametres_fiche(fiche_active_id)
+
+        with barre_fiche_5:
+            if st.button(
+                "🗑️ Supprimer la fiche",
+                use_container_width=True,
+                key=f"mm_top_delete_{fiche_active_id}",
+            ):
+                mm_dialogue_supprimer_fiche(fiche_active_id)
+
+        # Deuxième ligne d'actions : duplication, historique et export.
+        action_fiche_1, action_fiche_2, action_fiche_3, action_fiche_4, action_fiche_5 = st.columns(
+            [1, 1, 1, 1, 1.25]
+        )
+
+        with action_fiche_1:
+            if st.button(
+                "⧉ Dupliquer la fiche",
+                use_container_width=True,
+                key=f"mm_duplicate_fiche_{fiche_active_id}",
+            ):
+                copie_fiche = copy.deepcopy(fiche_active)
+                copie_fiche["id"] = mm_id("fiche")
+                copie_fiche["nom"] = f"{fiche_active.get('nom', 'Diagramme')} — Copie"
+                copie_fiche["date_creation"] = mm_maintenant()
+                copie_fiche["date_modification"] = mm_maintenant()
+                fiches_m.append(copie_fiche)
+                st.session_state.mm_fiche_active_id = copie_fiche["id"]
+                st.session_state.mm_select_fiche_active = copie_fiche["id"]
+                sauvegarder_donnees()
+                st.rerun()
+
+        with action_fiche_2:
+            historique_disponible = bool(
+                st.session_state.get(mm_cle_historique(fiche_active), [])
+            )
+            if st.button(
+                "↶ Annuler",
+                use_container_width=True,
+                disabled=not historique_disponible,
+                key=f"mm_undo_{fiche_active_id}",
+            ):
+                if mm_annuler(fiche_active):
+                    st.rerun()
+
+        with action_fiche_3:
+            retablir_disponible = bool(
+                st.session_state.get(mm_cle_retablir(fiche_active), [])
+            )
+            if st.button(
+                "↷ Rétablir",
+                use_container_width=True,
+                disabled=not retablir_disponible,
+                key=f"mm_redo_{fiche_active_id}",
+            ):
+                if mm_retablir(fiche_active):
+                    st.rerun()
+
+        with action_fiche_4:
+            export_fiche = json.dumps(
+                fiche_active,
+                ensure_ascii=False,
+                indent=2,
+            ).encode("utf-8")
+            nom_export = re.sub(
+                r"[^a-zA-Z0-9_-]+",
+                "_",
+                fiche_active.get("nom", "fiche_methode"),
+            ).strip("_")
+            st.download_button(
+                "⬇️ Exporter JSON",
+                data=export_fiche,
+                file_name=f"{nom_export or 'fiche_methode'}.json",
+                mime="application/json",
+                use_container_width=True,
+                key=f"mm_export_{fiche_active_id}",
+            )
+
+        with action_fiche_5:
+            st.markdown(
+                f"""
+                <div style="
+                    min-height:42px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:#344A63;
+                    background:rgba(255,254,251,.72);
+                    border:1px solid rgba(20,34,53,.13);
+                    border-radius:8px;
+                    font-size:12px;
+                    font-weight:700;
+                ">
+                    {len(fiche_active.get('formes', []))} éléments&nbsp;&nbsp;•&nbsp;&nbsp;
+                    {len(fiche_active.get('liaisons', []))} liaisons
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        if fiche_active.get("description"):
+            st.caption(fiche_active.get("description"))
+
+
+        # ---------------------------------------------------------------------
+        # ESPACE DE TRAVAIL : BIBLIOTHÈQUE + CANVAS + INSPECTEUR
+        # ---------------------------------------------------------------------
+
+        colonne_bibliotheque, colonne_canvas, colonne_inspecteur = st.columns(
+            [1.05, 3.55, 1.2],
+            gap="medium",
+        )
+
+        # ---------------------------------------------------------------------
+        # COLONNE GAUCHE — CRÉATION ET STRUCTURE
+        # ---------------------------------------------------------------------
+
+        with colonne_bibliotheque:
+            st.markdown("#### Bibliothèque")
+            st.caption("Ajoutez des éléments puis reliez-les sur le canvas.")
+
+            if st.button(
+                "＋ Ajouter un élément",
+                type="primary",
+                use_container_width=True,
+                key=f"mm_add_node_main_{fiche_active_id}",
+            ):
+                mm_dialogue_ajouter_noeud(fiche_active_id)
+
+            if st.button(
+                "↗ Créer une liaison",
+                use_container_width=True,
+                disabled=len(fiche_active.get("formes", [])) < 2,
+                key=f"mm_add_edge_main_{fiche_active_id}",
+            ):
+                mm_dialogue_ajouter_liaison(fiche_active_id)
+
+            with st.expander("Disposition automatique", expanded=True):
+                st.caption("Réorganise tous les éléments sans modifier leur contenu.")
+
+                if st.button(
+                    "Arbre horizontal",
+                    use_container_width=True,
+                    key=f"mm_layout_h_{fiche_active_id}",
+                ):
+                    mm_memoriser_etat(fiche_active)
+                    mm_disposition_automatique(fiche_active, "horizontal")
+                    fiche_active["orientation"] = "horizontal"
+                    mm_sauvegarder(fiche_active)
+                    st.rerun()
+
+                if st.button(
+                    "Arbre vertical",
+                    use_container_width=True,
+                    key=f"mm_layout_v_{fiche_active_id}",
+                ):
+                    mm_memoriser_etat(fiche_active)
+                    mm_disposition_automatique(fiche_active, "vertical")
+                    fiche_active["orientation"] = "vertical"
+                    mm_sauvegarder(fiche_active)
+                    st.rerun()
+
+                if st.button(
+                    "Carte radiale",
+                    use_container_width=True,
+                    key=f"mm_layout_r_{fiche_active_id}",
+                ):
+                    mm_memoriser_etat(fiche_active)
+                    mm_disposition_automatique(fiche_active, "radial")
+                    fiche_active["orientation"] = "radial"
+                    mm_sauvegarder(fiche_active)
+                    st.rerun()
+
+            with st.expander("Liste des éléments", expanded=True):
+                filtre_noeuds = st.text_input(
+                    "Rechercher",
+                    placeholder="Nom ou sous-titre...",
+                    label_visibility="collapsed",
+                    key=f"mm_search_nodes_{fiche_active_id}",
+                ).strip().lower()
+
+                noeuds_filtres = []
+                for noeud_liste in fiche_active.get("formes", []):
+                    contenu_recherche = (
+                        f"{noeud_liste.get('label', '')} "
+                        f"{noeud_liste.get('subtitle', '')} "
+                        f"{noeud_liste.get('categorie', '')}"
+                    ).lower()
+                    if not filtre_noeuds or filtre_noeuds in contenu_recherche:
+                        noeuds_filtres.append(noeud_liste)
+
+                if not noeuds_filtres:
+                    st.info("Aucun élément à afficher.")
+
+                for noeud_liste in noeuds_filtres[:80]:
+                    identifiant_liste = str(noeud_liste.get("id"))
+                    selection_liste = (
+                        str(st.session_state.get("mm_noeud_selectionne"))
+                        == identifiant_liste
+                    )
+                    libelle_bouton = (
+                        f"{'●' if selection_liste else '○'} "
+                        f"{noeud_liste.get('label', 'Élément')}"
+                    )
+                    if st.button(
+                        libelle_bouton,
+                        use_container_width=True,
+                        key=f"mm_list_node_{fiche_active_id}_{identifiant_liste}",
+                    ):
+                        st.session_state.mm_noeud_selectionne = identifiant_liste
+                        st.session_state.mm_liaison_selectionnee = None
+                        st.rerun()
+
+        # ---------------------------------------------------------------------
+        # COLONNE CENTRALE — CANVAS SVG INTERACTIF SANS DÉPENDANCE EXTERNE
+        # ---------------------------------------------------------------------
+
+        with colonne_canvas:
+            noeuds_canvas = copy.deepcopy(fiche_active.get("formes", []))
+            liaisons_canvas = copy.deepcopy(fiche_active.get("liaisons", []))
+
+            donnees_noeuds_json = json.dumps(
+                noeuds_canvas,
+                ensure_ascii=False,
+            ).replace("</", "<\\/")
+            donnees_liaisons_json = json.dumps(
+                liaisons_canvas,
+                ensure_ascii=False,
+            ).replace("</", "<\\/")
+            fiche_id_json = json.dumps(str(fiche_active_id), ensure_ascii=False)
+            nom_fiche_json = json.dumps(
+                str(fiche_active.get("nom", "Mind Map")),
+                ensure_ascii=False,
+            )
+            noeud_selection_canvas_json = json.dumps(
+                str(st.session_state.get("mm_noeud_selectionne") or ""),
+                ensure_ascii=False,
+            )
+            liaison_selection_canvas_json = json.dumps(
+                str(st.session_state.get("mm_liaison_selectionnee") or ""),
+                ensure_ascii=False,
+            )
+
+            canvas_html = r"""
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    :root {
+        --ink: #142235;
+        --ink-soft: #50657D;
+        --ivory: #FFFEFB;
+        --paper: #FCFAF5;
+        --gold: #B38B4D;
+        --gold-soft: #D9BF91;
+        --line: rgba(20, 34, 53, .14);
+        --shadow: 0 18px 50px rgba(16, 26, 39, .14);
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        color: var(--ink);
+        background: transparent;
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+        user-select: none;
+    }
+
+    #shell {
+        position: relative;
+        width: 100%;
+        height: 760px;
+        overflow: hidden;
+        background: var(--paper);
+        border: 1px solid rgba(155, 119, 64, .32);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+    }
+
+    #topbar {
+        position: absolute;
+        z-index: 20;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        pointer-events: none;
+    }
+
+    .toolbar,
+    .statusbar {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px;
+        background: rgba(255, 254, 251, .92);
+        border: 1px solid rgba(20, 34, 53, .14);
+        border-radius: 10px;
+        box-shadow: 0 8px 22px rgba(16, 26, 39, .11);
+        backdrop-filter: blur(12px);
+        pointer-events: auto;
+    }
+
+    .statusbar {
+        max-width: 44%;
+        padding: 8px 11px;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .02em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tool {
+        min-width: 34px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 9px;
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 7px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: .16s ease;
+    }
+
+    .tool:hover {
+        color: #FFFEFB;
+        background: var(--ink);
+        border-color: var(--ink);
+        transform: translateY(-1px);
+    }
+
+    .tool.active {
+        color: var(--ink);
+        background: var(--gold-soft);
+        border-color: var(--gold);
+    }
+
+    .separator {
+        width: 1px;
+        height: 22px;
+        margin: 0 2px;
+        background: rgba(20, 34, 53, .13);
+    }
+
+    #workspace {
+        width: 100%;
+        height: 100%;
+        display: block;
+        cursor: grab;
+        touch-action: none;
+    }
+
+    #workspace.panning,
+    #workspace.dragging {
+        cursor: grabbing;
+    }
+
+    .edge-visible {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transition: stroke-width .12s ease, opacity .12s ease;
+    }
+
+    .edge-hit {
+        fill: none;
+        stroke: transparent;
+        stroke-width: 16;
+        cursor: pointer;
+        pointer-events: stroke;
+    }
+
+    .edge-group:hover .edge-visible,
+    .edge-group.selected .edge-visible {
+        stroke-width: 4 !important;
+        opacity: .96;
+        filter: drop-shadow(0 0 4px rgba(179, 139, 77, .34));
+    }
+
+    .node {
+        cursor: move;
+        filter: drop-shadow(0 7px 12px rgba(16, 26, 39, .10));
+        transition: filter .15s ease;
+    }
+
+    .node:hover {
+        filter: drop-shadow(0 11px 16px rgba(16, 26, 39, .18));
+    }
+
+    .node.selected .node-shape {
+        stroke: #B38B4D !important;
+        stroke-width: 4 !important;
+        filter: drop-shadow(0 0 7px rgba(179, 139, 77, .30));
+    }
+
+    .node.connect-source .node-shape {
+        stroke: #397D67 !important;
+        stroke-width: 4 !important;
+        stroke-dasharray: 8 5;
+    }
+
+    .node-shape {
+        transition: stroke-width .12s ease, stroke .12s ease;
+    }
+
+    .node-title {
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.18;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    .node-subtitle {
+        margin-top: 5px;
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.2;
+        text-align: center;
+        opacity: .66;
+        overflow-wrap: anywhere;
+    }
+
+    .edge-label-bg {
+        fill: rgba(255, 254, 251, .96);
+        stroke: rgba(20, 34, 53, .12);
+        stroke-width: 1;
+    }
+
+    .edge-label {
+        fill: #344A63;
+        font-size: 11px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        pointer-events: none;
+    }
+
+    #emptyState {
+        position: absolute;
+        z-index: 10;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    #emptyState > div {
+        max-width: 430px;
+        padding: 24px 28px;
+        color: #50657D;
+        background: rgba(255, 254, 251, .88);
+        border: 1px dashed rgba(155, 119, 64, .45);
+        border-radius: 14px;
+        text-align: center;
+        box-shadow: 0 12px 30px rgba(16, 26, 39, .08);
+        backdrop-filter: blur(9px);
+    }
+
+    #emptyState strong {
+        display: block;
+        margin-bottom: 7px;
+        color: #142235;
+        font-family: Georgia, serif;
+        font-size: 20px;
+        font-weight: 500;
+    }
+
+    #minimap {
+        position: absolute;
+        z-index: 15;
+        right: 12px;
+        bottom: 12px;
+        width: 150px;
+        height: 94px;
+        overflow: hidden;
+        background: rgba(255, 254, 251, .90);
+        border: 1px solid rgba(20, 34, 53, .14);
+        border-radius: 9px;
+        box-shadow: 0 8px 22px rgba(16, 26, 39, .10);
+        pointer-events: none;
+    }
+
+    #minimap svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    #help {
+        position: absolute;
+        z-index: 16;
+        left: 12px;
+        bottom: 12px;
+        padding: 8px 10px;
+        color: rgba(20, 34, 53, .66);
+        background: rgba(255, 254, 251, .84);
+        border: 1px solid rgba(20, 34, 53, .11);
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        box-shadow: 0 7px 18px rgba(16, 26, 39, .08);
+        backdrop-filter: blur(8px);
+        pointer-events: none;
+    }
+
+    @media (max-width: 760px) {
+        #shell {
+            height: 650px;
+        }
+
+        .statusbar,
+        #minimap,
+        #help {
+            display: none;
+        }
+
+        .tool span {
+            display: none;
+        }
+    }
+</style>
+</head>
+<body>
+<div id="shell">
+    <div id="topbar">
+        <div class="toolbar">
+            <button class="tool" id="zoomOut" title="Zoom arrière">−</button>
+            <button class="tool" id="zoomIn" title="Zoom avant">＋</button>
+            <button class="tool" id="fit" title="Adapter à l'écran">Ajuster</button>
+            <button class="tool" id="center" title="Recentrer">Centrer</button>
+            <div class="separator"></div>
+            <button class="tool" id="linkMode" title="Créer une liaison entre deux éléments">↗ <span>Lier</span></button>
+            <button class="tool" id="toggleGrid" title="Afficher ou masquer la grille"># <span>Grille</span></button>
+            <div class="separator"></div>
+            <button class="tool" id="exportSvg" title="Télécharger en SVG">SVG</button>
+            <button class="tool" id="exportPng" title="Télécharger en PNG">PNG</button>
+            <button class="tool" id="fullscreen" title="Plein écran">⛶</button>
+        </div>
+        <div class="statusbar" id="status">Double-cliquez sur le fond pour créer une idée.</div>
+    </div>
+
+    <svg id="workspace" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <pattern id="smallGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(20,34,53,.055)" stroke-width="1" />
+            </pattern>
+            <pattern id="grid" width="120" height="120" patternUnits="userSpaceOnUse">
+                <rect width="120" height="120" fill="url(#smallGrid)" />
+                <path d="M 120 0 L 0 0 0 120" fill="none" stroke="rgba(155,119,64,.11)" stroke-width="1.25" />
+            </pattern>
+            <marker id="arrowDefault" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#50657D" />
+            </marker>
+            <marker id="arrowStart" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+                <path d="M9,0 L9,6 L0,3 z" fill="#50657D" />
+            </marker>
+        </defs>
+
+        <g id="viewport">
+            <rect id="gridRect" x="-6000" y="-6000" width="12000" height="12000" fill="url(#grid)" />
+            <g id="edgesLayer"></g>
+            <g id="nodesLayer"></g>
+        </g>
+    </svg>
+
+    <div id="emptyState">
+        <div>
+            <strong>Page blanche</strong>
+            Double-cliquez n'importe où pour créer un premier élément,
+            ou utilisez le bouton « Ajouter un élément » dans la bibliothèque.
+        </div>
+    </div>
+
+    <div id="minimap"><svg id="miniSvg"></svg></div>
+    <div id="help">Molette : zoom · Glisser le fond : déplacer · Double-clic : créer</div>
+</div>
+
+<script>
+(() => {
+    const NODES = __NODES__;
+    const EDGES = __EDGES__;
+    const FICHE_ID = __FICHE_ID__;
+    const FICHE_NAME = __FICHE_NAME__;
+    const INITIAL_SELECTED_NODE = __SELECTED_NODE__;
+    const INITIAL_SELECTED_EDGE = __SELECTED_EDGE__;
+
+    const shell = document.getElementById('shell');
+    const svg = document.getElementById('workspace');
+    const viewport = document.getElementById('viewport');
+    const nodesLayer = document.getElementById('nodesLayer');
+    const edgesLayer = document.getElementById('edgesLayer');
+    const emptyState = document.getElementById('emptyState');
+    const status = document.getElementById('status');
+    const gridRect = document.getElementById('gridRect');
+    const miniSvg = document.getElementById('miniSvg');
+
+    const nodeMap = new Map(NODES.map(node => [String(node.id), node]));
+    const nodeElementMap = new Map();
+    const edgeElementMap = new Map();
+
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    let isPanning = false;
+    let panStart = null;
+    let dragState = null;
+    let movedDuringDrag = false;
+    let selectedNode = null;
+    let selectedEdge = null;
+    let linkMode = false;
+    let linkSource = null;
+    let gridVisible = true;
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function safeFileName(value) {
+        return String(value || 'mind-map')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9_-]+/g, '_')
+            .replace(/^_+|_+$/g, '') || 'mind-map';
+    }
+
+    function sendAction(action, params = {}) {
+        const url = new URL(window.parent.location.href);
+        const keys = [
+            'mm_action', 'mm_fiche', 'mm_node', 'mm_edge',
+            'mm_x', 'mm_y', 'mm_from', 'mm_to'
+        ];
+        keys.forEach(key => url.searchParams.delete(key));
+        url.searchParams.set('mm_action', action);
+        url.searchParams.set('mm_fiche', FICHE_ID);
+        Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.set(`mm_${key}`, String(value));
+        });
+        try {
+            window.parent.location.href = url.toString();
+        } catch (error) {
+            window.open(url.toString(), '_top');
+        }
+    }
+
+    function applyTransform() {
+        viewport.setAttribute('transform', `translate(${panX} ${panY}) scale(${scale})`);
+        renderMinimap();
+    }
+
+    function screenToWorld(clientX, clientY) {
+        const point = svg.createSVGPoint();
+        point.x = clientX;
+        point.y = clientY;
+        const matrix = viewport.getScreenCTM();
+        if (!matrix) return { x: 0, y: 0 };
+        const transformed = point.matrixTransform(matrix.inverse());
+        return { x: transformed.x, y: transformed.y };
+    }
+
+    function shapeMarkup(node) {
+        const width = Number(node.width || 190);
+        const height = Number(node.height || 78);
+        const halfW = width / 2;
+        const halfH = height / 2;
+        const fill = node.color || '#F4EBDD';
+        const stroke = node.border_color || '#9B7740';
+        const common = `class="node-shape" fill="${fill}" stroke="${stroke}" stroke-width="2"`;
+
+        if (node.shape === 'ellipse') {
+            return `<ellipse cx="0" cy="0" rx="${halfW}" ry="${halfH}" ${common} />`;
+        }
+        if (node.shape === 'diamond') {
+            return `<polygon points="0,${-halfH} ${halfW},0 0,${halfH} ${-halfW},0" ${common} />`;
+        }
+        if (node.shape === 'hexagon') {
+            const cut = Math.min(38, width * .22);
+            return `<polygon points="${-halfW + cut},${-halfH} ${halfW - cut},${-halfH} ${halfW},0 ${halfW - cut},${halfH} ${-halfW + cut},${halfH} ${-halfW},0" ${common} />`;
+        }
+        if (node.shape === 'capsule') {
+            return `<rect x="${-halfW}" y="${-halfH}" width="${width}" height="${height}" rx="${halfH}" ${common} />`;
+        }
+        if (node.shape === 'rectangle') {
+            return `<rect x="${-halfW}" y="${-halfH}" width="${width}" height="${height}" rx="2" ${common} />`;
+        }
+        return `<rect x="${-halfW}" y="${-halfH}" width="${width}" height="${height}" rx="14" ${common} />`;
+    }
+
+    function renderNodes() {
+        nodesLayer.innerHTML = '';
+        nodeElementMap.clear();
+
+        NODES.forEach(node => {
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.setAttribute('class', 'node');
+            group.setAttribute('data-node-id', String(node.id));
+            group.setAttribute('transform', `translate(${Number(node.x || 0)} ${Number(node.y || 0)})`);
+
+            const width = Number(node.width || 190);
+            const height = Number(node.height || 78);
+            const textColor = node.text_color || '#142235';
+            const padding = Math.max(12, width * .08);
+            const contentWidth = Math.max(70, width - padding * 2);
+            const contentHeight = Math.max(40, height - 14);
+
+            group.innerHTML = `
+                ${shapeMarkup(node)}
+                <foreignObject x="${-contentWidth / 2}" y="${-contentHeight / 2}" width="${contentWidth}" height="${contentHeight}" pointer-events="none">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="
+                        width:100%;
+                        height:100%;
+                        display:flex;
+                        flex-direction:column;
+                        align-items:center;
+                        justify-content:center;
+                        color:${textColor};
+                        padding:4px;
+                    ">
+                        <div class="node-title">${escapeHtml(node.label || 'Élément')}</div>
+                        ${node.subtitle ? `<div class="node-subtitle">${escapeHtml(node.subtitle)}</div>` : ''}
+                    </div>
+                </foreignObject>
+            `;
+
+            group.addEventListener('pointerdown', event => beginNodeDrag(event, node));
+            group.addEventListener('click', event => onNodeClick(event, node));
+            group.addEventListener('dblclick', event => {
+                event.stopPropagation();
+                sendAction('select_node', { node: node.id });
+            });
+
+            nodesLayer.appendChild(group);
+            nodeElementMap.set(String(node.id), group);
+        });
+
+        emptyState.style.display = NODES.length ? 'none' : 'flex';
+    }
+
+    function nodeAnchor(source, target) {
+        const sx = Number(source.x || 0);
+        const sy = Number(source.y || 0);
+        const tx = Number(target.x || 0);
+        const ty = Number(target.y || 0);
+        const dx = tx - sx;
+        const dy = ty - sy;
+        const distance = Math.hypot(dx, dy) || 1;
+        const ux = dx / distance;
+        const uy = dy / distance;
+        const sw = Number(source.width || 190) / 2;
+        const sh = Number(source.height || 78) / 2;
+        const tw = Number(target.width || 190) / 2;
+        const th = Number(target.height || 78) / 2;
+        const sourceRadius = Math.min(
+            Math.abs(sw / (ux || .0001)),
+            Math.abs(sh / (uy || .0001))
+        );
+        const targetRadius = Math.min(
+            Math.abs(tw / (ux || .0001)),
+            Math.abs(th / (uy || .0001))
+        );
+
+        return {
+            x1: sx + ux * Math.min(sourceRadius, Math.max(sw, sh)),
+            y1: sy + uy * Math.min(sourceRadius, Math.max(sw, sh)),
+            x2: tx - ux * Math.min(targetRadius, Math.max(tw, th)),
+            y2: ty - uy * Math.min(targetRadius, Math.max(tw, th)),
+        };
+    }
+
+    function edgePath(edge) {
+        const source = nodeMap.get(String(edge.from));
+        const target = nodeMap.get(String(edge.to));
+        if (!source || !target) return null;
+
+        const point = nodeAnchor(source, target);
+        const dx = point.x2 - point.x1;
+        const dy = point.y2 - point.y1;
+        const horizontal = Math.abs(dx) >= Math.abs(dy);
+        const curve = Math.max(42, Math.min(150, Math.hypot(dx, dy) * .34));
+
+        let c1x = point.x1;
+        let c1y = point.y1;
+        let c2x = point.x2;
+        let c2y = point.y2;
+
+        if (horizontal) {
+            c1x += Math.sign(dx || 1) * curve;
+            c2x -= Math.sign(dx || 1) * curve;
+        } else {
+            c1y += Math.sign(dy || 1) * curve;
+            c2y -= Math.sign(dy || 1) * curve;
+        }
+
+        return {
+            d: `M ${point.x1} ${point.y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${point.x2} ${point.y2}`,
+            mx: (point.x1 + point.x2) / 2,
+            my: (point.y1 + point.y2) / 2,
+        };
+    }
+
+    function dashFor(style) {
+        if (style === 'dashed') return '10 7';
+        if (style === 'dotted') return '2 7';
+        return '';
+    }
+
+    function renderEdges() {
+        edgesLayer.innerHTML = '';
+        edgeElementMap.clear();
+
+        EDGES.forEach(edge => {
+            const geometry = edgePath(edge);
+            if (!geometry) return;
+
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.setAttribute('class', 'edge-group');
+            group.setAttribute('data-edge-id', String(edge.id));
+
+            const color = edge.color || '#50657D';
+            const width = Number(edge.width || 2);
+            const dash = dashFor(edge.style);
+            const markerEnd = edge.arrow === 'none' ? '' : 'url(#arrowDefault)';
+            const markerStart = edge.arrow === 'both' ? 'url(#arrowStart)' : '';
+
+            group.innerHTML = `
+                <path class="edge-visible" d="${geometry.d}" stroke="${color}" stroke-width="${width}" stroke-dasharray="${dash}" marker-end="${markerEnd}" marker-start="${markerStart}" />
+                <path class="edge-hit" d="${geometry.d}" />
+                ${edge.label ? `
+                    <g transform="translate(${geometry.mx} ${geometry.my})" pointer-events="none">
+                        <rect class="edge-label-bg" x="-58" y="-13" width="116" height="26" rx="7" />
+                        <text class="edge-label" x="0" y="1">${escapeHtml(edge.label).slice(0, 30)}</text>
+                    </g>
+                ` : ''}
+            `;
+
+            const hit = group.querySelector('.edge-hit');
+            hit.addEventListener('click', event => {
+                event.stopPropagation();
+                selectEdgeLocally(String(edge.id));
+                sendAction('select_edge', { edge: edge.id });
+            });
+
+            edgesLayer.appendChild(group);
+            edgeElementMap.set(String(edge.id), group);
+        });
+    }
+
+    function updateNodePosition(node) {
+        const element = nodeElementMap.get(String(node.id));
+        if (element) {
+            element.setAttribute('transform', `translate(${node.x} ${node.y})`);
+        }
+        renderEdges();
+        renderMinimap();
+    }
+
+    function beginNodeDrag(event, node) {
+        if (event.button !== 0) return;
+        event.stopPropagation();
+
+        if (linkMode) return;
+        if (node.locked) {
+            status.textContent = 'Cet élément est verrouillé.';
+            return;
+        }
+
+        const world = screenToWorld(event.clientX, event.clientY);
+        dragState = {
+            node,
+            offsetX: world.x - Number(node.x || 0),
+            offsetY: world.y - Number(node.y || 0),
+        };
+        movedDuringDrag = false;
+        svg.classList.add('dragging');
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
+
+    function onNodeClick(event, node) {
+        event.stopPropagation();
+        if (movedDuringDrag) return;
+
+        if (linkMode) {
+            if (!linkSource) {
+                linkSource = String(node.id);
+                nodeElementMap.get(linkSource)?.classList.add('connect-source');
+                status.textContent = `Source sélectionnée : ${node.label}. Cliquez sur la destination.`;
+                return;
+            }
+
+            if (linkSource === String(node.id)) {
+                nodeElementMap.get(linkSource)?.classList.remove('connect-source');
+                linkSource = null;
+                status.textContent = 'Liaison annulée. Sélectionnez une nouvelle source.';
+                return;
+            }
+
+            sendAction('connect', { from: linkSource, to: node.id });
+            return;
+        }
+
+        selectNodeLocally(String(node.id));
+        sendAction('select_node', { node: node.id });
+    }
+
+    function selectNodeLocally(nodeId) {
+        selectedNode = nodeId;
+        selectedEdge = null;
+        nodeElementMap.forEach((element, id) => {
+            element.classList.toggle('selected', id === nodeId);
+        });
+        edgeElementMap.forEach(element => element.classList.remove('selected'));
+    }
+
+    function selectEdgeLocally(edgeId) {
+        selectedNode = null;
+        selectedEdge = edgeId;
+        nodeElementMap.forEach(element => element.classList.remove('selected'));
+        edgeElementMap.forEach((element, id) => {
+            element.classList.toggle('selected', id === edgeId);
+        });
+    }
+
+    function clearSelection() {
+        selectedNode = null;
+        selectedEdge = null;
+        nodeElementMap.forEach(element => element.classList.remove('selected'));
+        edgeElementMap.forEach(element => element.classList.remove('selected'));
+    }
+
+    function beginPan(event) {
+        if (event.button !== 0) return;
+        if (event.target.closest?.('.node')) return;
+        if (event.target.closest?.('.edge-group')) return;
+
+        isPanning = true;
+        panStart = {
+            clientX: event.clientX,
+            clientY: event.clientY,
+            panX,
+            panY,
+        };
+        svg.classList.add('panning');
+        svg.setPointerCapture?.(event.pointerId);
+        clearSelection();
+    }
+
+    function onPointerMove(event) {
+        if (dragState) {
+            const world = screenToWorld(event.clientX, event.clientY);
+            const nextX = world.x - dragState.offsetX;
+            const nextY = world.y - dragState.offsetY;
+            if (
+                Math.abs(nextX - Number(dragState.node.x || 0)) > .5 ||
+                Math.abs(nextY - Number(dragState.node.y || 0)) > .5
+            ) {
+                movedDuringDrag = true;
+            }
+            dragState.node.x = nextX;
+            dragState.node.y = nextY;
+            updateNodePosition(dragState.node);
+            status.textContent = `Position : ${Math.round(nextX)} × ${Math.round(nextY)}`;
+            return;
+        }
+
+        if (isPanning && panStart) {
+            panX = panStart.panX + (event.clientX - panStart.clientX);
+            panY = panStart.panY + (event.clientY - panStart.clientY);
+            applyTransform();
+        }
+    }
+
+    function endPointer(event) {
+        if (dragState) {
+            const node = dragState.node;
+            const shouldSave = movedDuringDrag;
+            dragState = null;
+            svg.classList.remove('dragging');
+
+            if (shouldSave) {
+                sendAction('move', {
+                    node: node.id,
+                    x: Number(node.x).toFixed(2),
+                    y: Number(node.y).toFixed(2),
+                });
+            }
+        }
+
+        isPanning = false;
+        panStart = null;
+        svg.classList.remove('panning');
+    }
+
+    function zoomAt(factor, clientX, clientY) {
+        const rect = svg.getBoundingClientRect();
+        const px = clientX ?? (rect.left + rect.width / 2);
+        const py = clientY ?? (rect.top + rect.height / 2);
+        const before = screenToWorld(px, py);
+        const oldScale = scale;
+        scale = Math.max(.18, Math.min(3.4, scale * factor));
+        const ratio = scale / oldScale;
+        panX = px - rect.left - (px - rect.left - panX) * ratio;
+        panY = py - rect.top - (py - rect.top - panY) * ratio;
+        applyTransform();
+        status.textContent = `Zoom : ${Math.round(scale * 100)} %`;
+    }
+
+    function fitView() {
+        if (!NODES.length) {
+            scale = 1;
+            panX = svg.clientWidth / 2 - 720;
+            panY = svg.clientHeight / 2 - 420;
+            applyTransform();
+            return;
+        }
+
+        const minX = Math.min(...NODES.map(node => Number(node.x || 0) - Number(node.width || 190) / 2));
+        const maxX = Math.max(...NODES.map(node => Number(node.x || 0) + Number(node.width || 190) / 2));
+        const minY = Math.min(...NODES.map(node => Number(node.y || 0) - Number(node.height || 78) / 2));
+        const maxY = Math.max(...NODES.map(node => Number(node.y || 0) + Number(node.height || 78) / 2));
+        const contentWidth = Math.max(180, maxX - minX);
+        const contentHeight = Math.max(120, maxY - minY);
+        const padding = 125;
+
+        scale = Math.max(
+            .22,
+            Math.min(
+                1.35,
+                (svg.clientWidth - padding * 2) / contentWidth,
+                (svg.clientHeight - padding * 2) / contentHeight
+            )
+        );
+
+        panX = svg.clientWidth / 2 - ((minX + maxX) / 2) * scale;
+        panY = svg.clientHeight / 2 - ((minY + maxY) / 2) * scale;
+        applyTransform();
+        status.textContent = 'Diagramme ajusté à la zone de travail.';
+    }
+
+    function centerView() {
+        scale = 1;
+        panX = svg.clientWidth / 2 - 720;
+        panY = svg.clientHeight / 2 - 420;
+        applyTransform();
+        status.textContent = 'Canvas recentré.';
+    }
+
+    function renderMinimap() {
+        if (!NODES.length) {
+            miniSvg.innerHTML = '';
+            return;
+        }
+
+        const minX = Math.min(...NODES.map(node => Number(node.x || 0) - 80));
+        const maxX = Math.max(...NODES.map(node => Number(node.x || 0) + 80));
+        const minY = Math.min(...NODES.map(node => Number(node.y || 0) - 50));
+        const maxY = Math.max(...NODES.map(node => Number(node.y || 0) + 50));
+        const width = Math.max(300, maxX - minX);
+        const height = Math.max(180, maxY - minY);
+
+        miniSvg.setAttribute('viewBox', `${minX - 30} ${minY - 30} ${width + 60} ${height + 60}`);
+        miniSvg.innerHTML = `
+            <rect x="${minX - 30}" y="${minY - 30}" width="${width + 60}" height="${height + 60}" fill="#FCFAF5" />
+            ${EDGES.map(edge => {
+                const source = nodeMap.get(String(edge.from));
+                const target = nodeMap.get(String(edge.to));
+                if (!source || !target) return '';
+                return `<line x1="${source.x}" y1="${source.y}" x2="${target.x}" y2="${target.y}" stroke="#98A5B2" stroke-width="5" />`;
+            }).join('')}
+            ${NODES.map(node => `
+                <rect x="${Number(node.x || 0) - 36}" y="${Number(node.y || 0) - 18}" width="72" height="36" rx="8" fill="${node.color || '#F4EBDD'}" stroke="${node.border_color || '#9B7740'}" stroke-width="3" />
+            `).join('')}
+        `;
+    }
+
+    function cloneSvgForExport() {
+        const clone = svg.cloneNode(true);
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clone.setAttribute('width', '1600');
+        clone.setAttribute('height', '1000');
+
+        if (NODES.length) {
+            const minX = Math.min(...NODES.map(node => Number(node.x || 0) - Number(node.width || 190) / 2)) - 100;
+            const maxX = Math.max(...NODES.map(node => Number(node.x || 0) + Number(node.width || 190) / 2)) + 100;
+            const minY = Math.min(...NODES.map(node => Number(node.y || 0) - Number(node.height || 78) / 2)) - 100;
+            const maxY = Math.max(...NODES.map(node => Number(node.y || 0) + Number(node.height || 78) / 2)) + 100;
+            clone.setAttribute('viewBox', `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+            clone.querySelector('#viewport')?.removeAttribute('transform');
+        }
+        return clone;
+    }
+
+    function downloadBlob(blob, fileName) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    }
+
+    function exportSvg() {
+        const clone = cloneSvgForExport();
+        const source = new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+        downloadBlob(blob, `${safeFileName(FICHE_NAME)}.svg`);
+        status.textContent = 'Export SVG généré.';
+    }
+
+    function exportPng() {
+        const clone = cloneSvgForExport();
+        const source = new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const image = new Image();
+
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2200;
+            canvas.height = 1400;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#FCFAF5';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(pngBlob => {
+                if (pngBlob) downloadBlob(pngBlob, `${safeFileName(FICHE_NAME)}.png`);
+                URL.revokeObjectURL(url);
+            }, 'image/png', .95);
+        };
+
+        image.src = url;
+        status.textContent = 'Préparation de l’export PNG...';
+    }
+
+    svg.addEventListener('pointerdown', beginPan);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', endPointer);
+    window.addEventListener('pointercancel', endPointer);
+
+    svg.addEventListener('wheel', event => {
+        event.preventDefault();
+        zoomAt(event.deltaY < 0 ? 1.11 : .90, event.clientX, event.clientY);
+    }, { passive: false });
+
+    svg.addEventListener('dblclick', event => {
+        if (event.target.closest?.('.node')) return;
+        if (event.target.closest?.('.edge-group')) return;
+        const point = screenToWorld(event.clientX, event.clientY);
+        sendAction('add_at', {
+            x: point.x.toFixed(2),
+            y: point.y.toFixed(2),
+        });
+    });
+
+    document.getElementById('zoomIn').addEventListener('click', () => zoomAt(1.18));
+    document.getElementById('zoomOut').addEventListener('click', () => zoomAt(.84));
+    document.getElementById('fit').addEventListener('click', fitView);
+    document.getElementById('center').addEventListener('click', centerView);
+
+    document.getElementById('linkMode').addEventListener('click', event => {
+        linkMode = !linkMode;
+        linkSource = null;
+        nodeElementMap.forEach(element => element.classList.remove('connect-source'));
+        event.currentTarget.classList.toggle('active', linkMode);
+        status.textContent = linkMode
+            ? 'Mode liaison : cliquez sur la source, puis sur la destination.'
+            : 'Mode déplacement activé.';
+    });
+
+    document.getElementById('toggleGrid').addEventListener('click', event => {
+        gridVisible = !gridVisible;
+        gridRect.style.display = gridVisible ? '' : 'none';
+        event.currentTarget.classList.toggle('active', !gridVisible);
+    });
+
+    document.getElementById('exportSvg').addEventListener('click', exportSvg);
+    document.getElementById('exportPng').addEventListener('click', exportPng);
+
+    document.getElementById('fullscreen').addEventListener('click', async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await shell.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
+            }
+            setTimeout(fitView, 180);
+        } catch (error) {
+            status.textContent = 'Le plein écran est bloqué par le navigateur.';
+        }
+    });
+
+    window.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            linkMode = false;
+            linkSource = null;
+            document.getElementById('linkMode').classList.remove('active');
+            nodeElementMap.forEach(element => element.classList.remove('connect-source'));
+            clearSelection();
+            status.textContent = 'Sélection annulée.';
+        }
+
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd' && selectedNode) {
+            event.preventDefault();
+            sendAction('duplicate', { node: selectedNode });
+        }
+    });
+
+    renderNodes();
+    renderEdges();
+    if (INITIAL_SELECTED_NODE && nodeElementMap.has(String(INITIAL_SELECTED_NODE))) {
+        selectNodeLocally(String(INITIAL_SELECTED_NODE));
+    } else if (INITIAL_SELECTED_EDGE && edgeElementMap.has(String(INITIAL_SELECTED_EDGE))) {
+        selectEdgeLocally(String(INITIAL_SELECTED_EDGE));
+    }
+    applyTransform();
+    requestAnimationFrame(() => requestAnimationFrame(fitView));
+})();
+</script>
+</body>
+</html>
+            """
+
+            canvas_html = canvas_html.replace("__NODES__", donnees_noeuds_json)
+            canvas_html = canvas_html.replace("__EDGES__", donnees_liaisons_json)
+            canvas_html = canvas_html.replace("__FICHE_ID__", fiche_id_json)
+            canvas_html = canvas_html.replace("__FICHE_NAME__", nom_fiche_json)
+            canvas_html = canvas_html.replace(
+                "__SELECTED_NODE__",
+                noeud_selection_canvas_json,
+            )
+            canvas_html = canvas_html.replace(
+                "__SELECTED_EDGE__",
+                liaison_selection_canvas_json,
+            )
+
+            components.html(
+                canvas_html,
+                height=780,
+                scrolling=False,
+            )
+
+        # ---------------------------------------------------------------------
+        # COLONNE DROITE — INSPECTEUR DE PROPRIÉTÉS
+        # ---------------------------------------------------------------------
+
+        with colonne_inspecteur:
+            st.markdown("#### Inspecteur")
+            st.caption("Sélectionnez un élément ou une liaison.")
+
+            noeud_selectionne_id = st.session_state.get("mm_noeud_selectionne")
+            liaison_selectionnee_id = st.session_state.get("mm_liaison_selectionnee")
+
+            index_noeud_selectionne, noeud_selectionne = mm_trouver_noeud(
+                fiche_active,
+                noeud_selectionne_id,
+            )
+            index_liaison_selectionnee, liaison_selectionnee = mm_trouver_liaison(
+                fiche_active,
+                liaison_selectionnee_id,
+            )
+
+            if noeud_selectionne is not None:
+                st.markdown(
+                    f"""
+                    <div style="
+                        padding:12px 13px;
+                        margin-bottom:10px;
+                        background:{noeud_selectionne.get('color', '#F4EBDD')};
+                        border:2px solid {noeud_selectionne.get('border_color', '#9B7740')};
+                        border-radius:10px;
+                    ">
+                        <div style="color:{noeud_selectionne.get('text_color', '#142235')};font-size:14px;font-weight:800;">
+                            {html_lib.escape(str(noeud_selectionne.get('label', 'Élément')))}
+                        </div>
+                        <div style="color:{noeud_selectionne.get('text_color', '#142235')};opacity:.68;font-size:11px;margin-top:4px;">
+                            {html_lib.escape(str(noeud_selectionne.get('subtitle', '')))}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                action_noeud_1, action_noeud_2 = st.columns(2)
+                with action_noeud_1:
+                    if st.button(
+                        "＋ Enfant",
+                        use_container_width=True,
+                        key=f"mm_child_{fiche_active_id}_{noeud_selectionne_id}",
+                    ):
+                        mm_dialogue_ajouter_noeud(
+                            fiche_active_id,
+                            parent_id=noeud_selectionne_id,
+                        )
+
+                    if st.button(
+                        "⧉ Dupliquer",
+                        use_container_width=True,
+                        key=f"mm_duplicate_node_{fiche_active_id}_{noeud_selectionne_id}",
+                    ):
+                        mm_memoriser_etat(fiche_active)
+                        copie_noeud = copy.deepcopy(noeud_selectionne)
+                        copie_noeud["id"] = f"n{mm_prochain_numero_noeud(fiche_active)}"
+                        copie_noeud["label"] = f"{copie_noeud.get('label', 'Élément')} — copie"
+                        copie_noeud["x"] = float(copie_noeud.get("x", 0)) + 36
+                        copie_noeud["y"] = float(copie_noeud.get("y", 0)) + 36
+                        fiche_active["formes"].append(copie_noeud)
+                        st.session_state.mm_noeud_selectionne = copie_noeud["id"]
+                        mm_sauvegarder(fiche_active)
+                        st.rerun()
+
+                with action_noeud_2:
+                    if st.button(
+                        "↗ Lier",
+                        use_container_width=True,
+                        disabled=len(fiche_active.get("formes", [])) < 2,
+                        key=f"mm_link_node_{fiche_active_id}_{noeud_selectionne_id}",
+                    ):
+                        mm_dialogue_ajouter_liaison(
+                            fiche_active_id,
+                            source_preselectionnee=noeud_selectionne_id,
+                        )
+
+                    confirmation_suppression_noeud = st.checkbox(
+                        "Confirmer",
+                        key=f"mm_delete_node_confirm_{fiche_active_id}_{noeud_selectionne_id}",
+                    )
+                    if st.button(
+                        "🗑️ Supprimer",
+                        use_container_width=True,
+                        disabled=not confirmation_suppression_noeud,
+                        key=f"mm_delete_node_{fiche_active_id}_{noeud_selectionne_id}",
+                    ):
+                        mm_memoriser_etat(fiche_active)
+                        mm_supprimer_noeud(fiche_active, noeud_selectionne_id)
+                        st.session_state.mm_noeud_selectionne = None
+                        mm_sauvegarder(fiche_active)
+                        st.rerun()
+
+                with st.form(
+                    f"mm_inspector_node_form_{fiche_active_id}_{noeud_selectionne_id}",
+                    clear_on_submit=False,
+                ):
+                    titre_inspecteur = st.text_input(
+                        "Titre",
+                        value=noeud_selectionne.get("label", ""),
+                    )
+                    sous_titre_inspecteur = st.text_input(
+                        "Sous-titre",
+                        value=noeud_selectionne.get("subtitle", ""),
+                    )
+                    notes_inspecteur = st.text_area(
+                        "Notes",
+                        value=noeud_selectionne.get("notes", ""),
+                        height=100,
+                    )
+
+                    formes_inspecteur = [
+                        "rounded",
+                        "rectangle",
+                        "ellipse",
+                        "diamond",
+                        "hexagon",
+                        "capsule",
+                    ]
+                    forme_actuelle_inspecteur = noeud_selectionne.get("shape", "rounded")
+                    if forme_actuelle_inspecteur not in formes_inspecteur:
+                        forme_actuelle_inspecteur = "rounded"
+
+                    forme_inspecteur = st.selectbox(
+                        "Forme",
+                        formes_inspecteur,
+                        index=formes_inspecteur.index(forme_actuelle_inspecteur),
+                        format_func=lambda valeur: {
+                            "rounded": "Rectangle arrondi",
+                            "rectangle": "Rectangle",
+                            "ellipse": "Ellipse",
+                            "diamond": "Losange",
+                            "hexagon": "Hexagone",
+                            "capsule": "Capsule",
+                        }[valeur],
+                    )
+
+                    categories_inspecteur = [
+                        "racine",
+                        "idee",
+                        "action",
+                        "decision",
+                        "information",
+                        "alerte",
+                    ]
+                    categorie_actuelle = noeud_selectionne.get("categorie", "idee")
+                    if categorie_actuelle not in categories_inspecteur:
+                        categorie_actuelle = "idee"
+
+                    categorie_inspecteur = st.selectbox(
+                        "Catégorie",
+                        categories_inspecteur,
+                        index=categories_inspecteur.index(categorie_actuelle),
+                    )
+
+                    col_dimensions_1, col_dimensions_2 = st.columns(2)
+                    with col_dimensions_1:
+                        largeur_inspecteur = st.number_input(
+                            "Largeur",
+                            min_value=110,
+                            max_value=420,
+                            value=int(noeud_selectionne.get("width", 190)),
+                            step=10,
+                        )
+                    with col_dimensions_2:
+                        hauteur_inspecteur = st.number_input(
+                            "Hauteur",
+                            min_value=54,
+                            max_value=220,
+                            value=int(noeud_selectionne.get("height", 78)),
+                            step=2,
+                        )
+
+                    col_position_1, col_position_2 = st.columns(2)
+                    with col_position_1:
+                        x_inspecteur = st.number_input(
+                            "Position X",
+                            value=float(noeud_selectionne.get("x", 0)),
+                            step=10.0,
+                        )
+                    with col_position_2:
+                        y_inspecteur = st.number_input(
+                            "Position Y",
+                            value=float(noeud_selectionne.get("y", 0)),
+                            step=10.0,
+                        )
+
+                    couleur_inspecteur = st.color_picker(
+                        "Fond",
+                        mm_couleur_valide(noeud_selectionne.get("color"), "#F4EBDD"),
+                    )
+                    bordure_inspecteur = st.color_picker(
+                        "Bordure",
+                        mm_couleur_valide(
+                            noeud_selectionne.get("border_color"),
+                            "#9B7740",
+                        ),
+                    )
+                    texte_inspecteur = st.color_picker(
+                        "Texte",
+                        mm_couleur_valide(
+                            noeud_selectionne.get("text_color"),
+                            "#142235",
+                        ),
+                    )
+                    verrouille_inspecteur = st.checkbox(
+                        "Verrouiller la position",
+                        value=bool(noeud_selectionne.get("locked", False)),
+                    )
+
+                    enregistrer_noeud = st.form_submit_button(
+                        "Enregistrer l'élément",
+                        type="primary",
+                        use_container_width=True,
+                    )
+
+                    if enregistrer_noeud:
+                        if not titre_inspecteur.strip():
+                            st.error("Le titre est obligatoire.")
+                        else:
+                            mm_memoriser_etat(fiche_active)
+                            noeud_selectionne.update(
+                                {
+                                    "label": titre_inspecteur.strip(),
+                                    "subtitle": sous_titre_inspecteur.strip(),
+                                    "notes": notes_inspecteur.strip(),
+                                    "shape": forme_inspecteur,
+                                    "categorie": categorie_inspecteur,
+                                    "width": int(largeur_inspecteur),
+                                    "height": int(hauteur_inspecteur),
+                                    "x": float(x_inspecteur),
+                                    "y": float(y_inspecteur),
+                                    "color": couleur_inspecteur,
+                                    "border_color": bordure_inspecteur,
+                                    "text_color": texte_inspecteur,
+                                    "locked": verrouille_inspecteur,
+                                }
+                            )
+                            mm_sauvegarder(fiche_active)
+                            st.rerun()
+
+            elif liaison_selectionnee is not None:
+                labels_par_id = {
+                    str(noeud.get("id")): noeud.get("label", "Élément")
+                    for noeud in fiche_active.get("formes", [])
+                }
+
+                st.markdown("##### Liaison sélectionnée")
+                st.caption(
+                    f"{labels_par_id.get(str(liaison_selectionnee.get('from')), 'Source')} "
+                    f"→ {labels_par_id.get(str(liaison_selectionnee.get('to')), 'Destination')}"
+                )
+
+                with st.form(
+                    f"mm_inspector_edge_form_{fiche_active_id}_{liaison_selectionnee_id}"
+                ):
+                    libelle_inspecteur_liaison = st.text_input(
+                        "Libellé",
+                        value=liaison_selectionnee.get("label", ""),
+                    )
+
+                    styles_liaisons = ["solid", "dashed", "dotted"]
+                    style_actuel = liaison_selectionnee.get("style", "solid")
+                    if style_actuel not in styles_liaisons:
+                        style_actuel = "solid"
+
+                    style_inspecteur_liaison = st.selectbox(
+                        "Style",
+                        styles_liaisons,
+                        index=styles_liaisons.index(style_actuel),
+                    )
+
+                    fleches_liaisons = ["to", "both", "none"]
+                    fleche_actuelle = liaison_selectionnee.get("arrow", "to")
+                    if fleche_actuelle not in fleches_liaisons:
+                        fleche_actuelle = "to"
+
+                    fleche_inspecteur_liaison = st.selectbox(
+                        "Flèche",
+                        fleches_liaisons,
+                        index=fleches_liaisons.index(fleche_actuelle),
+                        format_func=lambda valeur: {
+                            "to": "Destination",
+                            "both": "Double sens",
+                            "none": "Aucune",
+                        }[valeur],
+                    )
+
+                    couleur_inspecteur_liaison = st.color_picker(
+                        "Couleur",
+                        mm_couleur_valide(
+                            liaison_selectionnee.get("color"),
+                            "#50657D",
+                        ),
+                    )
+                    largeur_inspecteur_liaison = st.slider(
+                        "Épaisseur",
+                        1,
+                        6,
+                        int(liaison_selectionnee.get("width", 2)),
+                    )
+
+                    enregistrer_liaison = st.form_submit_button(
+                        "Enregistrer la liaison",
+                        type="primary",
+                        use_container_width=True,
+                    )
+
+                    if enregistrer_liaison:
+                        mm_memoriser_etat(fiche_active)
+                        liaison_selectionnee.update(
+                            {
+                                "label": libelle_inspecteur_liaison.strip(),
+                                "style": style_inspecteur_liaison,
+                                "arrow": fleche_inspecteur_liaison,
+                                "color": couleur_inspecteur_liaison,
+                                "width": int(largeur_inspecteur_liaison),
+                            }
+                        )
+                        mm_sauvegarder(fiche_active)
+                        st.rerun()
+
+                confirmer_suppression_liaison = st.checkbox(
+                    "Confirmer la suppression",
+                    key=f"mm_delete_edge_confirm_{fiche_active_id}_{liaison_selectionnee_id}",
+                )
+                if st.button(
+                    "🗑️ Supprimer la liaison",
+                    use_container_width=True,
+                    disabled=not confirmer_suppression_liaison,
+                    key=f"mm_delete_edge_{fiche_active_id}_{liaison_selectionnee_id}",
+                ):
+                    mm_memoriser_etat(fiche_active)
+                    fiche_active["liaisons"] = [
+                        liaison
+                        for liaison in fiche_active.get("liaisons", [])
+                        if str(liaison.get("id")) != str(liaison_selectionnee_id)
+                    ]
+                    st.session_state.mm_liaison_selectionnee = None
+                    mm_sauvegarder(fiche_active)
+                    st.rerun()
+
+            else:
+                st.markdown(
+                    """
+                    <div style="
+                        padding:18px 14px;
+                        color:#6D7F91;
+                        background:rgba(255,254,251,.70);
+                        border:1px dashed rgba(155,119,64,.36);
+                        border-radius:10px;
+                        text-align:center;
+                        font-size:12px;
+                        line-height:1.6;
+                    ">
+                        Cliquez sur un élément ou une liaison pour afficher ses propriétés.
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                st.markdown("##### Raccourcis du canvas")
+                st.markdown(
+                    """
+                    - **Double-clic sur le fond** : créer une idée
+                    - **Glisser un élément** : modifier sa position
+                    - **Glisser le fond** : déplacer la vue
+                    - **Molette** : zoomer ou dézoomer
+                    - **Lier** : cliquer sur une source puis une destination
+                    - **Échap** : annuler le mode liaison
+                    - **Ctrl + D** : dupliquer l'élément sélectionné
+                    """
+                )
+
+        st.caption(
+            f"Dernière modification : {fiche_active.get('date_modification', '-')} "
+            "• Sauvegarde automatique dans donnees_bos2.json"
+        )
