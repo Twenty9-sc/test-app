@@ -1325,30 +1325,6 @@ def generer_pdf_fiche_technique(data_obj, type_ft="melange"):
 
     story.append(Spacer(1, 1))    
     
-    # =======================================================================
-    # 7. SIGNATURES (poussées vers le bas de page)
-    # =======================================================================
-    # Spacer flexible pour pousser le bloc signature en bas si l'espace le permet
-    story.append(Spacer(1, 11))
-
-    redacteur = ft_data.get('redacteur', 'Labo / R&D')
-    data_sign = [
-        [
-            Paragraph(f"<b>Visa Rédacteur / Émetteur :</b><br/>{redacteur}", body_style),
-            Paragraph("<b>Approbation Direction :</b><br/>Responsable Qualité Industrielle", body_style)
-        ],
-        [
-            Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style),
-            Paragraph("<br/><br/><i>Signature : ___________________</i>", body_style)
-        ]
-    ]
-    t_sign = Table(data_sign, colWidths=[256, 256])
-    t_sign.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('PADDING', (0, 0), (-1, -1), 2.5),
-        ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.HexColor('#CBD5E1')),
-    ]))
-    story.append(t_sign)
 
     # =======================================================================
     # CONSTRUCTION FINALE

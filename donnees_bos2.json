@@ -7939,9 +7939,18 @@
                 "has_ft": true,
                 "fiche_technique": {
                     "date_creation": "09/07/2026 - 13:28",
-                    "date_derniere_maj": "09/07/2026 - 13:28",
-                    "date_avant_derniere_maj": "-",
-                    "redacteur": "Atelier: moulage"
+                    "date_derniere_maj": "20/07/2026 - 08:41",
+                    "date_avant_derniere_maj": "09/07/2026 - 13:28",
+                    "redacteur": "Labo / R&D",
+                    "num_version": 1,
+                    "specs_dynamiques": {
+                        "Aspect / Finition": "",
+                        "Viscosité attendue": "",
+                        "Densité": "",
+                        "Temps de séchage": "",
+                        "Conditions d'application": ""
+                    },
+                    "causes_modification": []
                 },
                 "id": "additifs_e162a3014d1c",
                 "date_creation": "2026-07-15 08:38:33",
