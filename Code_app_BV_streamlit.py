@@ -1105,7 +1105,6 @@ OPTIONS_REDACTEURS = [
     "Atelier : assemblage",
 ]
 
-
 RAL_DICT = {
     "1000": "#BEBD7F", "1001": "#C2B07E", "1002": "#C6A664", "1003": "#E5BE01", "1004": "#CDA434",
     "1005": "#A98307", "1006": "#E4A010", "1007": "#DC9D00", "1011": "#8A6642", "1012": "#C7B446",
@@ -1451,12 +1450,6 @@ def majuscule_initiale(valeur):
 
     return texte
 
-CLES_A_IGNORER_NORMALISATION = {
-    "data",
-    "image_rendu",
-    "commentaire_global_images",
-    "images_commentaire_global",
-}
 
 def normaliser_textes_db(objet, cle_parent=""):
     """
@@ -1493,8 +1486,7 @@ def normaliser_textes_db(objet, cle_parent=""):
             return modifie
 
         for cle, valeur in list(objet.items()):
-            if cle in CLES_A_IGNORER_NORMALISATION:
-                continue
+
             # Champs texte simples
             if cle in CHAMPS_MAJUSCULE_INITIALE and isinstance(valeur, str):
                 nouvelle_valeur = majuscule_initiale(valeur)
@@ -1831,12 +1823,8 @@ except Exception:
 
 if os.path.exists(FICHIER_JSON_LEGACY):
     st.sidebar.caption(f"Ancien JSON conservé : {FICHIER_JSON_LEGACY}")
-if not st.session_state.get("_normalisation_initiale_effectuee", False):
-
-    if normaliser_textes_db(st.session_state.processus_db):
-        sauvegarder_donnees()
-
-    st.session_state["_normalisation_initiale_effectuee"] = True
+if normaliser_textes_db(st.session_state.processus_db):
+    sauvegarder_donnees()
 
 try:
     st.sidebar.caption(f"Taille JSON : {os.path.getsize(FICHIER_SAUVEGARDE)} octets")
@@ -1875,13 +1863,8 @@ def afficher_animation_validation(message):
         """,
         unsafe_allow_html=True,
     )
-    """
-    Validation rapide sans bloquer l'application.
-    """
-    try:
-        st.toast(f"✅ {message}")
-    except Exception:
-        st.success(message)
+    time.sleep(1.0)
+    emplacement.empty()
 
 def get_svg_icon(icon_name):
     icons = {
@@ -3147,36 +3130,6 @@ def generer_fichier_export(donnees_list, nom_fichier="export"):
             "text/csv",
         )
 
-
-@st.cache_data(show_spinner=False, ttl=300)
-def generer_fichier_export_cache(donnees_json, nom_fichier):
-    """
-    Cache les exports pendant 5 minutes.
-    Évite de reconstruire Excel à chaque rerun.
-    """
-    try:
-        donnees = json.loads(donnees_json)
-    except Exception:
-        donnees = []
-
-    return generer_fichier_export(donnees, nom_fichier)
-
-
-def generer_fichier_export_rapide(donnees_list, nom_fichier="export"):
-    """
-    Wrapper qui transforme les données en JSON stable pour le cache.
-    """
-    try:
-        donnees_json = json.dumps(
-            donnees_list,
-            ensure_ascii=False,
-            sort_keys=True,
-            default=str,
-        )
-    except Exception:
-        donnees_json = "[]"
-
-    return generer_fichier_export_cache(donnees_json, nom_fichier)
 
 def add_tmp_item(state_dict_name, cle, data):
     st.session_state.setdefault(state_dict_name, {})[cle] = data
@@ -5040,7 +4993,7 @@ def ouvrir_fenetre_aide():
         st.rerun()
 
 if "action" in query_params and query_params["action"] == "help":
-    supprimer_parametres_temporaires_url(["action"])
+    st.query_params.clear()
     ouvrir_fenetre_aide()
 
 if "moved_id" in query_params and "moved_x" in query_params and "moved_y" in query_params:
@@ -5055,12 +5008,7 @@ if "moved_id" in query_params and "moved_x" in query_params and "moved_y" in que
                 if s["id"] == m_fid:
                     s["x"], s["y"] = m_fx, m_fy
                     sauvegarder_donnees()
-        supprimer_parametres_temporaires_url([
-            "moved_id",
-            "moved_idx",
-            "moved_x",
-            "moved_y",
-        ])
+        st.query_params.clear()
     except Exception:
         pass
 
@@ -5069,9 +5017,6 @@ if "moved_id" in query_params and "moved_x" in query_params and "moved_y" in que
 # =============================================================================
 # BARRE LATÉRALE ET RECHERCHE GLOBALE
 # =============================================================================
-
-# Restaure la section après rafraîchissement de page
-restaurer_navigation_depuis_url()
 
 with st.sidebar:
     dossier_app_logo = os.path.dirname(os.path.abspath(__file__))
@@ -5087,17 +5032,28 @@ with st.sidebar:
 
     # --- Bouton Retour au Menu Principal ---
     if st.button("🏠 Menu Principal / Retour", use_container_width=True, key="btn_return_main_menu"):
+    
         fermer_dialogue_actif()
+    
         st.session_state.groupe_actif = None
+    
         st.session_state.sub_section_melange = None
+    
         st.session_state.navigation_preparation = None
-        memoriser_navigation_dans_url()
+    
         st.rerun()
 
     st.markdown("---")
 
     # --- MENU DES SECTIONS DIRECTEMENT DANS LA BARRE LATÉRALE ---
-    sections_preparation = SECTIONS_PREPARATION_BV
+    sections_preparation = [
+        "🎨 Nuancier de couleurs",
+        "🧪 Catalogue des composants",
+        "🔢 Référentiel des codes RAL",
+        "⚗️ Formulations d'atelier",
+        "📐 Fiches Méthode",
+        "⚖️ Comparaison",
+    ]
 
     # Initialisation de la clé de navigation si absente
     if "navigation_preparation" not in st.session_state:
@@ -5124,7 +5080,6 @@ with st.sidebar:
         else:
             st.session_state.groupe_actif = "preparation_melanges"
             st.session_state.sub_section_melange = choix_section
-        memoriser_navigation_dans_url()
         st.rerun()
 
     st.markdown("---")
@@ -5140,17 +5095,10 @@ with st.sidebar:
     corbeille_list = prep_db.get("corbeille", [])
     nb_elements_corbeille = len(corbeille_list)
     if st.button(f"🗑️ Corbeille ({nb_elements_corbeille})", use_container_width=True, key="sidebar_btn_corbeille"):
-    
         fermer_dialogue_actif()
-    
         st.session_state.groupe_actif = "corbeille"
-        st.session_state.navigation_preparation = None
-        st.session_state.sub_section_melange = None
-    
-        memoriser_navigation_dans_url()
-    
         st.rerun()
-        
+
 st.markdown("<br>", unsafe_allow_html=True)
 search_icon = get_svg_icon("search")
 st.markdown(
@@ -5876,7 +5824,7 @@ if G_ACTIF == "preparation_melanges":
                 st.rerun()
                 
         with barre_action_2:
-            excel_couleurs, nom_excel_couleurs, mime_excel_couleurs = generer_fichier_export_rapide(
+            excel_couleurs, nom_excel_couleurs, mime_excel_couleurs = generer_fichier_export(
                 liste_couleurs,
                 "Export_Couleurs",
             )
@@ -6662,7 +6610,7 @@ if G_ACTIF == "preparation_melanges":
                 ouvrir_dialogue_actif("ajout_element")
                 st.rerun()
         with barre_element_2:
-            excel_elements, nom_excel_elements, mime_excel_elements = generer_fichier_export_rapide(
+            excel_elements, nom_excel_elements, mime_excel_elements = generer_fichier_export(
                 liste_additifs,
                 "Export_Elements",
             )
@@ -8396,7 +8344,7 @@ if G_ACTIF == "preparation_melanges":
                 ouvrir_dialogue_actif("ajout_melange")
                 st.rerun()
         with barre_melange_2:
-            excel_melanges, nom_excel_melanges, mime_excel_melanges = generer_fichier_export_rapide(
+            excel_melanges, nom_excel_melanges, mime_excel_melanges = generer_fichier_export(
                 liste_melanges,
                 "Export_Melanges",
             )
@@ -10076,16 +10024,7 @@ if G_ACTIF == "preparation_melanges":
                 except Exception as erreur_canvas:
                     st.session_state.mm_derniere_erreur_canvas = str(erreur_canvas)
 
-            supprimer_parametres_temporaires_url([
-                "mm_action",
-                "mm_fiche",
-                "mm_node",
-                "mm_edge",
-                "mm_x",
-                "mm_y",
-                "mm_from",
-                "mm_to",
-            ])
+            st.query_params.clear()
             st.rerun()
 
 
