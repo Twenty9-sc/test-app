@@ -1,0 +1,18 @@
+services:
+  bos2:
+    build: .
+    container_name: BV-portail
+    restart: unless-stopped
+
+    ports:
+      - "8501:8501"
+
+    environment:
+      - BOS2_DATA_DIR=/data
+      - BOS2_BACKUP_DIR=/backups
+      - TZ=Europe/Paris
+
+    volumes:
+      - ./app:/app
+      - ./data:/data
+      - ./backups:/backups

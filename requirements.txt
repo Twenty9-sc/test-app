@@ -1,3 +1,7 @@
 streamlit
 reportlab
 pillow
+pandas
+xlsxwriter
+openpyxl
+filelock
