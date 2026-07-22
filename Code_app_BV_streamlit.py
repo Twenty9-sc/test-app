@@ -749,53 +749,359 @@ def initialiser_db():
     finally:
         conn.close()
 
+def lire_json_legacy():
+    """
+    Lit l'ancien fichier JSON si présent.
+    Cherche à plusieurs endroits et avec plusieurs noms possibles.
+    Sert uniquement à importer les anciennes données dans SQLite.
+    """
+
+    noms_possibles = [
+        "donnees_BV.json",
+        "donnees_bv.json",
+        "donnees_BV.JSON",
+        "donnees_bos2.json",
+        "donnees_BOS2.json",
+    ]
+
+    dossiers_possibles = [
+        DOSSIER_DONNEES,
+        os.path.join(DOSSIER_APP, "data"),
+        DOSSIER_APP,
+    ]
+
+    candidats = []
+
+    # Chemin principal attendu
+    candidats.append(FICHIER_JSON_LEGACY)
+
+    for dossier in dossiers_possibles:
+        for nom in noms_possibles:
+            candidats.append(os.path.join(dossier, nom))
+
+    # Supprime les doublons en gardant l'ordre
+    candidats_uniques = []
+    deja_vus = set()
+
+    for chemin in candidats:
+        chemin_norm = os.path.abspath(chemin)
+
+        if chemin_norm not in deja_vus:
+            candidats_uniques.append(chemin_norm)
+            deja_vus.add(chemin_norm)
+
+    for chemin_json in candidats_uniques:
+
+        if not os.path.exists(chemin_json):
+            continue
+
+        try:
+            if os.path.getsize(chemin_json) < 20:
+                continue
+        except Exception:
+            pass
+
+        try:
+            with open(chemin_json, "r", encoding="utf-8") as fichier:
+                donnees = json.load(fichier)
+
+            if isinstance(donnees, dict):
+                return appliquer_structure_minimale(donnees)
+
+        except Exception:
+            continue
+
+    return None
+def compter_donnees_principales(donnees):
+    """
+    Compte les données importantes.
+    Sert à savoir si une base SQLite est vide ou si elle contient vraiment des infos.
+    """
+    if not isinstance(donnees, dict):
+        return 0
+
+    preparation = donnees.get("preparation_melanges", {})
+
+    total = 0
+
+    for cle in [
+        "couleurs",
+        "melanges",
+        "fiches_methode",
+        "additifs",
+        "base_rals",
+        "corbeille",
+    ]:
+        valeur = preparation.get(cle, [])
+
+        if isinstance(valeur, list):
+            total += len(valeur)
+
+    creation_processus = donnees.get("creation_processus", {})
+
+    if isinstance(creation_processus, dict):
+        total += len(creation_processus)
+
+    elif isinstance(creation_processus, list):
+        total += len(creation_processus)
+
+    return total
 
 def migrer_json_vers_sqlite_si_besoin():
     """
     Si la base SQLite est vide, importe automatiquement donnees_BV.json.
-    Cela permet de garder toutes les données déjà existantes.
+
+    Cas corrigé :
+    - Si SQLite existe déjà mais contient une structure vide,
+      et qu'un JSON avec des données existe,
+      alors on remplace la structure vide par les données du JSON.
+    """
+
+    initialiser_sqlite()
+
+    donnees_json = lire_json_legacy()
+    nb_json = compter_donnees_principales(donnees_json)
+
+    conn = ouvrir_connexion_sqlite()
+
+    try:
+        ligne = conn.execute(
+            "SELECT data, version FROM app_state WHERE id = 1"
+        ).fetchone()
+
+        # ------------------------------------------------------------
+        # CAS 1 : SQLite existe déjà
+        # ------------------------------------------------------------
+        if ligne is not None:
+
+            try:
+                donnees_sqlite = json.loads(ligne[0]) if ligne[0] else {}
+            except Exception:
+                donnees_sqlite = {}
+
+            nb_sqlite = compter_donnees_principales(donnees_sqlite)
+
+            # SQLite contient déjà de vraies données : on ne touche à rien.
+            if nb_sqlite > 0:
+                return
+
+            # SQLite est vide, mais le JSON contient des données :
+            # on importe le JSON dans SQLite.
+            if nb_sqlite == 0 and nb_json > 0:
+
+                donnees_json = appliquer_structure_minimale(donnees_json)
+
+                try:
+                    normaliser_textes_db(donnees_json)
+                except Exception:
+                    pass
+
+                maintenant = datetime.datetime.now().isoformat(timespec="seconds")
+
+                conn.execute(
+                    """
+                    UPDATE app_state
+                    SET data = ?, version = ?, updated_at = ?
+                    WHERE id = 1
+                    """,
+                    (
+                        json.dumps(donnees_json, ensure_ascii=False, indent=4),
+                        1,
+                        maintenant,
+                    ),
+                )
+
+                conn.commit()
+                return
+
+            # SQLite vide et aucun JSON exploitable : on garde vide.
+            return
+
+        # ------------------------------------------------------------
+        # CAS 2 : SQLite n'existe pas encore dans app_state
+        # ------------------------------------------------------------
+        if donnees_json is not None and nb_json > 0:
+            donnees = donnees_json
+        else:
+            donnees = structure_donnees_vide()
+
+        donnees = appliquer_structure_minimale(donnees)
+
+        try:
+            normaliser_textes_db(donnees)
+        except Exception:
+            pass
+
+        maintenant = datetime.datetime.now().isoformat(timespec="seconds")
+
+        conn.execute(
+            """
+            INSERT INTO app_state (id, data, version, updated_at)
+            VALUES (1, ?, 1, ?)
+            """,
+            (
+                json.dumps(donnees, ensure_ascii=False, indent=4),
+                maintenant,
+            ),
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+def sauvegarder_backup_json_depuis_sqlite(data_str, label):
+    """
+    Crée aussi une sauvegarde JSON lisible dans le dossier backups.
+    Pratique pour restaurer facilement à la main.
+    """
+    try:
+        os.makedirs(DOSSIER_BACKUPS, exist_ok=True)
+
+        fichier_backup = os.path.join(
+            DOSSIER_BACKUPS,
+            f"donnees_BV_backup_{label}.json"
+        )
+
+        if not os.path.exists(fichier_backup):
+            with open(fichier_backup, "w", encoding="utf-8") as fichier:
+                fichier.write(data_str)
+
+    except Exception:
+        pass
+    
+# =============================================================================
+# BASE DE DONNÉES SQLITE — STOCKAGE PRINCIPAL BV
+# =============================================================================
+
+def appliquer_structure_minimale(donnees):
+    """
+    Sécurise la structure minimale attendue par l'application.
+    """
+    if not isinstance(donnees, dict):
+        donnees = structure_donnees_vide()
+
+    donnees.setdefault("creation_processus", {})
+
+    preparation = donnees.setdefault("preparation_melanges", {})
+
+    preparation.setdefault("couleurs", [])
+    preparation.setdefault("melanges", [])
+    preparation.setdefault("fiches_methode", [])
+    preparation.setdefault("additifs", [])
+    preparation.setdefault("base_rals", [])
+    preparation.setdefault("compartiments", ["résine", "peinture"])
+    preparation.setdefault("sous_groupes", ["Général"])
+    preparation.setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])
+    preparation.setdefault("corbeille", [])
+
+    return donnees
+
+
+def ouvrir_connexion_sqlite():
+    """
+    Ouvre la base SQLite.
     """
     os.makedirs(DOSSIER_DONNEES, exist_ok=True)
-    initialiser_db()
 
-    conn = ouvrir_connexion_db()
+    conn = sqlite3.connect(
+        FICHIER_SQLITE,
+        timeout=30,
+        check_same_thread=False,
+    )
+
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+    except Exception:
+        pass
+
+    try:
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=10000;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+    except Exception:
+        pass
+
+    return conn
+
+
+def initialiser_sqlite():
+    """
+    Crée les tables SQLite si elles n'existent pas.
+    """
+    conn = ouvrir_connexion_sqlite()
+
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS app_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                data TEXT NOT NULL,
+                version INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS app_backups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                label TEXT UNIQUE NOT NULL,
+                version INTEGER,
+                created_at TEXT NOT NULL,
+                data TEXT NOT NULL
+            )
+            """
+        )
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+
+def lire_json_legacy():
+    """
+    Lit l'ancien fichier JSON si présent.
+    Sert uniquement à la première migration vers SQLite.
+    """
+    if not os.path.exists(FICHIER_JSON_LEGACY):
+        return None
+
+    try:
+        with open(FICHIER_JSON_LEGACY, "r", encoding="utf-8") as fichier:
+            donnees = json.load(fichier)
+
+        return appliquer_structure_minimale(donnees)
+
+    except Exception:
+        return None
+
+
+def migrer_json_vers_sqlite_si_besoin():
+    """
+    Si la base SQLite est vide, importe automatiquement donnees_BV.json.
+    """
+    initialiser_sqlite()
+
+    conn = ouvrir_connexion_sqlite()
 
     try:
         ligne = conn.execute(
             "SELECT id FROM app_state WHERE id = 1"
         ).fetchone()
 
-        # La base contient déjà des données : rien à faire.
+        # La base SQLite contient déjà les données.
         if ligne is not None:
             return
 
-        # Si un JSON existe, on l'importe.
-        if os.path.exists(FICHIER_JSON_LEGACY):
-            try:
-                with open(FICHIER_JSON_LEGACY, "r", encoding="utf-8") as fichier:
-                    donnees = json.load(fichier)
+        donnees = lire_json_legacy()
 
-                if not isinstance(donnees, dict):
-                    donnees = structure_donnees_vide()
-
-            except Exception:
-                donnees = structure_donnees_vide()
-
-        else:
+        if donnees is None:
             donnees = structure_donnees_vide()
 
-        # Sécurise la structure minimale
-        donnees.setdefault("creation_processus", {})
-        preparation = donnees.setdefault("preparation_melanges", {})
-        preparation.setdefault("couleurs", [])
-        preparation.setdefault("melanges", [])
-        preparation.setdefault("fiches_methode", [])
-        preparation.setdefault("additifs", [])
-        preparation.setdefault("base_rals", [])
-        preparation.setdefault("compartiments", ["résine", "peinture"])
-        preparation.setdefault("sous_groupes", ["Général"])
-        preparation.setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])
-        preparation.setdefault("corbeille", [])
+        donnees = appliquer_structure_minimale(donnees)
 
         try:
             normaliser_textes_db(donnees)
@@ -823,15 +1129,15 @@ def migrer_json_vers_sqlite_si_besoin():
 
 def sauvegarder_backup_json_depuis_sqlite(data_str, label):
     """
-    Crée aussi une sauvegarde JSON lisible dans le dossier backups.
-    Pratique pour restaurer facilement à la main.
+    Crée une sauvegarde JSON lisible dans le dossier backups.
+    La base principale reste SQLite.
     """
     try:
         os.makedirs(DOSSIER_BACKUPS, exist_ok=True)
 
         fichier_backup = os.path.join(
             DOSSIER_BACKUPS,
-            f"donnees_BV_backup_{label}.json"
+            f"donnees_BV_backup_{label}.json",
         )
 
         if not os.path.exists(fichier_backup):
@@ -840,21 +1146,20 @@ def sauvegarder_backup_json_depuis_sqlite(data_str, label):
 
     except Exception:
         pass
-    
-    
+
+
 def charger_donnees():
     """
-    Charge les données depuis la base SQLite.
-    Si la base est vide, importe automatiquement l'ancien JSON.
+    Charge les données depuis SQLite.
+    Si SQLite est vide, importe automatiquement l'ancien JSON.
     """
-
     os.makedirs(DOSSIER_DONNEES, exist_ok=True)
 
     migrer_json_vers_sqlite_si_besoin()
 
     donnees = structure_donnees_vide()
 
-    conn = ouvrir_connexion_db()
+    conn = ouvrir_connexion_sqlite()
 
     try:
         ligne = conn.execute(
@@ -868,47 +1173,38 @@ def charger_donnees():
                 donnees = contenu
 
     except Exception:
-        # En cas de problème, on évite de faire planter tout le site.
         donnees = structure_donnees_vide()
 
     finally:
         conn.close()
 
-    donnees.setdefault("creation_processus", {})
-
-    preparation = donnees.setdefault("preparation_melanges", {})
-
-    preparation.setdefault("couleurs", [])
-    preparation.setdefault("melanges", [])
-    preparation.setdefault("fiches_methode", [])
-    preparation.setdefault("additifs", [])
-    preparation.setdefault("base_rals", [])
-    preparation.setdefault("compartiments", ["résine", "peinture"])
-    preparation.setdefault("sous_groupes", ["Général"])
-    preparation.setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])
-    preparation.setdefault("corbeille", [])
+    donnees = appliquer_structure_minimale(donnees)
 
     return donnees
 
+
 def sauvegarder_donnees():
     """
-    Sauvegarde les données dans la base SQLite.
-    Crée aussi une sauvegarde automatique une fois par heure.
+    Sauvegarde les données dans SQLite.
+    Crée aussi une sauvegarde JSON lisible une fois par heure.
     """
-
     os.makedirs(DOSSIER_DONNEES, exist_ok=True)
     os.makedirs(DOSSIER_BACKUPS, exist_ok=True)
 
-    initialiser_db()
+    if "processus_db" not in st.session_state:
+        return
 
-    # Normalisation avant sauvegarde
+    initialiser_sqlite()
+
     try:
         normaliser_textes_db(st.session_state.processus_db)
     except Exception:
         pass
 
+    donnees = appliquer_structure_minimale(st.session_state.processus_db)
+
     data_str = json.dumps(
-        st.session_state.processus_db,
+        donnees,
         ensure_ascii=False,
         indent=4,
     )
@@ -916,10 +1212,9 @@ def sauvegarder_donnees():
     maintenant = datetime.datetime.now().isoformat(timespec="seconds")
     label_backup = datetime.datetime.now().strftime("%Y-%m-%d_%Hh")
 
-    conn = ouvrir_connexion_db()
+    conn = ouvrir_connexion_sqlite()
 
     try:
-        # BEGIN IMMEDIATE verrouille proprement l'écriture.
         conn.execute("BEGIN IMMEDIATE")
 
         ligne_actuelle = conn.execute(
@@ -935,7 +1230,7 @@ def sauvegarder_donnees():
 
         nouvelle_version = ancienne_version + 1
 
-        # Sauvegarde SQL une fois par heure
+        # Sauvegarde SQL + JSON une fois par heure
         if anciennes_donnees:
             conn.execute(
                 """
@@ -950,23 +1245,16 @@ def sauvegarder_donnees():
                 ),
             )
 
-            # Sauvegarde JSON lisible une fois par heure
             sauvegarder_backup_json_depuis_sqlite(
                 anciennes_donnees,
                 label_backup,
             )
 
-        # Mise à jour de l'état principal
         conn.execute(
             """
-            INSERT INTO app_state (id, data, version, updated_at)
+            INSERT OR REPLACE INTO app_state (id, data, version, updated_at)
             VALUES (1, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                data = excluded.data,
-                version = excluded.version,
-                updated_at = excluded.updated_at
-            """
-            ,
+            """,
             (
                 data_str,
                 nouvelle_version,
@@ -982,25 +1270,32 @@ def sauvegarder_donnees():
 
     finally:
         conn.close()
-
 if "processus_db" not in st.session_state:
     st.session_state.processus_db = charger_donnees()
 st.sidebar.caption(f"Base SQL utilisée : {FICHIER_SQLITE}")
 
+st.sidebar.caption(f"Base SQLite utilisée : {FICHIER_SQLITE}")
+
 try:
-    st.sidebar.caption(f"Taille base SQL : {os.path.getsize(FICHIER_SQLITE)} octets")
+    st.sidebar.caption(f"Taille SQLite : {os.path.getsize(FICHIER_SQLITE)} octets")
 except Exception:
-    st.sidebar.caption("Base SQL : fichier introuvable")
+    st.sidebar.caption("Base SQLite : fichier introuvable")
+
+st.sidebar.caption(f"JSON recherché : {FICHIER_JSON_LEGACY}")
 
 if os.path.exists(FICHIER_JSON_LEGACY):
-    st.sidebar.caption(f"Ancien JSON conservé : {FICHIER_JSON_LEGACY}")
-if normaliser_textes_db(st.session_state.processus_db):
-    sauvegarder_donnees()
+    try:
+        st.sidebar.caption(f"Taille JSON : {os.path.getsize(FICHIER_JSON_LEGACY)} octets")
+    except Exception:
+        pass
+else:
+    st.sidebar.warning("JSON d'origine introuvable dans data/donnees_BV.json")
 
 try:
-    st.sidebar.caption(f"Taille JSON : {os.path.getsize(FICHIER_SAUVEGARDE)} octets")
+    nb_donnees_actuelles = compter_donnees_principales(st.session_state.processus_db)
+    st.sidebar.caption(f"Données chargées : {nb_donnees_actuelles} élément(s)")
 except Exception:
-    st.sidebar.caption("Taille JSON : fichier introuvable")
+    pass
 
 # =============================================================================
 # UTILITAIRES
