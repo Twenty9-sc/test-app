@@ -72,6 +72,691 @@ except Exception:
     pass
 
 
+def appliquer_theme_bv_vintage():
+    """
+    Thème visuel B&V vintage ivoire clair + compatible mode sombre Streamlit.
+    Ne change pas l'emplacement des éléments : uniquement couleurs, bordures,
+    boutons, cartes, tableaux, formulaires et lisibilité.
+    """
+
+    st.markdown(
+        """
+        <style>
+        /* ============================================================
+           VARIABLES GÉNÉRALES
+           Utilise les variables Streamlit pour suivre automatiquement
+           le mode clair / sombre choisi dans les trois petits points.
+        ============================================================ */
+
+        :root {
+            --bv-ink: var(--text-color);
+            --bv-bg: color-mix(in srgb, var(--background-color) 94%, #fff7e8 6%);
+            --bv-card: color-mix(in srgb, var(--secondary-background-color) 88%, #fffaf0 12%);
+            --bv-card-strong: color-mix(in srgb, var(--secondary-background-color) 78%, #fff4dc 22%);
+            --bv-border: color-mix(in srgb, var(--text-color) 18%, #D9BF91 82%);
+            --bv-border-soft: color-mix(in srgb, var(--text-color) 10%, #D9BF91 90%);
+            --bv-gold: #D9BF91;
+            --bv-gold-strong: #B38B4D;
+            --bv-red: #CC0605;
+            --bv-blue: #142235;
+            --bv-muted: color-mix(in srgb, var(--text-color) 62%, transparent);
+            --bv-shadow: 0 10px 28px rgba(16, 26, 39, .10);
+            --bv-shadow-soft: 0 5px 16px rgba(16, 26, 39, .07);
+            --bv-radius: 13px;
+        }
+
+        /* ============================================================
+           FOND GÉNÉRAL
+        ============================================================ */
+
+        .stApp,
+        [data-testid="stAppViewContainer"] {
+            background:
+                radial-gradient(circle at top left, rgba(217,191,145,.16), transparent 32%),
+                linear-gradient(180deg, var(--bv-bg), var(--background-color)) !important;
+            color: var(--bv-ink) !important;
+        }
+
+        [data-testid="stHeader"] {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .block-container {
+            padding-top: 1.35rem !important;
+            padding-bottom: 2.2rem !important;
+        }
+
+        /* ============================================================
+           TEXTE GLOBAL
+           Force les anciens textes noirs/bleus à suivre le mode sombre.
+        ============================================================ */
+
+        .stApp,
+        .stApp p,
+        .stApp span,
+        .stApp label,
+        .stApp li,
+        .stApp div,
+        .stApp h1,
+        .stApp h2,
+        .stApp h3,
+        .stApp h4,
+        .stApp h5,
+        .stApp h6,
+        [data-testid="stMarkdownContainer"] {
+            color: var(--bv-ink);
+        }
+
+        /* Corrige les textes codés en dur dans certains markdown HTML */
+        .stApp [style*="color:#142235"],
+        .stApp [style*="color: #142235"],
+        .stApp [style*="color:#2C3539"],
+        .stApp [style*="color: #2C3539"],
+        .stApp [style*="color:#344A63"],
+        .stApp [style*="color: #344A63"] {
+            color: var(--bv-ink) !important;
+        }
+
+        .stApp [style*="color:#64748B"],
+        .stApp [style*="color: #64748B"],
+        .stApp [style*="color:#6D7F91"],
+        .stApp [style*="color: #6D7F91"],
+        .stApp [style*="color:#50657D"],
+        .stApp [style*="color: #50657D"] {
+            color: var(--bv-muted) !important;
+        }
+
+        /* Garde les alertes rouges rouges */
+        .stApp [style*="color:#CC0605"],
+        .stApp [style*="color: #CC0605"] {
+            color: var(--bv-red) !important;
+        }
+
+        /* ============================================================
+           SIDEBAR
+        ============================================================ */
+
+        [data-testid="stSidebar"] {
+            background:
+                linear-gradient(180deg,
+                    color-mix(in srgb, var(--secondary-background-color) 88%, #142235 12%),
+                    color-mix(in srgb, var(--secondary-background-color) 96%, #D9BF91 4%)
+                ) !important;
+            border-right: 1px solid var(--bv-border-soft) !important;
+        }
+
+        [data-testid="stSidebar"] > div {
+            background: transparent !important;
+        }
+
+        [data-testid="stSidebar"] img {
+            border-radius: 16px !important;
+            box-shadow: var(--bv-shadow-soft) !important;
+            border: 1px solid rgba(217,191,145,.36) !important;
+            padding: 6px !important;
+            background: rgba(0,0,0,.18) !important;
+        }
+
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] label {
+            color: var(--bv-ink) !important;
+        }
+
+        /* ============================================================
+           TITRES
+        ============================================================ */
+
+        h1, h2, h3 {
+            letter-spacing: .01em !important;
+        }
+
+        h1 {
+            font-family: Georgia, "Times New Roman", serif !important;
+            font-weight: 700 !important;
+        }
+
+        h2 {
+            font-family: Georgia, "Times New Roman", serif !important;
+            font-weight: 700 !important;
+            border-bottom: 1px solid var(--bv-border-soft);
+            padding-bottom: .25rem;
+        }
+
+        h3 {
+            font-family: Georgia, "Times New Roman", serif !important;
+        }
+
+        /* ============================================================
+           CARTES / BLOCS / EXPANDERS
+        ============================================================ */
+
+        [data-testid="stExpander"] {
+            border: 1px solid var(--bv-border-soft) !important;
+            border-radius: var(--bv-radius) !important;
+            background: var(--bv-card) !important;
+            box-shadow: var(--bv-shadow-soft) !important;
+            overflow: hidden !important;
+        }
+
+        [data-testid="stExpander"] summary {
+            background: color-mix(in srgb, var(--bv-card-strong) 86%, transparent) !important;
+            border-bottom: 1px solid var(--bv-border-soft) !important;
+            font-weight: 800 !important;
+        }
+
+        [data-testid="stVerticalBlockBorderWrapper"],
+        [data-testid="stForm"] {
+            border-radius: var(--bv-radius) !important;
+            border-color: var(--bv-border-soft) !important;
+            background: var(--bv-card) !important;
+            box-shadow: var(--bv-shadow-soft) !important;
+        }
+
+        /* Corrige les fonds très blancs codés en dur dans le mode sombre */
+        .stApp [style*="background:#FFFEFB"],
+        .stApp [style*="background: #FFFEFB"],
+        .stApp [style*="background:#FCFAF5"],
+        .stApp [style*="background: #FCFAF5"],
+        .stApp [style*="background:#FFFFFF"],
+        .stApp [style*="background: #FFFFFF"],
+        .stApp [style*="background:rgba(255,254,251"],
+        .stApp [style*="background: rgba(255,254,251"] {
+            background: var(--bv-card) !important;
+        }
+
+        /* ============================================================
+           BOUTONS
+        ============================================================ */
+
+        .stButton > button,
+        .stDownloadButton > button,
+        button[kind="secondary"],
+        button[kind="primary"] {
+            border-radius: 999px !important;
+            border: 1px solid var(--bv-border) !important;
+            background:
+                linear-gradient(180deg,
+                    color-mix(in srgb, var(--secondary-background-color) 82%, #fff2d6 18%),
+                    color-mix(in srgb, var(--secondary-background-color) 94%, #D9BF91 6%)
+                ) !important;
+            color: var(--bv-ink) !important;
+            font-weight: 800 !important;
+            box-shadow: 0 4px 12px rgba(16,26,39,.08) !important;
+            transition: all .16s ease !important;
+        }
+
+        .stButton > button:hover,
+        .stDownloadButton > button:hover {
+            transform: translateY(-1px);
+            border-color: var(--bv-gold-strong) !important;
+            box-shadow: 0 8px 18px rgba(16,26,39,.14) !important;
+        }
+
+        .stButton > button[kind="primary"],
+        .stDownloadButton > button[kind="primary"] {
+            background:
+                linear-gradient(135deg,
+                    color-mix(in srgb, #142235 82%, var(--background-color) 18%),
+                    color-mix(in srgb, #20344D 82%, var(--background-color) 18%)
+                ) !important;
+            color: #FFFEFB !important;
+            border-color: var(--bv-gold-strong) !important;
+        }
+
+        /* ============================================================
+           INPUTS / SELECTS / TEXTAREA
+        ============================================================ */
+
+        input,
+        textarea,
+        select,
+        [data-baseweb="select"] > div,
+        [data-baseweb="input"] > div,
+        [data-baseweb="textarea"] > div {
+            border-radius: 10px !important;
+            border-color: var(--bv-border-soft) !important;
+            background: color-mix(in srgb, var(--background-color) 86%, var(--secondary-background-color) 14%) !important;
+            color: var(--bv-ink) !important;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--bv-gold-strong) !important;
+            box-shadow: 0 0 0 1px var(--bv-gold-strong) !important;
+        }
+
+        /* ============================================================
+           RADIO / CHECKBOX / MULTISELECT
+        ============================================================ */
+
+        [role="radiogroup"],
+        [data-testid="stCheckbox"] {
+            color: var(--bv-ink) !important;
+        }
+
+        [data-baseweb="tag"] {
+            border-radius: 999px !important;
+            background: color-mix(in srgb, var(--bv-gold) 25%, var(--secondary-background-color) 75%) !important;
+            color: var(--bv-ink) !important;
+        }
+
+        /* ============================================================
+           TABS
+        ============================================================ */
+
+        [data-baseweb="tab-list"] {
+            gap: 6px !important;
+            border-bottom: 1px solid var(--bv-border-soft) !important;
+        }
+
+        [data-baseweb="tab"] {
+            border-radius: 999px 999px 0 0 !important;
+            background: color-mix(in srgb, var(--secondary-background-color) 88%, #D9BF91 12%) !important;
+            border: 1px solid var(--bv-border-soft) !important;
+            border-bottom: none !important;
+            color: var(--bv-ink) !important;
+            font-weight: 800 !important;
+        }
+
+        [data-baseweb="tab"][aria-selected="true"] {
+            background: var(--bv-card-strong) !important;
+            color: var(--bv-ink) !important;
+            border-color: var(--bv-gold-strong) !important;
+        }
+
+        /* ============================================================
+           TABLES / DATAFRAMES / LIGNES
+        ============================================================ */
+
+        table {
+            border-collapse: collapse !important;
+            color: var(--bv-ink) !important;
+        }
+
+        th {
+            background: color-mix(in srgb, var(--secondary-background-color) 82%, #D9BF91 18%) !important;
+            color: var(--bv-ink) !important;
+            font-weight: 900 !important;
+        }
+
+        td {
+            color: var(--bv-ink) !important;
+            border-color: var(--bv-border-soft) !important;
+        }
+
+        hr {
+            border-color: var(--bv-border-soft) !important;
+        }
+
+        /* ============================================================
+           ALERTES STREAMLIT
+        ============================================================ */
+
+        [data-testid="stAlert"] {
+            border-radius: var(--bv-radius) !important;
+            border: 1px solid var(--bv-border-soft) !important;
+            box-shadow: var(--bv-shadow-soft) !important;
+        }
+
+        /* ============================================================
+           DIALOGUES / FENÊTRES
+        ============================================================ */
+
+        /* ============================================================
+           PETITE FINITION VINTAGE
+        ============================================================ */
+
+        .stCaptionContainer,
+        small {
+            color: var(--bv-muted) !important;
+        }
+
+        a {
+            color: color-mix(in srgb, var(--primary-color) 75%, var(--bv-gold-strong) 25%) !important;
+            font-weight: 700;
+        }
+
+        /* Les images gardent leur emplacement, juste un rendu plus propre */
+        .stImage img {
+            border-radius: 10px;
+        }
+/* ============================================================
+   BOUTONS PRINCIPAUX / CRÉATION
+   Rouge B&V avec texte blanc, en mode clair et sombre
+============================================================ */
+
+.stButton > button[kind="primary"],
+.stDownloadButton > button[kind="primary"],
+[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #CC0605, #A90404) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #8F0303 !important;
+    border-radius: 999px !important;
+    font-weight: 900 !important;
+    box-shadow: 0 6px 16px rgba(204, 6, 5, .28) !important;
+}
+
+.stButton > button[kind="primary"] *,
+.stDownloadButton > button[kind="primary"] *,
+[data-testid="baseButton-primary"] * {
+    color: #FFFFFF !important;
+}
+
+.stButton > button[kind="primary"]:hover,
+.stDownloadButton > button[kind="primary"]:hover,
+[data-testid="baseButton-primary"]:hover {
+    background: linear-gradient(135deg, #E11D1D, #CC0605) !important;
+    color: #FFFFFF !important;
+    border-color: #CC0605 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 9px 22px rgba(204, 6, 5, .34) !important;
+}
+
+.stButton > button[kind="primary"]:active,
+.stDownloadButton > button[kind="primary"]:active,
+[data-testid="baseButton-primary"]:active {
+    transform: translateY(0px);
+    box-shadow: 0 4px 10px rgba(204, 6, 5, .22) !important;
+}     
+/* ============================================================
+   CORRECTION GLOBALE DES FENÊTRES MODALES / DIALOGS
+   Création, modification, détails, FT, aide, corbeille.
+   Toujours ivoire clair, opaque et lisible même en mode dark.
+============================================================ */
+
+div[role="dialog"],
+[role="dialog"] {
+    background: #FFFEFB !important;
+    color: #142235 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #D9BF91 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 24px 80px rgba(16, 26, 39, .34) !important;
+}
+
+/* Fond interne du dialog */
+div[role="dialog"] > div,
+[role="dialog"] > div {
+    background: #FFFEFB !important;
+    color: #142235 !important;
+    opacity: 1 !important;
+}
+
+/* Tous les textes dans les fenêtres */
+div[role="dialog"] *,
+[role="dialog"] * {
+    color: #142235 !important;
+}
+
+/* Exceptions : rouge volontaire */
+div[role="dialog"] [style*="color:#CC0605"],
+div[role="dialog"] [style*="color: #CC0605"],
+[role="dialog"] [style*="color:#CC0605"],
+[role="dialog"] [style*="color: #CC0605"] {
+    color: #CC0605 !important;
+}
+
+/* Exceptions : texte blanc dans boutons rouges */
+div[role="dialog"] .stButton > button[kind="primary"],
+div[role="dialog"] [data-testid="baseButton-primary"],
+[role="dialog"] .stButton > button[kind="primary"],
+[role="dialog"] [data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #CC0605, #A90404) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #8F0303 !important;
+    border-radius: 999px !important;
+    font-weight: 900 !important;
+    opacity: 1 !important;
+}
+
+div[role="dialog"] .stButton > button[kind="primary"] *,
+div[role="dialog"] [data-testid="baseButton-primary"] *,
+[role="dialog"] .stButton > button[kind="primary"] *,
+[role="dialog"] [data-testid="baseButton-primary"] * {
+    color: #FFFFFF !important;
+}
+
+/* Boutons secondaires dans les fenêtres */
+div[role="dialog"] .stButton > button,
+div[role="dialog"] .stDownloadButton > button,
+[role="dialog"] .stButton > button,
+[role="dialog"] .stDownloadButton > button {
+    background: #F7F1E7 !important;
+    color: #142235 !important;
+    border: 1px solid #D9BF91 !important;
+    border-radius: 999px !important;
+    font-weight: 800 !important;
+    opacity: 1 !important;
+}
+
+div[role="dialog"] .stButton > button *,
+div[role="dialog"] .stDownloadButton > button *,
+[role="dialog"] .stButton > button *,
+[role="dialog"] .stDownloadButton > button * {
+    color: inherit !important;
+}
+
+/* Inputs / textarea / select dans les fenêtres */
+div[role="dialog"] input,
+div[role="dialog"] textarea,
+div[role="dialog"] select,
+div[role="dialog"] [data-baseweb="select"] > div,
+div[role="dialog"] [data-baseweb="input"] > div,
+div[role="dialog"] [data-baseweb="textarea"] > div,
+[role="dialog"] input,
+[role="dialog"] textarea,
+[role="dialog"] select,
+[role="dialog"] [data-baseweb="select"] > div,
+[role="dialog"] [data-baseweb="input"] > div,
+[role="dialog"] [data-baseweb="textarea"] > div {
+    background: #FFFFFF !important;
+    color: #142235 !important;
+    border-color: #D9BF91 !important;
+    opacity: 1 !important;
+}
+
+/* Placeholders */
+div[role="dialog"] input::placeholder,
+div[role="dialog"] textarea::placeholder,
+[role="dialog"] input::placeholder,
+[role="dialog"] textarea::placeholder {
+    color: #6D7F91 !important;
+    opacity: 1 !important;
+}
+
+/* Select options / valeurs */
+div[role="dialog"] [data-baseweb="select"] *,
+[role="dialog"] [data-baseweb="select"] * {
+    color: #142235 !important;
+}
+
+/* Onglets dans les fenêtres */
+div[role="dialog"] [data-baseweb="tab-list"],
+[role="dialog"] [data-baseweb="tab-list"] {
+    background: #FFFEFB !important;
+    border-bottom: 1px solid #D9BF91 !important;
+}
+
+div[role="dialog"] [data-baseweb="tab"],
+[role="dialog"] [data-baseweb="tab"] {
+    background: #F7F1E7 !important;
+    color: #142235 !important;
+    border: 1px solid #D9BF91 !important;
+    border-bottom: none !important;
+    border-radius: 12px 12px 0 0 !important;
+    font-weight: 800 !important;
+}
+
+div[role="dialog"] [data-baseweb="tab"][aria-selected="true"],
+[role="dialog"] [data-baseweb="tab"][aria-selected="true"] {
+    background: #EAD9B8 !important;
+    color: #142235 !important;
+    border-color: #B38B4D !important;
+}
+
+/* Expanders dans les fenêtres */
+div[role="dialog"] [data-testid="stExpander"],
+[role="dialog"] [data-testid="stExpander"] {
+    background: #FFFEFB !important;
+    color: #142235 !important;
+    border: 1px solid #D9BF91 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 6px 18px rgba(16,26,39,.08) !important;
+    opacity: 1 !important;
+}
+
+div[role="dialog"] [data-testid="stExpander"] summary,
+[role="dialog"] [data-testid="stExpander"] summary {
+    background: #F7F1E7 !important;
+    color: #142235 !important;
+    border-bottom: 1px solid #E2D0AD !important;
+}
+
+div[role="dialog"] [data-testid="stExpander"] summary *,
+[role="dialog"] [data-testid="stExpander"] summary * {
+    color: #142235 !important;
+}
+
+/* Alerts dans les fenêtres */
+div[role="dialog"] [data-testid="stAlert"],
+[role="dialog"] [data-testid="stAlert"] {
+    background: #F7F1E7 !important;
+    color: #142235 !important;
+    border: 1px solid #D9BF91 !important;
+    opacity: 1 !important;
+}
+
+div[role="dialog"] [data-testid="stAlert"] *,
+[role="dialog"] [data-testid="stAlert"] * {
+    color: #142235 !important;
+}
+
+/* Code / pre dans l'aide ou détails */
+div[role="dialog"] code,
+[role="dialog"] code {
+    background: #F1E8D8 !important;
+    color: #142235 !important;
+    border: 1px solid #E2D0AD !important;
+    border-radius: 6px !important;
+    padding: 2px 5px !important;
+}
+
+div[role="dialog"] pre,
+[role="dialog"] pre {
+    background: #F1E8D8 !important;
+    color: #142235 !important;
+    border: 1px solid #E2D0AD !important;
+    border-radius: 10px !important;
+}
+
+/* Traits */
+div[role="dialog"] hr,
+[role="dialog"] hr {
+    border-color: #D9BF91 !important;
+}
+
+/* Captions */
+div[role="dialog"] .stCaptionContainer,
+div[role="dialog"] small,
+[role="dialog"] .stCaptionContainer,
+[role="dialog"] small {
+    color: #64748B !important;
+}
+
+/* Images dans les fenêtres */
+div[role="dialog"] img,
+[role="dialog"] img {
+    opacity: 1 !important;
+}
+
+/* Fond des blocs HTML custom dans les fenêtres */
+div[role="dialog"] [style*="background:#FFFEFB"],
+div[role="dialog"] [style*="background: #FFFEFB"],
+div[role="dialog"] [style*="background:#FCFAF5"],
+div[role="dialog"] [style*="background: #FCFAF5"],
+div[role="dialog"] [style*="background:#FFFFFF"],
+div[role="dialog"] [style*="background: #FFFFFF"],
+[role="dialog"] [style*="background:#FFFEFB"],
+[role="dialog"] [style*="background: #FFFEFB"],
+[role="dialog"] [style*="background:#FCFAF5"],
+[role="dialog"] [style*="background: #FCFAF5"],
+[role="dialog"] [style*="background:#FFFFFF"],
+[role="dialog"] [style*="background: #FFFFFF"] {
+    background: #FFFEFB !important;
+}   
+
+/* ============================================================
+   ESPACE DE RESPIRATION EN BAS DES PAGES
+   Évite que les tableaux/listes soient collés à la fin de page
+============================================================ */
+
+.block-container {
+    padding-bottom: 7rem !important;
+}
+
+section.main > div {
+    padding-bottom: 7rem !important;
+}
+
+[data-testid="stAppViewContainer"] {
+    padding-bottom: 4rem !important;
+}
+
+/* ============================================================
+   ONGLET / COMPARTIMENTS — ESPACE ENTRE LES TABS
+   Pour mieux distinguer les compartiments composants / ateliers
+============================================================ */
+
+[data-baseweb="tab-list"] {
+    gap: 14px !important;
+    row-gap: 12px !important;
+    flex-wrap: wrap !important;
+    padding-top: 8px !important;
+    padding-bottom: 10px !important;
+}
+
+[data-baseweb="tab"] {
+    margin-right: 4px !important;
+    margin-bottom: 8px !important;
+    padding: 9px 18px !important;
+    border-radius: 999px !important;
+    border: 1px solid #D9BF91 !important;
+    background: #F7F1E7 !important;
+    color: #142235 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 3px 10px rgba(16,26,39,.08) !important;
+}
+
+[data-baseweb="tab"]:hover {
+    background: #EAD9B8 !important;
+    border-color: #B38B4D !important;
+}
+
+[data-baseweb="tab"][aria-selected="true"] {
+    background: linear-gradient(135deg, #CC0605, #A90404) !important;
+    color: #FFFFFF !important;
+    border-color: #8F0303 !important;
+    box-shadow: 0 6px 16px rgba(204,6,5,.24) !important;
+}
+
+[data-baseweb="tab"][aria-selected="true"] * {
+    color: #FFFFFF !important;
+}
+
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+appliquer_theme_bv_vintage() 
+
 # =============================================================================
 # IMPORTS REPORTLAB
 # =============================================================================
@@ -210,6 +895,13 @@ def choisir_dossier_utilisable(dossier_demande, nom_fallback):
     raise RuntimeError(f"Aucun dossier utilisable trouvé pour {nom_fallback}")
 
 
+
+
+# =============================================================================
+# FICHIERS DE STOCKAGE — SQLite principal + JSON legacy
+# =============================================================================
+
+
 if os.name == "nt":
     # Windows local
     DOSSIER_DONNEES_DEMANDE = lire_config("BV_DATA_DIR", r"C:\BV\data")
@@ -238,9 +930,7 @@ DOSSIER_BACKUPS = choisir_dossier_utilisable(
 )
 
 
-# =============================================================================
-# FICHIERS DE STOCKAGE — SQLite principal + JSON legacy
-# =============================================================================
+
 
 FICHIER_JSON_LEGACY = os.path.join(DOSSIER_DONNEES, "donnees_BV.json")
 
@@ -260,8 +950,148 @@ FICHIER_SESSIONS = os.path.join(DOSSIER_DONNEES, "sessions_BV.json")
 BV_DB_BACKEND = "sqlite"
 BV_DATABASE_URL = ""
 
-# On garde ce nom pour compatibilité avec certains affichages de ton code.
-FICHIER_SAUVEGARDE = FICHIER_SQLITE
+
+MAX_LIGNES_AFFICHAGE = 200
+OPTIONS_REDACTEURS = [
+    "Labo / R&D",
+    "Atelier : couleurs",
+    "Atelier : perles/croix",
+    "Atelier : pose peinture",
+    "Atelier : moulage",
+    "Atelier : résine",
+    "Atelier : finition",
+    "Atelier : assemblage",
+]
+# =============================================================================
+# NAVIGATION PERSISTANTE PAR URL
+# Permet de rester dans la même section après rafraîchissement de page.
+# =============================================================================
+
+SECTIONS_PREPARATION_BV = [
+    "🎨 Nuancier de couleurs",
+    "🧪 Catalogue des composants",
+    "🔢 Référentiel des codes RAL",
+    "⚗️ Formulations d'atelier",
+    "📐 Fiches Méthode",
+    "⚖️ Comparaison",
+]
+
+SECTION_SLUG_TO_LABEL = {
+    "nuancier": "🎨 Nuancier de couleurs",
+    "composants": "🧪 Catalogue des composants",
+    "ral": "🔢 Référentiel des codes RAL",
+    "formulations": "⚗️ Formulations d'atelier",
+    "fiches_methode": "📐 Fiches Méthode",
+    "comparaison": "⚖️ Comparaison",
+}
+
+SECTION_LABEL_TO_SLUG = {
+    label: slug
+    for slug, label in SECTION_SLUG_TO_LABEL.items()
+}
+
+
+def qp_get(cle, defaut=""):
+    """
+    Lit proprement un paramètre d'URL Streamlit.
+    """
+    try:
+        valeur = st.query_params.get(cle, defaut)
+
+        if isinstance(valeur, list):
+            return valeur[0] if valeur else defaut
+
+        return valeur if valeur is not None else defaut
+
+    except Exception:
+        return defaut
+
+
+def qp_set(cle, valeur):
+    """
+    Met à jour un paramètre d'URL sans provoquer de boucle inutile.
+    """
+    try:
+        if valeur is None or valeur == "":
+            if cle in st.query_params:
+                del st.query_params[cle]
+        else:
+            valeur = str(valeur)
+
+            if str(qp_get(cle, "")) != valeur:
+                st.query_params[cle] = valeur
+
+    except Exception:
+        pass
+
+
+def supprimer_parametres_temporaires_url(prefixes_ou_cles):
+    """
+    Supprime seulement certains paramètres temporaires de l'URL.
+    Ne supprime pas page / section.
+    """
+    try:
+        cles_actuelles = list(st.query_params.keys())
+
+        for cle in cles_actuelles:
+            for item in prefixes_ou_cles:
+                if cle == item or cle.startswith(item):
+                    if cle in st.query_params:
+                        del st.query_params[cle]
+
+    except Exception:
+        pass
+
+
+def restaurer_navigation_depuis_url():
+    """
+    Restaure la section active depuis l'URL.
+    À appeler avant la création du menu radio de la sidebar.
+    """
+    if st.session_state.get("_navigation_restauree_depuis_url", False):
+        return
+
+    page = qp_get("page", "")
+    section_slug = qp_get("section", "")
+
+    if page == "corbeille":
+        st.session_state.groupe_actif = "corbeille"
+        st.session_state.navigation_preparation = None
+        st.session_state.sub_section_melange = None
+
+    elif page == "preparation":
+        section_label = SECTION_SLUG_TO_LABEL.get(section_slug)
+
+        if section_label:
+            st.session_state.groupe_actif = "preparation_melanges"
+            st.session_state.navigation_preparation = section_label
+            st.session_state.sub_section_melange = section_label
+
+    st.session_state["_navigation_restauree_depuis_url"] = True
+
+
+def memoriser_navigation_dans_url():
+    """
+    Écrit la section active dans l'URL.
+    À appeler après chaque changement de section.
+    """
+    groupe = st.session_state.get("groupe_actif")
+    section = st.session_state.get("navigation_preparation")
+
+    if groupe == "corbeille":
+        qp_set("page", "corbeille")
+        qp_set("section", "")
+        return
+
+    if groupe == "preparation_melanges" and section:
+        section_slug = SECTION_LABEL_TO_SLUG.get(section, "")
+
+        qp_set("page", "preparation")
+        qp_set("section", section_slug)
+        return
+
+    qp_set("page", "")
+    qp_set("section", "")
 
 MAX_LIGNES_AFFICHAGE = 200
 OPTIONS_REDACTEURS = [
@@ -621,6 +1451,12 @@ def majuscule_initiale(valeur):
 
     return texte
 
+CLES_A_IGNORER_NORMALISATION = {
+    "data",
+    "image_rendu",
+    "commentaire_global_images",
+    "images_commentaire_global",
+}
 
 def normaliser_textes_db(objet, cle_parent=""):
     """
@@ -657,7 +1493,8 @@ def normaliser_textes_db(objet, cle_parent=""):
             return modifie
 
         for cle, valeur in list(objet.items()):
-
+            if cle in CLES_A_IGNORER_NORMALISATION:
+                continue
             # Champs texte simples
             if cle in CHAMPS_MAJUSCULE_INITIALE and isinstance(valeur, str):
                 nouvelle_valeur = majuscule_initiale(valeur)
@@ -749,183 +1586,53 @@ def initialiser_db():
     finally:
         conn.close()
 
-def lire_json_legacy():
-    """
-    Lit l'ancien fichier JSON si présent.
-    Cherche à plusieurs endroits et avec plusieurs noms possibles.
-    Sert uniquement à importer les anciennes données dans SQLite.
-    """
-
-    noms_possibles = [
-        "donnees_BV.json",
-        "donnees_bv.json",
-        "donnees_BV.JSON",
-        "donnees_bos2.json",
-        "donnees_BOS2.json",
-    ]
-
-    dossiers_possibles = [
-        DOSSIER_DONNEES,
-        os.path.join(DOSSIER_APP, "data"),
-        DOSSIER_APP,
-    ]
-
-    candidats = []
-
-    # Chemin principal attendu
-    candidats.append(FICHIER_JSON_LEGACY)
-
-    for dossier in dossiers_possibles:
-        for nom in noms_possibles:
-            candidats.append(os.path.join(dossier, nom))
-
-    # Supprime les doublons en gardant l'ordre
-    candidats_uniques = []
-    deja_vus = set()
-
-    for chemin in candidats:
-        chemin_norm = os.path.abspath(chemin)
-
-        if chemin_norm not in deja_vus:
-            candidats_uniques.append(chemin_norm)
-            deja_vus.add(chemin_norm)
-
-    for chemin_json in candidats_uniques:
-
-        if not os.path.exists(chemin_json):
-            continue
-
-        try:
-            if os.path.getsize(chemin_json) < 20:
-                continue
-        except Exception:
-            pass
-
-        try:
-            with open(chemin_json, "r", encoding="utf-8") as fichier:
-                donnees = json.load(fichier)
-
-            if isinstance(donnees, dict):
-                return appliquer_structure_minimale(donnees)
-
-        except Exception:
-            continue
-
-    return None
-def compter_donnees_principales(donnees):
-    """
-    Compte les données importantes.
-    Sert à savoir si une base SQLite est vide ou si elle contient vraiment des infos.
-    """
-    if not isinstance(donnees, dict):
-        return 0
-
-    preparation = donnees.get("preparation_melanges", {})
-
-    total = 0
-
-    for cle in [
-        "couleurs",
-        "melanges",
-        "fiches_methode",
-        "additifs",
-        "base_rals",
-        "corbeille",
-    ]:
-        valeur = preparation.get(cle, [])
-
-        if isinstance(valeur, list):
-            total += len(valeur)
-
-    creation_processus = donnees.get("creation_processus", {})
-
-    if isinstance(creation_processus, dict):
-        total += len(creation_processus)
-
-    elif isinstance(creation_processus, list):
-        total += len(creation_processus)
-
-    return total
 
 def migrer_json_vers_sqlite_si_besoin():
     """
     Si la base SQLite est vide, importe automatiquement donnees_BV.json.
-
-    Cas corrigé :
-    - Si SQLite existe déjà mais contient une structure vide,
-      et qu'un JSON avec des données existe,
-      alors on remplace la structure vide par les données du JSON.
+    Cela permet de garder toutes les données déjà existantes.
     """
+    os.makedirs(DOSSIER_DONNEES, exist_ok=True)
+    initialiser_db()
 
-    initialiser_sqlite()
-
-    donnees_json = lire_json_legacy()
-    nb_json = compter_donnees_principales(donnees_json)
-
-    conn = ouvrir_connexion_sqlite()
+    conn = ouvrir_connexion_db()
 
     try:
         ligne = conn.execute(
-            "SELECT data, version FROM app_state WHERE id = 1"
+            "SELECT id FROM app_state WHERE id = 1"
         ).fetchone()
 
-        # ------------------------------------------------------------
-        # CAS 1 : SQLite existe déjà
-        # ------------------------------------------------------------
+        # La base contient déjà des données : rien à faire.
         if ligne is not None:
-
-            try:
-                donnees_sqlite = json.loads(ligne[0]) if ligne[0] else {}
-            except Exception:
-                donnees_sqlite = {}
-
-            nb_sqlite = compter_donnees_principales(donnees_sqlite)
-
-            # SQLite contient déjà de vraies données : on ne touche à rien.
-            if nb_sqlite > 0:
-                return
-
-            # SQLite est vide, mais le JSON contient des données :
-            # on importe le JSON dans SQLite.
-            if nb_sqlite == 0 and nb_json > 0:
-
-                donnees_json = appliquer_structure_minimale(donnees_json)
-
-                try:
-                    normaliser_textes_db(donnees_json)
-                except Exception:
-                    pass
-
-                maintenant = datetime.datetime.now().isoformat(timespec="seconds")
-
-                conn.execute(
-                    """
-                    UPDATE app_state
-                    SET data = ?, version = ?, updated_at = ?
-                    WHERE id = 1
-                    """,
-                    (
-                        json.dumps(donnees_json, ensure_ascii=False, indent=4),
-                        1,
-                        maintenant,
-                    ),
-                )
-
-                conn.commit()
-                return
-
-            # SQLite vide et aucun JSON exploitable : on garde vide.
             return
 
-        # ------------------------------------------------------------
-        # CAS 2 : SQLite n'existe pas encore dans app_state
-        # ------------------------------------------------------------
-        if donnees_json is not None and nb_json > 0:
-            donnees = donnees_json
+        # Si un JSON existe, on l'importe.
+        if os.path.exists(FICHIER_JSON_LEGACY):
+            try:
+                with open(FICHIER_JSON_LEGACY, "r", encoding="utf-8") as fichier:
+                    donnees = json.load(fichier)
+
+                if not isinstance(donnees, dict):
+                    donnees = structure_donnees_vide()
+
+            except Exception:
+                donnees = structure_donnees_vide()
+
         else:
             donnees = structure_donnees_vide()
 
-        donnees = appliquer_structure_minimale(donnees)
+        # Sécurise la structure minimale
+        donnees.setdefault("creation_processus", {})
+        preparation = donnees.setdefault("preparation_melanges", {})
+        preparation.setdefault("couleurs", [])
+        preparation.setdefault("melanges", [])
+        preparation.setdefault("fiches_methode", [])
+        preparation.setdefault("additifs", [])
+        preparation.setdefault("base_rals", [])
+        preparation.setdefault("compartiments", ["résine", "peinture"])
+        preparation.setdefault("sous_groupes", ["Général"])
+        preparation.setdefault("ateliers", ["Atelier Résine", "Atelier Peinture"])
+        preparation.setdefault("corbeille", [])
 
         try:
             normaliser_textes_db(donnees)
@@ -949,6 +1656,7 @@ def migrer_json_vers_sqlite_si_besoin():
 
     finally:
         conn.close()
+
 
 def sauvegarder_backup_json_depuis_sqlite(data_str, label):
     """
@@ -970,16 +1678,38 @@ def sauvegarder_backup_json_depuis_sqlite(data_str, label):
     except Exception:
         pass
     
-# =============================================================================
-# BASE DE DONNÉES SQLITE — STOCKAGE PRINCIPAL BV
-# =============================================================================
+    
+def charger_donnees():
+    """
+    Charge les données depuis la base SQLite.
+    Si la base est vide, importe automatiquement l'ancien JSON.
+    """
 
-def appliquer_structure_minimale(donnees):
-    """
-    Sécurise la structure minimale attendue par l'application.
-    """
-    if not isinstance(donnees, dict):
+    os.makedirs(DOSSIER_DONNEES, exist_ok=True)
+
+    migrer_json_vers_sqlite_si_besoin()
+
+    donnees = structure_donnees_vide()
+
+    conn = ouvrir_connexion_db()
+
+    try:
+        ligne = conn.execute(
+            "SELECT data FROM app_state WHERE id = 1"
+        ).fetchone()
+
+        if ligne and ligne[0]:
+            contenu = json.loads(ligne[0])
+
+            if isinstance(contenu, dict):
+                donnees = contenu
+
+    except Exception:
+        # En cas de problème, on évite de faire planter tout le site.
         donnees = structure_donnees_vide()
+
+    finally:
+        conn.close()
 
     donnees.setdefault("creation_processus", {})
 
@@ -997,214 +1727,25 @@ def appliquer_structure_minimale(donnees):
 
     return donnees
 
-
-def ouvrir_connexion_sqlite():
-    """
-    Ouvre la base SQLite.
-    """
-    os.makedirs(DOSSIER_DONNEES, exist_ok=True)
-
-    conn = sqlite3.connect(
-        FICHIER_SQLITE,
-        timeout=30,
-        check_same_thread=False,
-    )
-
-    try:
-        conn.execute("PRAGMA journal_mode=WAL;")
-    except Exception:
-        pass
-
-    try:
-        conn.execute("PRAGMA synchronous=NORMAL;")
-        conn.execute("PRAGMA busy_timeout=10000;")
-        conn.execute("PRAGMA foreign_keys=ON;")
-    except Exception:
-        pass
-
-    return conn
-
-
-def initialiser_sqlite():
-    """
-    Crée les tables SQLite si elles n'existent pas.
-    """
-    conn = ouvrir_connexion_sqlite()
-
-    try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS app_state (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                data TEXT NOT NULL,
-                version INTEGER NOT NULL DEFAULT 1,
-                updated_at TEXT NOT NULL
-            )
-            """
-        )
-
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS app_backups (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                label TEXT UNIQUE NOT NULL,
-                version INTEGER,
-                created_at TEXT NOT NULL,
-                data TEXT NOT NULL
-            )
-            """
-        )
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-
-def lire_json_legacy():
-    """
-    Lit l'ancien fichier JSON si présent.
-    Sert uniquement à la première migration vers SQLite.
-    """
-    if not os.path.exists(FICHIER_JSON_LEGACY):
-        return None
-
-    try:
-        with open(FICHIER_JSON_LEGACY, "r", encoding="utf-8") as fichier:
-            donnees = json.load(fichier)
-
-        return appliquer_structure_minimale(donnees)
-
-    except Exception:
-        return None
-
-
-def migrer_json_vers_sqlite_si_besoin():
-    """
-    Si la base SQLite est vide, importe automatiquement donnees_BV.json.
-    """
-    initialiser_sqlite()
-
-    conn = ouvrir_connexion_sqlite()
-
-    try:
-        ligne = conn.execute(
-            "SELECT id FROM app_state WHERE id = 1"
-        ).fetchone()
-
-        # La base SQLite contient déjà les données.
-        if ligne is not None:
-            return
-
-        donnees = lire_json_legacy()
-
-        if donnees is None:
-            donnees = structure_donnees_vide()
-
-        donnees = appliquer_structure_minimale(donnees)
-
-        try:
-            normaliser_textes_db(donnees)
-        except Exception:
-            pass
-
-        maintenant = datetime.datetime.now().isoformat(timespec="seconds")
-
-        conn.execute(
-            """
-            INSERT INTO app_state (id, data, version, updated_at)
-            VALUES (1, ?, 1, ?)
-            """,
-            (
-                json.dumps(donnees, ensure_ascii=False, indent=4),
-                maintenant,
-            ),
-        )
-
-        conn.commit()
-
-    finally:
-        conn.close()
-
-
-def sauvegarder_backup_json_depuis_sqlite(data_str, label):
-    """
-    Crée une sauvegarde JSON lisible dans le dossier backups.
-    La base principale reste SQLite.
-    """
-    try:
-        os.makedirs(DOSSIER_BACKUPS, exist_ok=True)
-
-        fichier_backup = os.path.join(
-            DOSSIER_BACKUPS,
-            f"donnees_BV_backup_{label}.json",
-        )
-
-        if not os.path.exists(fichier_backup):
-            with open(fichier_backup, "w", encoding="utf-8") as fichier:
-                fichier.write(data_str)
-
-    except Exception:
-        pass
-
-
-def charger_donnees():
-    """
-    Charge les données depuis SQLite.
-    Si SQLite est vide, importe automatiquement l'ancien JSON.
-    """
-    os.makedirs(DOSSIER_DONNEES, exist_ok=True)
-
-    migrer_json_vers_sqlite_si_besoin()
-
-    donnees = structure_donnees_vide()
-
-    conn = ouvrir_connexion_sqlite()
-
-    try:
-        ligne = conn.execute(
-            "SELECT data FROM app_state WHERE id = 1"
-        ).fetchone()
-
-        if ligne and ligne[0]:
-            contenu = json.loads(ligne[0])
-
-            if isinstance(contenu, dict):
-                donnees = contenu
-
-    except Exception:
-        donnees = structure_donnees_vide()
-
-    finally:
-        conn.close()
-
-    donnees = appliquer_structure_minimale(donnees)
-
-    return donnees
-
-
 def sauvegarder_donnees():
     """
-    Sauvegarde les données dans SQLite.
-    Crée aussi une sauvegarde JSON lisible une fois par heure.
+    Sauvegarde les données dans la base SQLite.
+    Crée aussi une sauvegarde automatique une fois par heure.
     """
+
     os.makedirs(DOSSIER_DONNEES, exist_ok=True)
     os.makedirs(DOSSIER_BACKUPS, exist_ok=True)
 
-    if "processus_db" not in st.session_state:
-        return
+    initialiser_db()
 
-    initialiser_sqlite()
-
+    # Normalisation avant sauvegarde
     try:
         normaliser_textes_db(st.session_state.processus_db)
     except Exception:
         pass
 
-    donnees = appliquer_structure_minimale(st.session_state.processus_db)
-
     data_str = json.dumps(
-        donnees,
+        st.session_state.processus_db,
         ensure_ascii=False,
         indent=4,
     )
@@ -1212,9 +1753,10 @@ def sauvegarder_donnees():
     maintenant = datetime.datetime.now().isoformat(timespec="seconds")
     label_backup = datetime.datetime.now().strftime("%Y-%m-%d_%Hh")
 
-    conn = ouvrir_connexion_sqlite()
+    conn = ouvrir_connexion_db()
 
     try:
+        # BEGIN IMMEDIATE verrouille proprement l'écriture.
         conn.execute("BEGIN IMMEDIATE")
 
         ligne_actuelle = conn.execute(
@@ -1230,7 +1772,7 @@ def sauvegarder_donnees():
 
         nouvelle_version = ancienne_version + 1
 
-        # Sauvegarde SQL + JSON une fois par heure
+        # Sauvegarde SQL une fois par heure
         if anciennes_donnees:
             conn.execute(
                 """
@@ -1245,16 +1787,23 @@ def sauvegarder_donnees():
                 ),
             )
 
+            # Sauvegarde JSON lisible une fois par heure
             sauvegarder_backup_json_depuis_sqlite(
                 anciennes_donnees,
                 label_backup,
             )
 
+        # Mise à jour de l'état principal
         conn.execute(
             """
-            INSERT OR REPLACE INTO app_state (id, data, version, updated_at)
+            INSERT INTO app_state (id, data, version, updated_at)
             VALUES (1, ?, ?, ?)
-            """,
+            ON CONFLICT(id) DO UPDATE SET
+                data = excluded.data,
+                version = excluded.version,
+                updated_at = excluded.updated_at
+            """
+            ,
             (
                 data_str,
                 nouvelle_version,
@@ -1270,32 +1819,29 @@ def sauvegarder_donnees():
 
     finally:
         conn.close()
+
 if "processus_db" not in st.session_state:
     st.session_state.processus_db = charger_donnees()
 st.sidebar.caption(f"Base SQL utilisée : {FICHIER_SQLITE}")
 
-st.sidebar.caption(f"Base SQLite utilisée : {FICHIER_SQLITE}")
-
 try:
-    st.sidebar.caption(f"Taille SQLite : {os.path.getsize(FICHIER_SQLITE)} octets")
+    st.sidebar.caption(f"Taille base SQL : {os.path.getsize(FICHIER_SQLITE)} octets")
 except Exception:
-    st.sidebar.caption("Base SQLite : fichier introuvable")
-
-st.sidebar.caption(f"JSON recherché : {FICHIER_JSON_LEGACY}")
+    st.sidebar.caption("Base SQL : fichier introuvable")
 
 if os.path.exists(FICHIER_JSON_LEGACY):
-    try:
-        st.sidebar.caption(f"Taille JSON : {os.path.getsize(FICHIER_JSON_LEGACY)} octets")
-    except Exception:
-        pass
-else:
-    st.sidebar.warning("JSON d'origine introuvable dans data/donnees_BV.json")
+    st.sidebar.caption(f"Ancien JSON conservé : {FICHIER_JSON_LEGACY}")
+if not st.session_state.get("_normalisation_initiale_effectuee", False):
+
+    if normaliser_textes_db(st.session_state.processus_db):
+        sauvegarder_donnees()
+
+    st.session_state["_normalisation_initiale_effectuee"] = True
 
 try:
-    nb_donnees_actuelles = compter_donnees_principales(st.session_state.processus_db)
-    st.sidebar.caption(f"Données chargées : {nb_donnees_actuelles} élément(s)")
+    st.sidebar.caption(f"Taille JSON : {os.path.getsize(FICHIER_SAUVEGARDE)} octets")
 except Exception:
-    pass
+    st.sidebar.caption("Taille JSON : fichier introuvable")
 
 # =============================================================================
 # UTILITAIRES
@@ -1329,8 +1875,13 @@ def afficher_animation_validation(message):
         """,
         unsafe_allow_html=True,
     )
-    time.sleep(1.0)
-    emplacement.empty()
+    """
+    Validation rapide sans bloquer l'application.
+    """
+    try:
+        st.toast(f"✅ {message}")
+    except Exception:
+        st.success(message)
 
 def get_svg_icon(icon_name):
     icons = {
@@ -2073,14 +2624,23 @@ def afficher_selecteurs_marquage_objet(prefixe, objet_existant=None, titre="Marq
 def apparence_ligne_objet_marque(objet_data):
     """
     Apparence d'une ligne de tableau pour couleur ou composant.
+    Compatible mode clair / sombre.
     """
+
     objet_data = objet_data or {}
+
+    couleur_auto = "var(--text-color)"
+    couleur_auto_secondaire = "var(--bv-muted, var(--text-color))"
 
     couleur_option = get_couleur_depuis_objet(objet_data)
     marquage_option = get_marquage_depuis_objet(objet_data)
 
-    couleur = couleur_option["hex"] if couleur_option["id"] != "aucune" else "#142235"
-    couleur_secondaire = couleur if couleur_option["id"] != "aucune" else "#64748B"
+    if couleur_option["id"] != "aucune":
+        couleur = couleur_option["hex"]
+        couleur_secondaire = couleur_option["hex"]
+    else:
+        couleur = couleur_auto
+        couleur_secondaire = couleur_auto_secondaire
 
     prefixe = ""
     tooltip = ""
@@ -2101,7 +2661,6 @@ def apparence_ligne_objet_marque(objet_data):
         "tooltip": tooltip,
         "gras": gras,
     }
-
 
 def selectbox_filtre_couleur_marquage(prefixe, label="Filtrer par couleur de texte"):
     options = ["Toutes"] + [option["id"] for option in OPTIONS_COULEURS_AUTRES_MELANGES]
@@ -2204,10 +2763,17 @@ def afficher_selecteurs_apparence_autre_melange(prefixe, melange_data=None):
 def apparence_ligne_melange(melange_data):
     """
     Retourne couleur + marquage à appliquer dans le tableau.
+
     - Mélange Couleurs vérifié : rouge + pastille rouge.
     - Autre Mélange : couleur + emoji choisis.
+    - Mélange normal : couleur automatique Streamlit, donc lisible en clair et sombre.
     """
+
+    couleur_auto = "var(--text-color)"
+    couleur_auto_secondaire = "var(--bv-muted, var(--text-color))"
+
     statut_melange = str(melange_data.get("statut", "") or "").strip().lower()
+
     categorie_melange = str(
         melange_data.get("categorie_choisie", "Mélange Couleurs") or ""
     ).strip()
@@ -2227,11 +2793,16 @@ def apparence_ligne_melange(melange_data):
         }
 
     if categorie_melange != "Mélange Couleurs":
+
         couleur_option = get_couleur_depuis_melange(melange_data)
         marquage_option = get_marquage_depuis_melange(melange_data)
 
-        couleur = couleur_option["hex"] if couleur_option["id"] != "aucune" else "#142235"
-        couleur_secondaire = couleur if couleur_option["id"] != "aucune" else "#64748B"
+        if couleur_option["id"] != "aucune":
+            couleur = couleur_option["hex"]
+            couleur_secondaire = couleur_option["hex"]
+        else:
+            couleur = couleur_auto
+            couleur_secondaire = couleur_auto_secondaire
 
         prefixe = ""
         tooltip = ""
@@ -2249,13 +2820,12 @@ def apparence_ligne_melange(melange_data):
         }
 
     return {
-        "couleur": "#142235",
-        "couleur_secondaire": "#64748B",
+        "couleur": couleur_auto,
+        "couleur_secondaire": couleur_auto_secondaire,
         "prefixe": "",
         "tooltip": "",
         "gras": False,
     }
-
 # =============================================================================
 # FERMETURE DÉFINITIVE DES FENÊTRES DE MODIFICATION
 # =============================================================================
@@ -2577,6 +3147,36 @@ def generer_fichier_export(donnees_list, nom_fichier="export"):
             "text/csv",
         )
 
+
+@st.cache_data(show_spinner=False, ttl=300)
+def generer_fichier_export_cache(donnees_json, nom_fichier):
+    """
+    Cache les exports pendant 5 minutes.
+    Évite de reconstruire Excel à chaque rerun.
+    """
+    try:
+        donnees = json.loads(donnees_json)
+    except Exception:
+        donnees = []
+
+    return generer_fichier_export(donnees, nom_fichier)
+
+
+def generer_fichier_export_rapide(donnees_list, nom_fichier="export"):
+    """
+    Wrapper qui transforme les données en JSON stable pour le cache.
+    """
+    try:
+        donnees_json = json.dumps(
+            donnees_list,
+            ensure_ascii=False,
+            sort_keys=True,
+            default=str,
+        )
+    except Exception:
+        donnees_json = "[]"
+
+    return generer_fichier_export_cache(donnees_json, nom_fichier)
 
 def add_tmp_item(state_dict_name, cle, data):
     st.session_state.setdefault(state_dict_name, {})[cle] = data
@@ -4119,6 +4719,127 @@ def ouvrir_details_melange(melange):
 query_params = st.query_params
 @st.dialog("❓ Centre d'Aide Intégré B&V", width="large")
 def ouvrir_fenetre_aide():
+    # st.markdown(
+    #     """
+    #     <style>
+    #     /* ============================================================
+    #        FENÊTRE AIDE / CENTRE DE FORMATION
+    #        Toujours claire, opaque et lisible.
+    #     ============================================================ */
+
+    #     [role="dialog"] {
+    #         background: #FFFEFB !important;
+    #         color: #142235 !important;
+    #         opacity: 1 !important;
+    #         backdrop-filter: none !important;
+    #         border: 1px solid #D9BF91 !important;
+    #         box-shadow: 0 24px 70px rgba(16,26,39,.28) !important;
+    #     }
+
+    #     [role="dialog"] * {
+    #         color: #142235 !important;
+    #     }
+
+    #     [role="dialog"] p,
+    #     [role="dialog"] li,
+    #     [role="dialog"] span,
+    #     [role="dialog"] div,
+    #     [role="dialog"] label {
+    #         color: #142235 !important;
+    #     }
+
+    #     [role="dialog"] h1,
+    #     [role="dialog"] h2,
+    #     [role="dialog"] h3,
+    #     [role="dialog"] h4,
+    #     [role="dialog"] h5,
+    #     [role="dialog"] h6 {
+    #         color: #142235 !important;
+    #     }
+
+    #     [role="dialog"] [data-testid="stMarkdownContainer"] {
+    #         color: #142235 !important;
+    #     }
+
+    #     [role="dialog"] [data-testid="stExpander"] {
+    #         background: #FFFEFB !important;
+    #         border: 1px solid #D9BF91 !important;
+    #         color: #142235 !important;
+    #         box-shadow: 0 6px 18px rgba(16,26,39,.08) !important;
+    #     }
+
+    #     [role="dialog"] [data-testid="stExpander"] summary {
+    #         background: #F7F1E7 !important;
+    #         color: #142235 !important;
+    #         border-bottom: 1px solid #E2D0AD !important;
+    #     }
+
+    #     [role="dialog"] [data-testid="stExpander"] summary * {
+    #         color: #142235 !important;
+    #     }
+
+    #     [role="dialog"] input,
+    #     [role="dialog"] textarea,
+    #     [role="dialog"] select,
+    #     [role="dialog"] [data-baseweb="select"] > div,
+    #     [role="dialog"] [data-baseweb="input"] > div,
+    #     [role="dialog"] [data-baseweb="textarea"] > div {
+    #         background: #FFFFFF !important;
+    #         color: #142235 !important;
+    #         border-color: #D9BF91 !important;
+    #     }
+
+    #     [role="dialog"] .stTabs [data-baseweb="tab"] {
+    #         background: #F7F1E7 !important;
+    #         color: #142235 !important;
+    #         border: 1px solid #D9BF91 !important;
+    #     }
+
+    #     [role="dialog"] .stTabs [data-baseweb="tab"][aria-selected="true"] {
+    #         background: #EAD9B8 !important;
+    #         color: #142235 !important;
+    #         border-color: #B38B4D !important;
+    #     }
+
+    #     [role="dialog"] .stButton > button,
+    #     [role="dialog"] .stDownloadButton > button {
+    #         opacity: 1 !important;
+    #     }
+
+    #     [role="dialog"] .stButton > button[kind="primary"],
+    #     [role="dialog"] [data-testid="baseButton-primary"] {
+    #         background: linear-gradient(135deg, #CC0605, #A90404) !important;
+    #         color: #FFFFFF !important;
+    #         border: 1px solid #8F0303 !important;
+    #     }
+
+    #     [role="dialog"] .stButton > button[kind="primary"] *,
+    #     [role="dialog"] [data-testid="baseButton-primary"] * {
+    #         color: #FFFFFF !important;
+    #     }
+
+    #     [role="dialog"] code {
+    #         background: #F1E8D8 !important;
+    #         color: #142235 !important;
+    #         border: 1px solid #E2D0AD !important;
+    #         border-radius: 6px !important;
+    #         padding: 2px 5px !important;
+    #     }
+
+    #     [role="dialog"] pre {
+    #         background: #F1E8D8 !important;
+    #         color: #142235 !important;
+    #         border: 1px solid #E2D0AD !important;
+    #         border-radius: 10px !important;
+    #     }
+
+    #     [role="dialog"] hr {
+    #         border-color: #D9BF91 !important;
+    #     }
+    #     </style>
+    #     """,
+    #     unsafe_allow_html=True,
+    # )    
     astuces = [
         "Utilisez la recherche globale dans le menu de gauche pour retrouver instantanément un produit par son nom, sa référence ou son code RAL.",
         "Les codes RAL reconnus (ex: 5015) mettent automatiquement à jour le visuel de la couleur.",
@@ -4319,7 +5040,7 @@ def ouvrir_fenetre_aide():
         st.rerun()
 
 if "action" in query_params and query_params["action"] == "help":
-    st.query_params.clear()
+    supprimer_parametres_temporaires_url(["action"])
     ouvrir_fenetre_aide()
 
 if "moved_id" in query_params and "moved_x" in query_params and "moved_y" in query_params:
@@ -4334,7 +5055,12 @@ if "moved_id" in query_params and "moved_x" in query_params and "moved_y" in que
                 if s["id"] == m_fid:
                     s["x"], s["y"] = m_fx, m_fy
                     sauvegarder_donnees()
-        st.query_params.clear()
+        supprimer_parametres_temporaires_url([
+            "moved_id",
+            "moved_idx",
+            "moved_x",
+            "moved_y",
+        ])
     except Exception:
         pass
 
@@ -4344,8 +5070,14 @@ if "moved_id" in query_params and "moved_x" in query_params and "moved_y" in que
 # BARRE LATÉRALE ET RECHERCHE GLOBALE
 # =============================================================================
 
+# Restaure la section après rafraîchissement de page
+restaurer_navigation_depuis_url()
+
 with st.sidebar:
-    logo_path = os.path.join(os.getcwd(), "Martineau logo.png")
+    dossier_app_logo = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(dossier_app_logo, "Martineau logo blanc.png")
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join(dossier_app_logo, "Martineau logo.png")
     if os.path.exists(logo_path):
         st.image(logo_path, use_container_width=True)
     st.markdown(
@@ -4355,28 +5087,17 @@ with st.sidebar:
 
     # --- Bouton Retour au Menu Principal ---
     if st.button("🏠 Menu Principal / Retour", use_container_width=True, key="btn_return_main_menu"):
-    
         fermer_dialogue_actif()
-    
         st.session_state.groupe_actif = None
-    
         st.session_state.sub_section_melange = None
-    
         st.session_state.navigation_preparation = None
-    
+        memoriser_navigation_dans_url()
         st.rerun()
 
     st.markdown("---")
 
     # --- MENU DES SECTIONS DIRECTEMENT DANS LA BARRE LATÉRALE ---
-    sections_preparation = [
-        "🎨 Nuancier de couleurs",
-        "🧪 Catalogue des composants",
-        "🔢 Référentiel des codes RAL",
-        "⚗️ Formulations d'atelier",
-        "📐 Fiches Méthode",
-        "⚖️ Comparaison",
-    ]
+    sections_preparation = SECTIONS_PREPARATION_BV
 
     # Initialisation de la clé de navigation si absente
     if "navigation_preparation" not in st.session_state:
@@ -4403,6 +5124,7 @@ with st.sidebar:
         else:
             st.session_state.groupe_actif = "preparation_melanges"
             st.session_state.sub_section_melange = choix_section
+        memoriser_navigation_dans_url()
         st.rerun()
 
     st.markdown("---")
@@ -4418,10 +5140,17 @@ with st.sidebar:
     corbeille_list = prep_db.get("corbeille", [])
     nb_elements_corbeille = len(corbeille_list)
     if st.button(f"🗑️ Corbeille ({nb_elements_corbeille})", use_container_width=True, key="sidebar_btn_corbeille"):
+    
         fermer_dialogue_actif()
+    
         st.session_state.groupe_actif = "corbeille"
+        st.session_state.navigation_preparation = None
+        st.session_state.sub_section_melange = None
+    
+        memoriser_navigation_dans_url()
+    
         st.rerun()
-
+        
 st.markdown("<br>", unsafe_allow_html=True)
 search_icon = get_svg_icon("search")
 st.markdown(
@@ -5147,7 +5876,7 @@ if G_ACTIF == "preparation_melanges":
                 st.rerun()
                 
         with barre_action_2:
-            excel_couleurs, nom_excel_couleurs, mime_excel_couleurs = generer_fichier_export(
+            excel_couleurs, nom_excel_couleurs, mime_excel_couleurs = generer_fichier_export_rapide(
                 liste_couleurs,
                 "Export_Couleurs",
             )
@@ -5933,7 +6662,7 @@ if G_ACTIF == "preparation_melanges":
                 ouvrir_dialogue_actif("ajout_element")
                 st.rerun()
         with barre_element_2:
-            excel_elements, nom_excel_elements, mime_excel_elements = generer_fichier_export(
+            excel_elements, nom_excel_elements, mime_excel_elements = generer_fichier_export_rapide(
                 liste_additifs,
                 "Export_Elements",
             )
@@ -7667,7 +8396,7 @@ if G_ACTIF == "preparation_melanges":
                 ouvrir_dialogue_actif("ajout_melange")
                 st.rerun()
         with barre_melange_2:
-            excel_melanges, nom_excel_melanges, mime_excel_melanges = generer_fichier_export(
+            excel_melanges, nom_excel_melanges, mime_excel_melanges = generer_fichier_export_rapide(
                 liste_melanges,
                 "Export_Melanges",
             )
@@ -7822,22 +8551,6 @@ if G_ACTIF == "preparation_melanges":
                 index_melange = melange_ligne["index_origine"]
                 melange_data = melange_ligne["data"]
                 ligne = st.columns([.9, 1.25, .75, 2.8, 1.1, 1.5, 2.2])
-                # ------------------------------------------------------------
-                # Texte rouge uniquement pour les Mélanges Couleurs vérifiés
-                # ------------------------------------------------------------
-                statut_melange = str(melange_data.get("statut", "") or "").strip().lower()
-                categorie_melange = str(
-                    melange_data.get("categorie_choisie", "Mélange Couleurs") or ""
-                ).strip()
-
-                melange_couleurs_verifie = (
-                    categorie_melange == "Mélange Couleurs"
-                    and statut_melange in ["vérifié", "verifié", "verifie"]
-                )
-
-                couleur_texte_ligne = "#CC0605" if melange_couleurs_verifie else "#142235"
-                couleur_texte_secondaire = "#CC0605" if melange_couleurs_verifie else "#64748B"
-                verification = "🔴 " if melange_couleurs_verifie else ""
 
                 style_ligne = apparence_ligne_melange(melange_data)
 
@@ -9363,7 +10076,16 @@ if G_ACTIF == "preparation_melanges":
                 except Exception as erreur_canvas:
                     st.session_state.mm_derniere_erreur_canvas = str(erreur_canvas)
 
-            st.query_params.clear()
+            supprimer_parametres_temporaires_url([
+                "mm_action",
+                "mm_fiche",
+                "mm_node",
+                "mm_edge",
+                "mm_x",
+                "mm_y",
+                "mm_from",
+                "mm_to",
+            ])
             st.rerun()
 
 
@@ -11729,3 +12451,5 @@ elif G_ACTIF == "corbeille":
                 elif d_type == "edit_trash_Mélange":
                     ouvrir_modif_melange_corbeille(d_idx, item_target["data"])
 
+# Espace de respiration en bas de page
+st.markdown("<div style='height:90px;'></div>", unsafe_allow_html=True)
