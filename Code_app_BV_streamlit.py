@@ -2075,6 +2075,404 @@ def nettoyer_valeur_pdf(valeur):
     return texte_securise.replace("\n", "<br/>")
 
 # =============================================================================
+# CONTRÔLE DES DÉPENDANCES AVANT SUPPRESSION
+# =============================================================================
+
+def bv_txt(valeur):
+    return str(valeur or "").strip()
+
+def cle_widget_safe(*valeurs):
+    """
+    Crée une clé Streamlit propre et unique à partir de plusieurs morceaux.
+    """
+    texte = "_".join(str(v) for v in valeurs)
+    texte = re.sub(r"[^a-zA-Z0-9_]+", "_", texte)
+    return texte[:160]
+
+def bv_norm(valeur):
+    return bv_txt(valeur).lower()
+
+
+def bv_digits(valeur):
+    return "".join(filter(str.isdigit, bv_txt(valeur)))
+
+
+def bv_identifiant_objet(type_item, item_data):
+    """
+    Retourne un nom lisible pour la confirmation de suppression.
+    """
+    if isinstance(item_data, str):
+        return item_data
+
+    item_data = item_data or {}
+
+    if type_item == "Couleur":
+        return f"{item_data.get('nom_actuel', '')} ({item_data.get('ref', '-')})"
+
+    if type_item == "Élément":
+        return f"{item_data.get('nom', '')} ({item_data.get('code', '-')})"
+
+    if type_item == "Mélange":
+        return f"{item_data.get('nom', '')} ({item_data.get('ref', '-')})"
+
+    if type_item == "Code RAL":
+        return f"RAL {item_data.get('code', item_data.get('ref', '-'))} — {item_data.get('nom', '')}"
+
+    if type_item == "Fiche Méthode":
+        return item_data.get("nom", "Fiche méthode")
+
+    if type_item in ["Compartiment", "Sous-groupe", "Atelier"]:
+        return item_data.get("nom") or item_data.get("libelle") or str(item_data)
+
+    return (
+        item_data.get("nom")
+        or item_data.get("nom_actuel")
+        or item_data.get("ref")
+        or item_data.get("code")
+        or "Élément"
+    )
+
+
+def ajouter_dependance(liste, deja_vu, type_dep, identifiant, detail):
+    """
+    Ajoute une dépendance sans doublon.
+    """
+    identifiant = bv_txt(identifiant) or "-"
+    detail = bv_txt(detail) or "-"
+
+    cle = (
+        bv_norm(type_dep),
+        bv_norm(identifiant),
+        bv_norm(detail),
+    )
+
+    if cle not in deja_vu:
+        liste.append(
+            {
+                "type": type_dep,
+                "identifiant": identifiant,
+                "detail": detail,
+            }
+        )
+        deja_vu.add(cle)
+
+
+def analyser_dependances_suppression(type_item, item_data):
+    """
+    Analyse où l'objet à supprimer est encore utilisé.
+
+    Types gérés :
+    - Couleur
+    - Élément
+    - Mélange
+    - Code RAL
+    - Fiche Méthode
+    - Compartiment
+    - Sous-groupe
+    - Atelier
+    """
+    dependances = []
+    deja_vu = set()
+
+    try:
+        prep = st.session_state.processus_db.get("preparation_melanges", {})
+    except Exception:
+        prep = {}
+
+    couleurs = prep.get("couleurs", [])
+    elements = prep.get("additifs", [])
+    melanges = prep.get("melanges", [])
+
+    if isinstance(item_data, str):
+        item_data = {"nom": item_data}
+
+    item_data = item_data or {}
+
+    # ---------------------------------------------------------------------
+    # COULEUR utilisée dans les mélanges
+    # ---------------------------------------------------------------------
+    if type_item == "Couleur":
+        ref = bv_txt(item_data.get("ref"))
+        nom = bv_txt(item_data.get("nom_actuel"))
+
+        for melange in melanges:
+            melange_ref = bv_txt(melange.get("ref"))
+            melange_nom = bv_txt(melange.get("nom"))
+
+            for composant in melange.get("couleurs_associees", []):
+                if composant.get("type") != "couleur":
+                    continue
+
+                comp_ref = bv_txt(composant.get("ref"))
+                comp_nom = bv_txt(composant.get("nom"))
+
+                if (
+                    (ref and bv_norm(comp_ref) == bv_norm(ref))
+                    or (nom and bv_norm(comp_nom) == bv_norm(nom))
+                ):
+                    ajouter_dependance(
+                        dependances,
+                        deja_vu,
+                        "Mélange",
+                        f"{melange_nom} ({melange_ref})",
+                        f"Utilise cette couleur comme composant — dosage : {composant.get('dosage', '-')}",
+                    )
+
+    # ---------------------------------------------------------------------
+    # ÉLÉMENT / COMPOSANT utilisé dans les mélanges
+    # ---------------------------------------------------------------------
+    elif type_item == "Élément":
+        nom = bv_txt(item_data.get("nom"))
+        code = bv_txt(item_data.get("code"))
+        designation = bv_txt(item_data.get("designation"))
+
+        identifiants = {
+            bv_norm(nom),
+            bv_norm(code),
+            bv_norm(designation),
+        }
+        identifiants.discard("")
+
+        for melange in melanges:
+            melange_ref = bv_txt(melange.get("ref"))
+            melange_nom = bv_txt(melange.get("nom"))
+
+            for composant in melange.get("couleurs_associees", []):
+                if composant.get("type") not in ["additif", "element"]:
+                    continue
+
+                valeurs_composant = {
+                    bv_norm(composant.get("ref")),
+                    bv_norm(composant.get("nom")),
+                    bv_norm(composant.get("code")),
+                    bv_norm(composant.get("designation")),
+                }
+                valeurs_composant.discard("")
+
+                if identifiants & valeurs_composant:
+                    ajouter_dependance(
+                        dependances,
+                        deja_vu,
+                        "Mélange",
+                        f"{melange_nom} ({melange_ref})",
+                        f"Utilise ce composant — dosage : {composant.get('dosage', '-')}",
+                    )
+
+    # ---------------------------------------------------------------------
+    # MÉLANGE utilisé comme base dans d'autres mélanges
+    # ---------------------------------------------------------------------
+    elif type_item == "Mélange":
+        ref = bv_txt(item_data.get("ref"))
+        nom = bv_txt(item_data.get("nom"))
+
+        for melange in melanges:
+            # Évite de compter le mélange lui-même
+            if ref and bv_norm(melange.get("ref")) == bv_norm(ref):
+                continue
+
+            melange_ref = bv_txt(melange.get("ref"))
+            melange_nom = bv_txt(melange.get("nom"))
+
+            for composant in melange.get("couleurs_associees", []):
+                if composant.get("type") != "melange_base":
+                    continue
+
+                comp_ref = bv_txt(composant.get("ref"))
+                comp_nom = bv_txt(composant.get("nom"))
+
+                if (
+                    (ref and bv_norm(comp_ref) == bv_norm(ref))
+                    or (nom and bv_norm(comp_nom) == bv_norm(nom))
+                ):
+                    ajouter_dependance(
+                        dependances,
+                        deja_vu,
+                        "Mélange",
+                        f"{melange_nom} ({melange_ref})",
+                        f"Utilise ce mélange comme base — dosage : {composant.get('dosage', '-')}",
+                    )
+
+    # ---------------------------------------------------------------------
+    # CODE RAL utilisé dans couleurs ou mélanges
+    # ---------------------------------------------------------------------
+    elif type_item == "Code RAL":
+        code = bv_txt(item_data.get("code") or item_data.get("ref"))
+        code_digits = bv_digits(code)
+
+        for couleur in couleurs:
+            ral_couleur = bv_txt(couleur.get("ral"))
+            ral_digits = bv_digits(ral_couleur)
+
+            if (
+                code
+                and (
+                    bv_norm(ral_couleur) == bv_norm(code)
+                    or (code_digits and ral_digits == code_digits)
+                )
+            ):
+                ajouter_dependance(
+                    dependances,
+                    deja_vu,
+                    "Couleur",
+                    f"{couleur.get('nom_actuel', '-')} ({couleur.get('ref', '-')})",
+                    f"Utilise ce code RAL : {ral_couleur}",
+                )
+
+        for melange in melanges:
+            melange_ref = bv_txt(melange.get("ref"))
+            melange_nom = bv_txt(melange.get("nom"))
+
+            for composant in melange.get("couleurs_associees", []):
+                if composant.get("type") != "ral_officiel":
+                    continue
+
+                comp_ref = bv_txt(composant.get("ref"))
+                comp_digits = bv_digits(comp_ref)
+
+                if (
+                    code
+                    and (
+                        bv_norm(comp_ref) == bv_norm(code)
+                        or (code_digits and comp_digits == code_digits)
+                    )
+                ):
+                    ajouter_dependance(
+                        dependances,
+                        deja_vu,
+                        "Mélange",
+                        f"{melange_nom} ({melange_ref})",
+                        f"Utilise ce RAL comme composant — dosage : {composant.get('dosage', '-')}",
+                    )
+
+    # ---------------------------------------------------------------------
+    # FICHE MÉTHODE : pas de dépendance directe connue
+    # ---------------------------------------------------------------------
+    elif type_item == "Fiche Méthode":
+        pass
+
+    # ---------------------------------------------------------------------
+    # COMPARTIMENT utilisé par des composants
+    # ---------------------------------------------------------------------
+    elif type_item == "Compartiment":
+        nom_comp = bv_txt(item_data.get("nom") or item_data.get("libelle"))
+
+        for element in elements:
+            for comp in element.get("compartiments", []):
+                if bv_norm(comp) == bv_norm(nom_comp):
+                    ajouter_dependance(
+                        dependances,
+                        deja_vu,
+                        "Composant",
+                        f"{element.get('nom', '-')} ({element.get('code', '-')})",
+                        f"Classé dans le compartiment « {nom_comp} »",
+                    )
+
+    # ---------------------------------------------------------------------
+    # SOUS-GROUPE utilisé par des composants
+    # ---------------------------------------------------------------------
+    elif type_item == "Sous-groupe":
+        nom_sg = bv_txt(item_data.get("nom") or item_data.get("libelle"))
+
+        for element in elements:
+            if bv_norm(element.get("sous_groupe")) == bv_norm(nom_sg):
+                ajouter_dependance(
+                    dependances,
+                    deja_vu,
+                    "Composant",
+                    f"{element.get('nom', '-')} ({element.get('code', '-')})",
+                    f"Classé dans le sous-groupe « {nom_sg} »",
+                )
+
+    # ---------------------------------------------------------------------
+    # ATELIER utilisé par des autres mélanges
+    # ---------------------------------------------------------------------
+    elif type_item == "Atelier":
+        nom_atelier = bv_txt(item_data.get("nom") or item_data.get("libelle"))
+
+        for melange in melanges:
+            for atelier in melange.get("ateliers", []):
+                if bv_norm(atelier) == bv_norm(nom_atelier):
+                    ajouter_dependance(
+                        dependances,
+                        deja_vu,
+                        "Mélange",
+                        f"{melange.get('nom', '-')} ({melange.get('ref', '-')})",
+                        f"Classé dans le compartiment atelier « {nom_atelier} »",
+                    )
+
+    return dependances
+
+
+def afficher_confirmation_suppression_avancee(
+    type_item,
+    item_data,
+    cle_unique,
+    titre=None,
+    libelle_action="supprimer",
+):
+    """
+    Affiche une confirmation de suppression avec analyse d'impact.
+
+    Retourne :
+    - "confirmer"
+    - "annuler"
+    - None
+    """
+    identifiant = bv_identifiant_objet(type_item, item_data)
+    dependances = analyser_dependances_suppression(type_item, item_data)
+    nb_dependances = len(dependances)
+
+    titre = titre or f"Confirmer la suppression de « {identifiant} »"
+
+    if nb_dependances > 0:
+        st.error(
+            f"⚠️ {titre}\n\n"
+            f"Cet élément intervient encore dans **{nb_dependances} élément(s)**."
+        )
+    else:
+        st.warning(
+            f"⚠️ {titre}\n\n"
+            "Aucune utilisation active n'a été détectée dans les autres éléments."
+        )
+
+    with st.expander(
+        f"Voir les éléments impactés ({nb_dependances})",
+        expanded=nb_dependances > 0,
+    ):
+        if nb_dependances == 0:
+            st.info("Aucun élément lié détecté.")
+        else:
+            for dep in dependances:
+                st.markdown(
+                    f"- **{dep['type']} :** {dep['identifiant']}  \n"
+                    f"  ↳ {dep['detail']}"
+                )
+
+    st.caption(
+        "Si vous confirmez, l'élément sera supprimé selon le comportement prévu "
+        "par cette section. Si vous annulez, aucune modification ne sera effectuée."
+    )
+
+    col_confirmer, col_annuler = st.columns(2)
+
+    if col_confirmer.button(
+        f"✅ Confirmer et {libelle_action}",
+        key=f"{cle_unique}_confirm_suppression_avancee",
+        use_container_width=True,
+        type="primary",
+    ):
+        return "confirmer"
+
+    if col_annuler.button(
+        "Annuler",
+        key=f"{cle_unique}_annuler_suppression_avancee",
+        use_container_width=True,
+    ):
+        return "annuler"
+
+    return None
+
+# =============================================================================
 # RENOMMAGE DES COMPARTIMENTS
 # =============================================================================
 
@@ -2742,6 +3140,742 @@ def afficher_selecteurs_apparence_autre_melange(prefixe, melange_data=None):
 
     return valeurs_apparence_autre_melange(couleur_id, marquage_code)
 
+# =============================================================================
+# ACTIONS EN LOT — COULEURS / COMPOSANTS / MÉLANGES
+# =============================================================================
+
+def libelle_objet_action_lot(type_objet, data):
+    """
+    Libellé lisible dans le multiselect des actions en lot.
+    """
+    data = data or {}
+
+    if type_objet == "couleur":
+        return f"{data.get('nom_actuel', '-') } ({data.get('ref', '-')})"
+
+    if type_objet == "element":
+        return f"{data.get('nom', '-') } ({data.get('code', '-')})"
+
+    if type_objet == "melange":
+        return f"{data.get('nom', '-') } ({data.get('ref', '-')}) — {data.get('categorie_choisie', '-')}"
+
+    return (
+        data.get("nom")
+        or data.get("nom_actuel")
+        or data.get("ref")
+        or data.get("code")
+        or "-"
+    )
+
+
+def obtenir_indices_selection_lot(prefixe, elements_filtres):
+    """
+    Affiche un multiselect pour choisir plusieurs éléments de la liste filtrée.
+    Retourne les index d'origine sélectionnés.
+
+    prefixe vaut ici souvent :
+    - couleur
+    - element
+    - melange
+    """
+
+    options_indices = [
+        item["index_origine"]
+        for item in elements_filtres
+        if isinstance(item, dict) and "index_origine" in item
+    ]
+
+    if not options_indices:
+        st.info("Aucun élément disponible pour les actions en lot.")
+        return []
+
+    selection_key = f"{prefixe}_selection_action_lot"
+    reset_key = f"{prefixe}_reset_selection_action_lot"
+
+    # Après une suppression en lot, on vide proprement la sélection
+    # avant que le widget multiselect soit recréé.
+    if st.session_state.get(reset_key, False):
+        st.session_state[selection_key] = []
+        st.session_state[reset_key] = False
+
+    # Sécurise la sélection si certains index n'existent plus.
+    if selection_key in st.session_state:
+        ancienne_selection = st.session_state.get(selection_key, [])
+
+        if isinstance(ancienne_selection, list):
+            st.session_state[selection_key] = [
+                idx for idx in ancienne_selection if idx in options_indices
+            ]
+
+    return st.multiselect(
+        "Sélectionner un ou plusieurs éléments de la liste affichée",
+        options=options_indices,
+        key=selection_key,
+        format_func=lambda idx: libelle_objet_action_lot(
+            prefixe,
+            elements_filtres[
+                next(
+                    (
+                        i
+                        for i, item in enumerate(elements_filtres)
+                        if item["index_origine"] == idx
+                    ),
+                    0,
+                )
+            ]["data"],
+        ),
+    )
+
+def garantir_fiche_technique_objet(objet):
+    """
+    Active ou initialise proprement une fiche technique.
+    Ne supprime pas les anciennes informations si elles existent.
+    """
+    objet = objet or {}
+
+    date_maintenant = pro_date_maintenant()
+
+    fiche = objet.setdefault("fiche_technique", {})
+
+    fiche.setdefault("specs_dynamiques", {})
+    fiche.setdefault("date_creation", date_maintenant)
+    fiche.setdefault("date_derniere_maj", date_maintenant)
+    fiche.setdefault("date_avant_derniere_maj", "-")
+    fiche.setdefault("redacteur", OPTIONS_REDACTEURS[0])
+    fiche.setdefault("causes_modification", [])
+
+    objet["has_ft"] = True
+
+
+def desactiver_fiche_technique_objet(objet):
+    """
+    Désactive l'option FT sans effacer les données déjà présentes.
+    Comme ça, si on réactive plus tard, on peut récupérer les anciennes infos.
+    """
+    objet["has_ft"] = False
+    objet.setdefault("fiche_technique", {})
+
+
+def appliquer_couleur_marquage_objet(objet, couleur_id=None, marquage_code=None):
+    """
+    Applique une couleur ou un marquage à un objet.
+    Si un paramètre vaut None, on conserve sa valeur actuelle.
+    """
+    couleur_actuelle = get_couleur_depuis_objet(objet)
+    marquage_actuel = get_marquage_depuis_objet(objet)
+
+    couleur_finale = couleur_id if couleur_id is not None else couleur_actuelle["id"]
+    marquage_final = marquage_code if marquage_code is not None else marquage_actuel["code"]
+
+    nouvelles_valeurs = valeurs_apparence_marquage_objet(
+        couleur_finale,
+        marquage_final,
+    )
+
+    objet.update(nouvelles_valeurs)
+
+
+def appliquer_action_lot(
+    liste_source,
+    indices_selectionnes,
+    action,
+    couleur_id=None,
+    marquage_code=None,
+):
+    """
+    Applique une action sur plusieurs éléments d'une liste source.
+    """
+    compteur = 0
+    compteur_melanges_couleurs = 0
+
+    for idx in indices_selectionnes:
+        if idx is None or idx < 0 or idx >= len(liste_source):
+            continue
+
+        objet = liste_source[idx]
+
+        if action == "appliquer_couleur":
+            appliquer_couleur_marquage_objet(
+                objet,
+                couleur_id=couleur_id,
+                marquage_code=None,
+            )
+            compteur += 1
+
+        elif action == "retirer_couleur":
+            appliquer_couleur_marquage_objet(
+                objet,
+                couleur_id="aucune",
+                marquage_code=None,
+            )
+            compteur += 1
+
+        elif action == "appliquer_marquage":
+            appliquer_couleur_marquage_objet(
+                objet,
+                couleur_id=None,
+                marquage_code=marquage_code,
+            )
+            compteur += 1
+
+        elif action == "retirer_marquage":
+            appliquer_couleur_marquage_objet(
+                objet,
+                couleur_id=None,
+                marquage_code="aucun",
+            )
+            compteur += 1
+
+        elif action == "activer_ft":
+            garantir_fiche_technique_objet(objet)
+            compteur += 1
+
+        elif action == "desactiver_ft":
+            desactiver_fiche_technique_objet(objet)
+            compteur += 1
+
+        elif action == "verifier_melange_couleur":
+            if objet.get("categorie_choisie", "Mélange Couleurs") == "Mélange Couleurs":
+                objet["statut"] = "Vérifié"
+                compteur += 1
+                compteur_melanges_couleurs += 1
+
+        elif action == "deverifier_melange_couleur":
+            if objet.get("categorie_choisie", "Mélange Couleurs") == "Mélange Couleurs":
+                objet["statut"] = "Pas vérifié"
+                compteur += 1
+                compteur_melanges_couleurs += 1
+
+    return compteur, compteur_melanges_couleurs
+
+
+# =============================================================================
+# SUPPRESSION EN LOT AVEC CONFIRMATION
+# =============================================================================
+
+def type_corbeille_depuis_type_objet(type_objet):
+    """
+    Convertit le type interne des actions en lot vers le type utilisé en corbeille.
+    """
+    if type_objet == "couleur":
+        return "Couleur"
+
+    if type_objet == "element":
+        return "Élément"
+
+    if type_objet == "melange":
+        return "Mélange"
+
+    return "Élément"
+
+
+def identifiant_corbeille_depuis_objet(type_item, item_data):
+    """
+    Retourne l'identifiant lisible à stocker dans la corbeille.
+    """
+    item_data = item_data or {}
+
+    if type_item == "Couleur":
+        return f"{item_data.get('nom_actuel', '')} ({item_data.get('ref', '-')})"
+
+    if type_item == "Élément":
+        return f"{item_data.get('nom', '')} ({item_data.get('code', '-')})"
+
+    if type_item == "Mélange":
+        return f"{item_data.get('nom', '')} ({item_data.get('ref', '-')})"
+
+    return (
+        item_data.get("nom")
+        or item_data.get("nom_actuel")
+        or item_data.get("ref")
+        or item_data.get("code")
+        or "Sans nom"
+    )
+
+
+def analyser_suppression_lot(type_objet, indices_selectionnes, liste_source):
+    """
+    Analyse les dépendances pour plusieurs objets sélectionnés.
+    Retourne :
+    - une liste détaillée par objet ;
+    - le nombre total de dépendances.
+    """
+    type_item = type_corbeille_depuis_type_objet(type_objet)
+
+    analyses = []
+    total_dependances = 0
+
+    indices_uniques = sorted(set(indices_selectionnes))
+
+    for idx in indices_uniques:
+
+        if idx is None or idx < 0 or idx >= len(liste_source):
+            continue
+
+        item_data = liste_source[idx]
+
+        try:
+            dependances = analyser_dependances_suppression(type_item, item_data)
+        except Exception:
+            dependances = []
+
+        total_dependances += len(dependances)
+
+        analyses.append(
+            {
+                "index": idx,
+                "type_item": type_item,
+                "identifiant": identifiant_corbeille_depuis_objet(type_item, item_data),
+                "data": item_data,
+                "dependances": dependances,
+            }
+        )
+
+    return analyses, total_dependances
+
+
+def afficher_confirmation_suppression_lot(prefixe, type_objet, indices_selectionnes, liste_source):
+    """
+    Affiche une confirmation forte pour supprimer plusieurs éléments.
+    Retourne :
+    - "confirmer"
+    - "annuler"
+    - None
+    """
+    analyses, total_dependances = analyser_suppression_lot(
+        type_objet,
+        indices_selectionnes,
+        liste_source,
+    )
+
+    nb_elements = len(analyses)
+
+    if nb_elements == 0:
+        st.warning("Aucun élément valide à supprimer.")
+        return None
+
+    if total_dependances > 0:
+        st.error(
+            f"⚠️ Suppression en lot de **{nb_elements} élément(s)**.\n\n"
+            f"Ces éléments interviennent encore dans **{total_dependances} élément(s)** au total."
+        )
+    else:
+        st.warning(
+            f"⚠️ Suppression en lot de **{nb_elements} élément(s)**.\n\n"
+            "Aucune dépendance active n'a été détectée."
+        )
+
+    with st.expander(
+        f"Voir le détail des éléments et impacts ({total_dependances})",
+        expanded=True,
+    ):
+        for analyse in analyses:
+            st.markdown(
+                f"#### {analyse['type_item']} — {analyse['identifiant']}"
+            )
+
+            dependances = analyse.get("dependances", [])
+
+            if not dependances:
+                st.info("Aucune utilisation détectée pour cet élément.")
+            else:
+                for dep in dependances:
+                    st.markdown(
+                        f"- **{dep['type']} :** {dep['identifiant']}  \n"
+                        f"  ↳ {dep['detail']}"
+                    )
+
+            st.markdown("---")
+
+    st.caption(
+        "La suppression en lot envoie les éléments sélectionnés dans la corbeille. "
+        "Ils pourront encore être restaurés depuis la corbeille tant qu'ils ne sont pas supprimés définitivement."
+    )
+    cle_mot_confirmation = f"{prefixe}_lot_delete_word"
+    cle_reset_mot_confirmation = f"{prefixe}_lot_delete_word_reset"
+
+    # Reset du champ AVANT l'instanciation du widget
+    if st.session_state.get(cle_reset_mot_confirmation, False):
+        st.session_state[cle_mot_confirmation] = ""
+        st.session_state[cle_reset_mot_confirmation] = False
+    mot_confirmation = st.text_input(
+        "Pour confirmer la suppression en lot, tapez exactement : SUPPRIMER",
+        key=cle_mot_confirmation,
+        placeholder="Tapez SUPPRIMER ici",
+    )
+
+    confirmation_ok = mot_confirmation.strip().upper() == "SUPPRIMER"
+
+    col_confirmer, col_annuler = st.columns(2)
+
+    if col_confirmer.button(
+        "✅ Confirmer et envoyer à la corbeille",
+        key=f"{prefixe}_lot_delete_confirm",
+        use_container_width=True,
+        type="primary",
+        disabled=not confirmation_ok,
+    ):
+        return "confirmer"
+
+    if col_annuler.button(
+        "Annuler",
+        key=f"{prefixe}_lot_delete_cancel",
+        use_container_width=True,
+    ):
+        return "annuler"
+
+    return None
+
+
+def supprimer_selection_lot_vers_corbeille(type_objet, indices_selectionnes, liste_source):
+    """
+    Supprime plusieurs éléments d'une liste source et les envoie dans la corbeille.
+    Sauvegarde à faire après l'appel.
+    """
+    type_item = type_corbeille_depuis_type_objet(type_objet)
+
+    prep = st.session_state.processus_db.setdefault("preparation_melanges", {})
+    corbeille = prep.setdefault("corbeille", [])
+
+    compteur = 0
+
+    # Important : supprimer en ordre décroissant pour ne pas décaler les index
+    indices_valides = sorted(
+        {
+            idx
+            for idx in indices_selectionnes
+            if idx is not None and 0 <= idx < len(liste_source)
+        },
+        reverse=True,
+    )
+
+    for idx in indices_valides:
+
+        item_supprime = liste_source.pop(idx)
+
+        identifiant = identifiant_corbeille_depuis_objet(type_item, item_supprime)
+
+        corbeille.append(
+            {
+                "id_corbeille": str(uuid.uuid4())[:8],
+                "type": type_item,
+                "identifiant": identifiant,
+                "date_suppression": pro_date_maintenant(),
+                "data": copy.deepcopy(item_supprime),
+            }
+        )
+
+        compteur += 1
+
+    return compteur
+
+def afficher_actions_lot(
+    prefixe,
+    type_objet,
+    elements_filtres,
+    liste_source,
+    afficher_verification_melanges=False,
+):
+    """
+    Panneau d'actions en lot.
+    type_objet : couleur / element / melange
+    """
+    with st.expander("⚙️ Actions en lot sur la liste affichée", expanded=False):
+
+        st.caption(
+            "Sélectionnez plusieurs éléments puis appliquez une action commune : "
+            "couleur, marquage, activation/désactivation FT."
+        )
+
+        indices_selectionnes = obtenir_indices_selection_lot(
+            type_objet,
+            elements_filtres,
+        )
+
+        nb_selection = len(indices_selectionnes)
+
+        st.info(f"Éléments sélectionnés : **{nb_selection}**")
+
+        if nb_selection > 0:
+            with st.expander("Voir la sélection", expanded=False):
+                for idx in indices_selectionnes:
+                    if 0 <= idx < len(liste_source):
+                        st.write(f"- {libelle_objet_action_lot(type_objet, liste_source[idx])}")
+
+        st.markdown("#### Couleur de texte")
+
+        col_couleur_select, col_couleur_apply, col_couleur_remove = st.columns([2, 1, 1])
+
+        with col_couleur_select:
+            ids_couleurs = [option["id"] for option in OPTIONS_COULEURS_AUTRES_MELANGES]
+
+            couleur_lot = st.selectbox(
+                "Couleur à appliquer",
+                ids_couleurs,
+                key=f"{prefixe}_lot_couleur_select",
+                format_func=lambda ident: get_option_couleur_autre_melange(ident)["label"],
+            )
+
+        with col_couleur_apply:
+            st.write("")
+            st.write("")
+
+            if st.button(
+                "🎨 Appliquer",
+                key=f"{prefixe}_lot_apply_couleur",
+                use_container_width=True,
+                disabled=nb_selection == 0,
+            ):
+                compteur, _ = appliquer_action_lot(
+                    liste_source,
+                    indices_selectionnes,
+                    "appliquer_couleur",
+                    couleur_id=couleur_lot,
+                )
+
+                sauvegarder_donnees()
+                afficher_animation_validation(f"Couleur appliquée à {compteur} élément(s)")
+                st.rerun()
+
+        with col_couleur_remove:
+            st.write("")
+            st.write("")
+
+            if st.button(
+                "Retirer couleur",
+                key=f"{prefixe}_lot_remove_couleur",
+                use_container_width=True,
+                disabled=nb_selection == 0,
+            ):
+                compteur, _ = appliquer_action_lot(
+                    liste_source,
+                    indices_selectionnes,
+                    "retirer_couleur",
+                )
+
+                sauvegarder_donnees()
+                afficher_animation_validation(f"Couleur retirée sur {compteur} élément(s)")
+                st.rerun()
+
+        st.markdown("#### Marquage / logo")
+
+        col_marq_select, col_marq_apply, col_marq_remove = st.columns([2, 1, 1])
+
+        with col_marq_select:
+            codes_marquages = [
+                option["code"]
+                for option in OPTIONS_MARQUAGES_AUTRES_MELANGES
+            ]
+
+            marquage_lot = st.selectbox(
+                "Marquage à appliquer",
+                codes_marquages,
+                key=f"{prefixe}_lot_marquage_select",
+                format_func=lambda code: (
+                    f"{get_option_marquage_autre_melange(code=code)['emoji']} "
+                    f"{get_option_marquage_autre_melange(code=code)['libelle']}"
+                ).strip(),
+            )
+
+        with col_marq_apply:
+            st.write("")
+            st.write("")
+
+            if st.button(
+                "🏷️ Appliquer",
+                key=f"{prefixe}_lot_apply_marquage",
+                use_container_width=True,
+                disabled=nb_selection == 0,
+            ):
+                compteur, _ = appliquer_action_lot(
+                    liste_source,
+                    indices_selectionnes,
+                    "appliquer_marquage",
+                    marquage_code=marquage_lot,
+                )
+
+                sauvegarder_donnees()
+                afficher_animation_validation(f"Marquage appliqué à {compteur} élément(s)")
+                st.rerun()
+
+        with col_marq_remove:
+            st.write("")
+            st.write("")
+
+            if st.button(
+                "Retirer marquage",
+                key=f"{prefixe}_lot_remove_marquage",
+                use_container_width=True,
+                disabled=nb_selection == 0,
+            ):
+                compteur, _ = appliquer_action_lot(
+                    liste_source,
+                    indices_selectionnes,
+                    "retirer_marquage",
+                )
+
+                sauvegarder_donnees()
+                afficher_animation_validation(f"Marquage retiré sur {compteur} élément(s)")
+                st.rerun()
+
+        afficher_legende_marquages(f"{prefixe}_lot_legende")
+
+        st.markdown("#### Fiche Technique")
+
+        col_ft_on, col_ft_off = st.columns(2)
+
+        with col_ft_on:
+            if st.button(
+                "📄 Activer l'option FT",
+                key=f"{prefixe}_lot_activer_ft",
+                use_container_width=True,
+                disabled=nb_selection == 0,
+            ):
+                compteur, _ = appliquer_action_lot(
+                    liste_source,
+                    indices_selectionnes,
+                    "activer_ft",
+                )
+
+                sauvegarder_donnees()
+                afficher_animation_validation(f"FT activée sur {compteur} élément(s)")
+                st.rerun()
+
+        with col_ft_off:
+            if st.button(
+                "📄 Désactiver l'option FT",
+                key=f"{prefixe}_lot_desactiver_ft",
+                use_container_width=True,
+                disabled=nb_selection == 0,
+            ):
+                compteur, _ = appliquer_action_lot(
+                    liste_source,
+                    indices_selectionnes,
+                    "desactiver_ft",
+                )
+
+                sauvegarder_donnees()
+                afficher_animation_validation(f"FT désactivée sur {compteur} élément(s)")
+                st.rerun()
+
+        if afficher_verification_melanges:
+
+            st.markdown("#### Mélanges Couleurs uniquement")
+
+            st.caption(
+                "Ces boutons agissent seulement sur les éléments sélectionnés dont la catégorie est "
+                "**Mélange Couleurs**. Les autres mélanges sélectionnés sont ignorés."
+            )
+
+            col_verif_on, col_verif_off = st.columns(2)
+
+            with col_verif_on:
+                if st.button(
+                    "🔴 Marquer Vérifié",
+                    key=f"{prefixe}_lot_verifier_melange_couleur",
+                    use_container_width=True,
+                    disabled=nb_selection == 0,
+                ):
+                    compteur, compteur_mc = appliquer_action_lot(
+                        liste_source,
+                        indices_selectionnes,
+                        "verifier_melange_couleur",
+                    )
+
+                    sauvegarder_donnees()
+                    afficher_animation_validation(
+                        f"{compteur_mc} mélange(s) couleur marqué(s) Vérifié"
+                    )
+                    st.rerun()
+
+            with col_verif_off:
+                if st.button(
+                    "⚪ Marquer Pas vérifié",
+                    key=f"{prefixe}_lot_deverifier_melange_couleur",
+                    use_container_width=True,
+                    disabled=nb_selection == 0,
+                ):
+                    compteur, compteur_mc = appliquer_action_lot(
+                        liste_source,
+                        indices_selectionnes,
+                        "deverifier_melange_couleur",
+                    )
+
+                    sauvegarder_donnees()
+                    afficher_animation_validation(
+                        f"{compteur_mc} mélange(s) couleur marqué(s) Pas vérifié"
+                    )
+                    st.rerun()
+
+        # -----------------------------------------------------------------
+        # SUPPRESSION EN LOT
+        # -----------------------------------------------------------------
+        st.markdown("#### Suppression en lot")
+
+        st.warning(
+            "La suppression en lot envoie les éléments sélectionnés dans la corbeille. "
+            "Une confirmation est obligatoire avant suppression."
+        )
+
+        cle_pending_delete = f"{prefixe}_lot_delete_pending"
+        cle_indices_delete = f"{prefixe}_lot_delete_indices"
+
+        if st.button(
+            "🗑️ Préparer la suppression des éléments sélectionnés",
+            key=f"{prefixe}_lot_prepare_delete",
+            use_container_width=True,
+            disabled=nb_selection == 0,
+        ):
+            st.session_state[cle_pending_delete] = True
+            st.session_state[cle_indices_delete] = list(indices_selectionnes)
+        
+            # Demande de reset au prochain rerun,
+            # avant que le text_input soit recréé.
+            st.session_state[f"{prefixe}_lot_delete_word_reset"] = True
+        
+            st.rerun()
+
+        if st.session_state.get(cle_pending_delete, False):
+
+            indices_a_supprimer = st.session_state.get(cle_indices_delete, [])
+
+            action_delete_lot = afficher_confirmation_suppression_lot(
+                prefixe,
+                type_objet,
+                indices_a_supprimer,
+                liste_source,
+            )
+
+            if action_delete_lot == "confirmer":
+
+                compteur_supprime = supprimer_selection_lot_vers_corbeille(
+                    type_objet,
+                    indices_a_supprimer,
+                    liste_source,
+                )
+
+                st.session_state[cle_pending_delete] = False
+                st.session_state[cle_indices_delete] = []
+
+                # Vide la sélection au prochain rerun.
+                # Attention : obtenir_indices_selection_lot utilise type_objet comme préfixe.
+                st.session_state[f"{type_objet}_reset_selection_action_lot"] = True
+                st.session_state[f"{prefixe}_lot_delete_word_reset"] = True
+                sauvegarder_donnees()
+                afficher_animation_validation(
+                    f"{compteur_supprime} élément(s) envoyé(s) à la corbeille"
+                )
+                st.rerun()
+
+            elif action_delete_lot == "annuler":
+            
+                st.session_state[cle_pending_delete] = False
+                st.session_state[cle_indices_delete] = []
+            
+                # Reset au prochain run, pas maintenant.
+                st.session_state[f"{prefixe}_lot_delete_word_reset"] = True
+            
+                st.rerun()
 
 def apparence_ligne_melange(melange_data):
     """
@@ -3018,6 +4152,332 @@ def deplacer_vers_corbeille(type_item, item_data, identifiant=""):
         "data": copy.deepcopy(item_data)
     })
     sauvegarder_donnees()
+
+
+# =============================================================================
+# IMPORT EXCEL — CATALOGUE DES COMPOSANTS
+# =============================================================================
+
+def normaliser_nom_colonne_excel(nom_colonne):
+    """
+    Normalise les noms de colonnes Excel pour accepter plusieurs variantes.
+    """
+    texte = str(nom_colonne or "").strip().lower()
+    texte = texte.replace("é", "e").replace("è", "e").replace("ê", "e")
+    texte = texte.replace("à", "a").replace("ù", "u").replace("ç", "c")
+    texte = texte.replace("'", " ")
+    texte = re.sub(r"[^a-z0-9]+", "_", texte)
+    texte = texte.strip("_")
+    return texte
+
+
+def nettoyer_valeur_excel(valeur):
+    """
+    Nettoie une valeur venant d'Excel.
+    Évite les nan, None, etc.
+    """
+    if valeur is None:
+        return ""
+
+    texte = str(valeur).strip()
+
+    if texte.lower() in ["nan", "none", "nat"]:
+        return ""
+
+    # Si Excel donne 1234.0, on remet 1234
+    if re.fullmatch(r"\d+\.0", texte):
+        texte = texte[:-2]
+
+    return texte
+
+
+def splitter_liste_excel(valeur):
+    """
+    Transforme une cellule Excel en liste.
+    Accepte : ; , | / retour ligne
+    """
+    texte = nettoyer_valeur_excel(valeur)
+
+    if not texte:
+        return []
+
+    morceaux = re.split(r"[;,|\n]+", texte)
+
+    resultat = []
+
+    for morceau in morceaux:
+        propre = majuscule_initiale(morceau.strip())
+
+        if propre and propre not in resultat:
+            resultat.append(propre)
+
+    return resultat
+
+
+def lire_excel_composants(uploaded_file):
+    """
+    Lit un fichier Excel ou CSV et retourne une liste de dictionnaires.
+    Nécessite pandas/openpyxl pour xlsx.
+    """
+    try:
+        import pandas as pd
+    except Exception:
+        st.error("L'import Excel nécessite pandas. Ajoutez pandas dans requirements.txt.")
+        return []
+
+    try:
+        nom_fichier = uploaded_file.name.lower()
+
+        if nom_fichier.endswith(".csv"):
+            dataframe = pd.read_csv(uploaded_file, sep=None, engine="python")
+        else:
+            dataframe = pd.read_excel(uploaded_file)
+
+    except Exception as erreur:
+        st.error(f"Impossible de lire le fichier : {erreur}")
+        return []
+
+    # Normalise les colonnes
+    colonnes_originales = list(dataframe.columns)
+    mapping_colonnes = {
+        normaliser_nom_colonne_excel(colonne): colonne
+        for colonne in colonnes_originales
+    }
+
+    def get_valeur(row, variantes):
+        for variante in variantes:
+            cle = normaliser_nom_colonne_excel(variante)
+
+            if cle in mapping_colonnes:
+                return nettoyer_valeur_excel(row.get(mapping_colonnes[cle], ""))
+
+        return ""
+
+    lignes = []
+
+    for _, row in dataframe.iterrows():
+
+        nom = get_valeur(row, ["Nom", "Nom composant", "Composant", "Element", "Élément"])
+        code = get_valeur(row, ["Code", "Code composant", "Reference", "Référence", "Ref"])
+        designation = get_valeur(row, ["Désignation", "Designation", "Libelle", "Libellé"])
+        fournisseur = get_valeur(row, ["Fournisseur", "Supplier"])
+        compartiments_raw = get_valeur(row, ["Compartiments", "Compartiment", "Atelier", "Famille"])
+        sous_groupe = get_valeur(row, ["Sous-groupe", "Sous groupe", "Groupe", "Categorie", "Catégorie"])
+        commentaire = get_valeur(row, ["Commentaire", "Commentaires", "Note", "Notes"])
+        nature = get_valeur(row, ["Nature", "Type matière", "Type matiere"])
+        danger = get_valeur(row, ["Danger", "Risque", "Risque danger", "Risque / Danger"])
+        danger_texte = get_valeur(row, ["Cause danger", "Cause de danger", "Préciser danger", "Precision danger", "Précision danger"])
+        code_article = get_valeur(row, ["Code Article Achat", "Code achat", "Article achat"])
+        designation_achat = get_valeur(row, ["Désignation Achat", "Designation Achat", "Nom achat"])
+
+        # Ignore les lignes totalement vides
+        if not any([nom, code, designation, fournisseur, compartiments_raw, sous_groupe, commentaire]):
+            continue
+
+        # Si pas de nom mais une désignation, on prend la désignation comme nom
+        if not nom and designation:
+            nom = designation
+
+        # Si pas de nom, on ignore la ligne
+        if not nom:
+            continue
+
+        compartiments = splitter_liste_excel(compartiments_raw)
+
+        if not sous_groupe:
+            sous_groupe = "Général"
+        else:
+            sous_groupe = majuscule_initiale(sous_groupe)
+
+        if not nature:
+            nature = "-"
+
+        danger_clean = danger.strip().lower()
+
+        if danger_clean in ["oui", "yes", "true", "1", "x", "danger", "risque"]:
+            danger_final = "Oui"
+        elif danger_clean in ["non", "no", "false", "0"]:
+            danger_final = "Non"
+        else:
+            danger_final = "-"
+
+        lignes.append(
+            {
+                "nom": majuscule_initiale(nom),
+                "code": code.strip(),
+                "designation": majuscule_initiale(designation),
+                "fournisseur": majuscule_initiale(fournisseur),
+                "compartiments": compartiments,
+                "sous_groupe": sous_groupe,
+                "commentaire": majuscule_initiale(commentaire),
+                "nature": majuscule_initiale(nature),
+                "danger": danger_final,
+                "danger_texte": majuscule_initiale(danger_texte),
+                "code_article": code_article.strip(),
+                "designation_achat": majuscule_initiale(designation_achat),
+            }
+        )
+
+    return lignes
+
+
+def generer_modele_excel_composants():
+    """
+    Génère un modèle Excel vierge pour importer des composants.
+    """
+    try:
+        import pandas as pd
+
+        colonnes = [
+            "Nom",
+            "Code",
+            "Désignation",
+            "Fournisseur",
+            "Compartiments",
+            "Sous-groupe",
+            "Commentaire",
+            "Nature",
+            "Danger",
+            "Cause danger",
+            "Code Article Achat",
+            "Désignation Achat",
+        ]
+
+        exemples = [
+            {
+                "Nom": "Aerosil",
+                "Code": "6457",
+                "Désignation": "Aerosil poudre légère",
+                "Fournisseur": "Fournisseur exemple",
+                "Compartiments": "Résine;Moulage",
+                "Sous-groupe": "Charges",
+                "Commentaire": "Exemple de commentaire court",
+                "Nature": "Poudre",
+                "Danger": "Non",
+                "Cause danger": "",
+                "Code Article Achat": "",
+                "Désignation Achat": "",
+            },
+            {
+                "Nom": "Butanox M-50",
+                "Code": "M50",
+                "Désignation": "Durcisseur",
+                "Fournisseur": "Active Composites",
+                "Compartiments": "Moulage",
+                "Sous-groupe": "Durcisseurs",
+                "Commentaire": "Respecter le dosage",
+                "Nature": "Liquide",
+                "Danger": "Oui",
+                "Cause danger": "Risque de réaction exothermique.",
+                "Code Article Achat": "",
+                "Désignation Achat": "",
+            },
+        ]
+
+        dataframe = pd.DataFrame(exemples, columns=colonnes)
+
+        buffer = io.BytesIO()
+
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            dataframe.to_excel(writer, index=False, sheet_name="Composants")
+
+        return buffer.getvalue()
+
+    except Exception:
+        return None
+
+
+def importer_composants_excel_dans_base(lignes_excel, liste_additifs, liste_compartiments, liste_sous_groupes):
+    """
+    Ajoute les composants lus depuis Excel dans la base.
+    Ignore les doublons par nom.
+    Retourne un résumé.
+    """
+    ajoutes = 0
+    ignores = 0
+    erreurs = []
+
+    noms_existants = {
+        pro_texte(item.get("nom")).lower()
+        for item in liste_additifs
+    }
+
+    for index_ligne, ligne in enumerate(lignes_excel, start=2):
+
+        nom = pro_texte(ligne.get("nom"))
+
+        if not nom:
+            ignores += 1
+            erreurs.append(f"Ligne {index_ligne} ignorée : nom vide.")
+            continue
+
+        if nom.lower() in noms_existants:
+            ignores += 1
+            erreurs.append(f"Ligne {index_ligne} ignorée : le composant « {nom} » existe déjà.")
+            continue
+
+        compartiments_finaux = ligne.get("compartiments", [])
+
+        # Ajoute les nouveaux compartiments à la liste globale
+        for comp in compartiments_finaux:
+            if comp and not any(pro_texte(c).lower() == comp.lower() for c in liste_compartiments):
+                liste_compartiments.append(comp)
+
+        sous_groupe = ligne.get("sous_groupe") or "Général"
+
+        if sous_groupe and not any(pro_texte(sg).lower() == sous_groupe.lower() for sg in liste_sous_groupes):
+            liste_sous_groupes.append(sous_groupe)
+
+        date_creation = pro_date_maintenant()
+
+        danger = ligne.get("danger", "-")
+        danger_texte = ligne.get("danger_texte", "")
+
+        nouvel_element = {
+            "nom": nom,
+            "code": ligne.get("code", ""),
+            "designation": ligne.get("designation", ""),
+            "statut": "Pas vérifié",
+            "compartiments": compartiments_finaux,
+            "sous_groupe": sous_groupe,
+            "fournisseur": ligne.get("fournisseur", ""),
+            "code_article": ligne.get("code_article", ""),
+            "designation_achat": ligne.get("designation_achat", ""),
+            "nature": ligne.get("nature", "-"),
+            "danger": danger,
+            "danger_texte": danger_texte if danger == "Oui" else "",
+            "manipulation": "",
+            "commentaire": ligne.get("commentaire", ""),
+            "commentaire_global": "",
+            "commentaire_global_images": [],
+            "has_ft": False,
+            "fiche_technique": {
+                "specs_dynamiques": {},
+                "date_creation": date_creation,
+                "date_derniere_maj": date_creation,
+                "date_avant_derniere_maj": "-",
+                "redacteur": OPTIONS_REDACTEURS[0],
+            },
+
+            # Marquage visuel par défaut
+            "couleur_marquage": "aucune",
+            "couleur_texte": "#142235",
+            "couleur_texte_libelle": "Aucune couleur spéciale",
+            "marquage_code": "aucun",
+            "marquage_emoji": "",
+            "marquage_libelle": "Aucun marquage",
+            "marquage_description": "Aucune indication particulière.",
+        }
+
+        liste_additifs.append(nouvel_element)
+        noms_existants.add(nom.lower())
+        ajoutes += 1
+
+    return {
+        "ajoutes": ajoutes,
+        "ignores": ignores,
+        "erreurs": erreurs,
+    }
 
 def generer_fichier_export(donnees_list, nom_fichier="export"):
     if not donnees_list:
@@ -4968,7 +6428,7 @@ def ouvrir_fenetre_aide():
             st.markdown("**Contact Équipe B&V**")
             st.markdown("""
             En cas de blocage critique, veuillez contacter :
-            - 🏭 **Responsable R&D** (Anomalie sur les formulations)
+            - 🏭 **Responsable d'Atelier** (Anomalie sur les formulations)
             - 📋 **Responsable Qualité** (Validation des FT et processus)
             - 💻 **Support Informatique** (Bugs, lenteurs, sauvegardes serveur)
             """)
@@ -5960,6 +7420,13 @@ if G_ACTIF == "preparation_melanges":
         )
 
         pro_barre_resultats(len(couleurs_filtrees), len(liste_couleurs), "couleurs")
+        afficher_actions_lot(
+            prefixe="couleurs",
+            type_objet="couleur",
+            elements_filtres=couleurs_filtrees,
+            liste_source=liste_couleurs,
+            afficher_verification_melanges=False,
+        )        
         couleurs_page, page_couleur, pages_couleur = pro_paginer(
             couleurs_filtrees,
             "pro_color_pagination",
@@ -6064,21 +7531,31 @@ if G_ACTIF == "preparation_melanges":
                         ouvrir_visualisation_ft_couleur(couleur_data)
 
                 if st.session_state.get(cle_suppression, False):
-                    st.warning(
-                        f"Supprimer définitivement la couleur {couleur_data.get('ref', '')} ?"
+                
+                    action_suppression = afficher_confirmation_suppression_avancee(
+                        "Couleur",
+                        couleur_data,
+                        cle_suppression,
+                        titre=f"Envoyer la couleur « {couleur_data.get('nom_actuel', couleur_data.get('ref', '-'))} » à la corbeille ?",
+                        libelle_action="envoyer à la corbeille",
                     )
-                    col_oui, col_non = st.columns(2)
-                    if col_oui.button("Oui, supprimer", key=f"pro_color_delete_yes_{index_couleur}"):
+                
+                    if action_suppression == "confirmer":
+                
                         item_supprime = liste_couleurs.pop(index_couleur)
+                
                         deplacer_vers_corbeille(
-                            "Couleur", 
-                            item_supprime, 
-                            identifiant=f"{item_supprime.get('nom_actuel', '')} ({item_supprime.get('ref', '')})"
-                        )                     
+                            "Couleur",
+                            item_supprime,
+                            identifiant=f"{item_supprime.get('nom_actuel', '')} ({item_supprime.get('ref', '')})",
+                        )
+                
                         st.session_state[cle_suppression] = False
                         sauvegarder_donnees()
                         st.rerun()
-                    if col_non.button("Annuler", key=f"pro_color_delete_no_{index_couleur}"):
+                
+                    elif action_suppression == "annuler":
+                
                         st.session_state[cle_suppression] = False
                         st.rerun()
 
@@ -6630,6 +8107,94 @@ if G_ACTIF == "preparation_melanges":
                 "pro_element_export_json",
             )
 
+        # --------------------------------------------------------------------
+        # IMPORT EXCEL DES COMPOSANTS
+        # --------------------------------------------------------------------
+        with st.expander("📥 Importer des composants depuis Excel", expanded=False):
+
+            st.markdown(
+                """
+                Importez un fichier Excel pour créer plusieurs composants d'un coup.
+
+                Colonnes recommandées :
+                `Nom`, `Code`, `Désignation`, `Fournisseur`, `Compartiments`, `Sous-groupe`,
+                `Commentaire`, `Nature`, `Danger`, `Cause danger`, `Code Article Achat`, `Désignation Achat`.
+
+                Pour mettre plusieurs compartiments dans une cellule, utilisez par exemple :
+                `Résine;Moulage`
+                """
+            )
+
+            modele_excel = generer_modele_excel_composants()
+
+            if modele_excel:
+                st.download_button(
+                    "⬇️ Télécharger un modèle Excel",
+                    data=modele_excel,
+                    file_name="Modele_Import_Composants_BV.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    key="download_modele_import_composants",
+                )
+
+            fichier_import_composants = st.file_uploader(
+                "Choisir un fichier Excel ou CSV",
+                type=["xlsx", "xls", "csv"],
+                key="upload_import_composants_excel",
+            )
+
+            if fichier_import_composants is not None:
+
+                lignes_import = lire_excel_composants(fichier_import_composants)
+
+                if not lignes_import:
+                    st.warning("Aucune ligne exploitable trouvée dans le fichier.")
+
+                else:
+                    st.success(f"{len(lignes_import)} ligne(s) détectée(s) dans le fichier.")
+
+                    with st.expander("Prévisualiser les lignes détectées", expanded=False):
+                        st.dataframe(lignes_import[:50], use_container_width=True)
+
+                        if len(lignes_import) > 50:
+                            st.caption(f"Seulement les 50 premières lignes sont affichées sur {len(lignes_import)}.")
+
+                    confirmation_import = st.checkbox(
+                        "Je confirme vouloir importer ces composants",
+                        key="confirm_import_composants_excel",
+                    )
+
+                    if st.button(
+                        "✅ Importer les composants",
+                        type="primary",
+                        use_container_width=True,
+                        disabled=not confirmation_import,
+                        key="btn_import_composants_excel",
+                    ):
+                        resume_import = importer_composants_excel_dans_base(
+                            lignes_import,
+                            liste_additifs,
+                            liste_compartiments,
+                            liste_sous_groupes,
+                        )
+
+                        sauvegarder_donnees()
+
+                        st.success(
+                            f"Import terminé : {resume_import['ajoutes']} composant(s) ajouté(s), "
+                            f"{resume_import['ignores']} ligne(s) ignorée(s)."
+                        )
+
+                        if resume_import["erreurs"]:
+                            with st.expander("Détails des lignes ignorées", expanded=False):
+                                for erreur in resume_import["erreurs"][:200]:
+                                    st.write(f"- {erreur}")
+
+                                if len(resume_import["erreurs"]) > 200:
+                                    st.caption("Liste limitée aux 200 premières erreurs.")
+
+                        st.rerun()
+
         pro_afficher_audit(
             liste_additifs,
             [("nom", "Nom"), ("code", "Code")],
@@ -6680,6 +8245,7 @@ if G_ACTIF == "preparation_melanges":
 
             if not liste_compartiments:
                 st.info("Aucun compartiment enregistré.")
+
             else:
                 st.markdown("**Liste des compartiments :**")
 
@@ -6688,14 +8254,17 @@ if G_ACTIF == "preparation_melanges":
                     comp_key = re.sub(
                         r"[^a-zA-Z0-9_]+",
                         "_",
-                        pro_texte(comp_nom)
+                        pro_texte(comp_nom),
                     )
+
+                    confirm_key_comp = f"confirm_del_compartiment_{idx_comp}_{comp_key}"
 
                     nb_utilisations = sum(
                         1
                         for element_item in liste_additifs
                         if any(
-                            pro_texte(comp_element).lower() == pro_texte(comp_nom).lower()
+                            normaliser_nom_compartiment(comp_element)
+                            == normaliser_nom_compartiment(comp_nom)
                             for comp_element in element_item.get("compartiments", [])
                         )
                     )
@@ -6710,50 +8279,46 @@ if G_ACTIF == "preparation_melanges":
                         key=f"btn_del_compartiment_catalogue_{idx_comp}_{comp_key}",
                         help="Supprimer ce compartiment",
                     ):
-                        st.session_state[f"confirm_del_compartiment_{idx_comp}_{comp_key}"] = True
+                        st.session_state[confirm_key_comp] = True
 
-                    if st.session_state.get(f"confirm_del_compartiment_{idx_comp}_{comp_key}", False):
+                    if st.session_state.get(confirm_key_comp, False):
 
-                        st.warning(
-                            f"Supprimer le compartiment « {comp_nom} » ? "
-                            "Il sera aussi retiré des éléments qui l'utilisent."
+                        action_suppression = afficher_confirmation_suppression_avancee(
+                            "Compartiment",
+                            {"nom": comp_nom},
+                            f"delete_compartiment_{idx_comp}_{comp_key}",
+                            titre=f"Supprimer le compartiment « {comp_nom} » ?",
+                            libelle_action="supprimer ce compartiment",
                         )
 
-                        col_oui_comp, col_non_comp = st.columns(2)
+                        if action_suppression == "confirmer":
 
-                        if col_oui_comp.button(
-                            "Oui, supprimer",
-                            key=f"yes_del_compartiment_{idx_comp}_{comp_key}",
-                            use_container_width=True,
-                        ):
-                            comp_nom_normalise = pro_texte(comp_nom).lower()
+                            comp_nom_normalise = normaliser_nom_compartiment(comp_nom)
 
                             # Supprime le compartiment de la liste principale
                             liste_compartiments[:] = [
                                 comp
                                 for comp in liste_compartiments
-                                if pro_texte(comp).lower() != comp_nom_normalise
+                                if normaliser_nom_compartiment(comp) != comp_nom_normalise
                             ]
 
-                            # Retire ce compartiment de tous les éléments
+                            # Retire ce compartiment de tous les composants qui l'utilisent
                             for element_item in liste_additifs:
                                 element_item["compartiments"] = [
                                     comp_element
                                     for comp_element in element_item.get("compartiments", [])
-                                    if pro_texte(comp_element).lower() != comp_nom_normalise
+                                    if normaliser_nom_compartiment(comp_element) != comp_nom_normalise
                                 ]
 
-                            st.session_state[f"confirm_del_compartiment_{idx_comp}_{comp_key}"] = False
+                            st.session_state[confirm_key_comp] = False
 
                             sauvegarder_donnees()
+                            afficher_animation_validation("Compartiment supprimé")
                             st.rerun()
 
-                        if col_non_comp.button(
-                            "Annuler",
-                            key=f"no_del_compartiment_{idx_comp}_{comp_key}",
-                            use_container_width=True,
-                        ):
-                            st.session_state[f"confirm_del_compartiment_{idx_comp}_{comp_key}"] = False
+                        elif action_suppression == "annuler":
+
+                            st.session_state[confirm_key_comp] = False
                             st.rerun()
 
             st.markdown("---")
@@ -6878,14 +8443,17 @@ if G_ACTIF == "preparation_melanges":
                 sg_key = re.sub(
                     r"[^a-zA-Z0-9_]+",
                     "_",
-                    pro_texte(sg_nom)
+                    pro_texte(sg_nom),
                 )
+
+                confirm_key_sg = f"confirm_del_sous_groupe_{idx_sg}_{sg_key}"
 
                 nb_utilisations_sg = sum(
                     1
                     for element_item in liste_additifs
-                    if pro_texte(element_item.get("sous_groupe", "Général")).lower()
-                    == pro_texte(sg_nom).lower()
+                    if normaliser_nom_compartiment(
+                        element_item.get("sous_groupe", "Général")
+                    ) == normaliser_nom_compartiment(sg_nom)
                 )
 
                 col_nom_sg, col_nb_sg, col_del_sg = st.columns([3, 1, 1])
@@ -6893,7 +8461,8 @@ if G_ACTIF == "preparation_melanges":
                 col_nom_sg.write(f"• **{sg_nom}**")
                 col_nb_sg.caption(f"{nb_utilisations_sg} élément(s)")
 
-                if pro_texte(sg_nom).lower() == "général":
+                # Le sous-groupe Général est protégé
+                if normaliser_nom_compartiment(sg_nom) == normaliser_nom_compartiment("Général"):
                     col_del_sg.caption("Protégé")
                     continue
 
@@ -6902,52 +8471,56 @@ if G_ACTIF == "preparation_melanges":
                     key=f"btn_del_sous_groupe_catalogue_{idx_sg}_{sg_key}",
                     help="Supprimer ce sous-groupe",
                 ):
-                    st.session_state[f"confirm_del_sous_groupe_{idx_sg}_{sg_key}"] = True
+                    st.session_state[confirm_key_sg] = True
 
-                if st.session_state.get(f"confirm_del_sous_groupe_{idx_sg}_{sg_key}", False):
+                if st.session_state.get(confirm_key_sg, False):
 
-                    st.warning(
-                        f"Supprimer le sous-groupe « {sg_nom} » ? "
-                        "Les éléments associés seront replacés dans « Général »."
+                    action_suppression = afficher_confirmation_suppression_avancee(
+                        "Sous-groupe",
+                        {"nom": sg_nom},
+                        f"delete_sous_groupe_{idx_sg}_{sg_key}",
+                        titre=f"Supprimer le sous-groupe « {sg_nom} » ?",
+                        libelle_action="supprimer ce sous-groupe",
                     )
 
-                    col_oui_sg, col_non_sg = st.columns(2)
+                    if action_suppression == "confirmer":
 
-                    if col_oui_sg.button(
-                        "Oui, supprimer",
-                        key=f"yes_del_sous_groupe_{idx_sg}_{sg_key}",
-                        use_container_width=True,
-                    ):
-                        sg_nom_normalise = pro_texte(sg_nom).lower()
+                        sg_nom_normalise = normaliser_nom_compartiment(sg_nom)
 
                         # Supprime le sous-groupe de la liste principale
                         liste_sous_groupes[:] = [
                             sg
                             for sg in liste_sous_groupes
-                            if pro_texte(sg).lower() != sg_nom_normalise
+                            if normaliser_nom_compartiment(sg) != sg_nom_normalise
                         ]
 
-                        # Replace les éléments concernés dans Général
+                        # Replace les composants concernés dans Général
                         for element_item in liste_additifs:
                             if (
-                                pro_texte(element_item.get("sous_groupe", "Général")).lower()
+                                normaliser_nom_compartiment(
+                                    element_item.get("sous_groupe", "Général")
+                                )
                                 == sg_nom_normalise
                             ):
                                 element_item["sous_groupe"] = "Général"
 
-                        st.session_state[f"confirm_del_sous_groupe_{idx_sg}_{sg_key}"] = False
+                        # Sécurité : Général doit toujours exister
+                        if not any(
+                            normaliser_nom_compartiment(sg) == normaliser_nom_compartiment("Général")
+                            for sg in liste_sous_groupes
+                        ):
+                            liste_sous_groupes.insert(0, "Général")
+
+                        st.session_state[confirm_key_sg] = False
 
                         sauvegarder_donnees()
+                        afficher_animation_validation("Sous-groupe supprimé")
                         st.rerun()
 
-                    if col_non_sg.button(
-                        "Annuler",
-                        key=f"no_del_sous_groupe_{idx_sg}_{sg_key}",
-                        use_container_width=True,
-                    ):
-                        st.session_state[f"confirm_del_sous_groupe_{idx_sg}_{sg_key}"] = False
-                        st.rerun()
+                    elif action_suppression == "annuler":
 
+                        st.session_state[confirm_key_sg] = False
+                        st.rerun()
         with st.expander("Filtres et organisation du catalogue", expanded=True):
             filtre_element_1, filtre_element_2, filtre_element_3, filtre_element_4 = st.columns(4)
             with filtre_element_1:
@@ -7074,7 +8647,13 @@ if G_ACTIF == "preparation_melanges":
             reverse=ordre_element == "Décroissant",
         )
         pro_barre_resultats(len(elements_filtres), len(liste_additifs), "éléments")
-
+        afficher_actions_lot(
+            prefixe="elements",
+            type_objet="element",
+            elements_filtres=elements_filtres,
+            liste_source=liste_additifs,
+            afficher_verification_melanges=False,
+        )
 
         def pro_afficher_tableau_elements(liste_tableau, prefixe_tableau):
             elements_page, page_element, pages_element = pro_paginer(
@@ -7148,12 +8727,12 @@ if G_ACTIF == "preparation_melanges":
                 action_voir, action_modifier, action_dupliquer, action_supprimer, action_ft = ligne[6].columns(
                     [1, 1, 1, 1, 1.3]
                 )
-                if action_voir.button("👁", key=f"pro_element_view_{prefixe_tableau}_{index_element}"):
+                if action_voir.button("👁", key=cle_widget_safe("pro_element_view", prefixe_tableau, index_element)):
                     ouvrir_details_element(element_data)
-                if action_modifier.button("✎", key=f"pro_element_edit_{prefixe_tableau}_{index_element}"):
+                if action_modifier.button("✎", key=cle_widget_safe("pro_element_edit", prefixe_tableau, index_element)):
                     ouvrir_dialogue_actif("modif_element", index_element)
                     st.rerun()
-                if action_dupliquer.button("⧉", key=f"pro_element_copy_{prefixe_tableau}_{index_element}"):
+                if action_dupliquer.button("⧉", key=cle_widget_safe("pro_element_copy", prefixe_tableau, index_element)):
                     copie_element = copy.deepcopy(element_data)
                     copie_element["nom"] = pro_identifiant_unique(
                         f"{pro_texte(element_data.get('nom'))} — Copie",
@@ -7175,28 +8754,47 @@ if G_ACTIF == "preparation_melanges":
                     sauvegarder_donnees()
                     st.rerun()
 
-                cle_suppression = f"pro_element_delete_confirm_{index_element}"
-                if action_supprimer.button("🗑", key=f"pro_element_delete_{prefixe_tableau}_{index_element}"):
-                    fermer_dialogue_actif()  # <-- Réinitialise le dialogue actif
+                cle_suppression = cle_widget_safe(
+                    "pro_element_delete_confirm",
+                    prefixe_tableau,
+                    index_element,
+                )
+                if action_supprimer.button(
+                    "🗑",
+                    key=cle_widget_safe("pro_element_delete", prefixe_tableau, index_element),
+                ):
+                    fermer_dialogue_actif()
                     st.session_state[cle_suppression] = True
                 if element_data.get("has_ft"):
-                    if action_ft.button("FT", key=f"pro_element_ft_{prefixe_tableau}_{index_element}"):
+                    if action_ft.button("FT", key=cle_widget_safe("pro_element_ft", prefixe_tableau, index_element)):
                         ouvrir_visualisation_ft_additif(element_data)
 
                 if st.session_state.get(cle_suppression, False):
-                    st.warning(f"Supprimer définitivement {element_data.get('nom', '')} ?")
-                    col_oui, col_non = st.columns(2)
-                    if col_oui.button("Oui, supprimer", key=f"pro_element_delete_yes_{prefixe_tableau}_{index_element}"):
+                
+                    action_suppression = afficher_confirmation_suppression_avancee(
+                        "Élément",
+                        element_data,
+                        cle_suppression,
+                        titre=f"Envoyer le composant « {element_data.get('nom', '-') } » à la corbeille ?",
+                        libelle_action="envoyer à la corbeille",
+                    )
+                
+                    if action_suppression == "confirmer":
+                
                         item_supprime = liste_additifs.pop(index_element)
+                
                         deplacer_vers_corbeille(
-                            "Élément", 
-                            item_supprime, 
-                            identifiant=f"{item_supprime.get('nom', '')} ({item_supprime.get('code', '-')})"
+                            "Élément",
+                            item_supprime,
+                            identifiant=f"{item_supprime.get('nom', '')} ({item_supprime.get('code', '-')})",
                         )
+                
                         st.session_state[cle_suppression] = False
                         sauvegarder_donnees()
                         st.rerun()
-                    if col_non.button("Annuler", key=f"pro_element_delete_no_{prefixe_tableau}_{index_element}"):
+                
+                    elif action_suppression == "annuler":
+                
                         st.session_state[cle_suppression] = False
                         st.rerun()
 
@@ -7539,19 +9137,33 @@ if G_ACTIF == "preparation_melanges":
                         st.session_state[cle_confirmation_ral] = True
                     cle_confirmation_ral = f"pro_ral_confirm_{ral_ligne['code']}"
                     if st.session_state.get(cle_confirmation_ral, False):
-                        st.warning(f"Supprimer la nuance RAL {ral_ligne['code']} ?")
-                        col_oui, col_non = st.columns(2)
-                        if col_oui.button("Oui", key=f"pro_ral_delete_yes_{ral_ligne['code']}"):
+                    
+                        ral_data_suppression = rals_personnalises[index_personnalise]
+                    
+                        action_suppression = afficher_confirmation_suppression_avancee(
+                            "Code RAL",
+                            ral_data_suppression,
+                            cle_confirmation_ral,
+                            titre=f"Envoyer la nuance RAL « {ral_ligne['code']} » à la corbeille ?",
+                            libelle_action="envoyer à la corbeille",
+                        )
+                    
+                        if action_suppression == "confirmer":
+                    
                             item_supprime = rals_personnalises.pop(index_personnalise)
+                    
                             deplacer_vers_corbeille(
-                                "Code RAL", 
-                                item_supprime, 
-                                identifiant=f"RAL {item_supprime.get('code', '')} — {item_supprime.get('nom', '')}"
+                                "Code RAL",
+                                item_supprime,
+                                identifiant=f"RAL {item_supprime.get('code', '')} — {item_supprime.get('nom', '')}",
                             )
+                    
                             st.session_state[cle_confirmation_ral] = False
                             sauvegarder_donnees()
                             st.rerun()
-                        if col_non.button("Non", key=f"pro_ral_delete_no_{ral_ligne['code']}"):
+                    
+                        elif action_suppression == "annuler":
+                    
                             st.session_state[cle_confirmation_ral] = False
                             st.rerun()
 
@@ -8463,7 +10075,14 @@ if G_ACTIF == "preparation_melanges":
             reverse=ordre_melange == "Décroissant",
         )
         pro_barre_resultats(len(melanges_filtres), len(liste_melanges), "mélanges")
-
+        afficher_actions_lot(
+            prefixe="melanges",
+            type_objet="melange",
+            elements_filtres=melanges_filtres,
+            liste_source=liste_melanges,
+            afficher_verification_melanges=True,
+        )
+        
         melanges_couleurs = [
             item
             for item in melanges_filtres
@@ -8701,12 +10320,12 @@ if G_ACTIF == "preparation_melanges":
                 action_voir, action_modifier, action_dupliquer, action_supprimer, action_ft = ligne[6].columns(
                     [1, 1, 1, 1, 1.3]
                 )
-                if action_voir.button("👁", key=f"pro_mix_view_{prefixe_tableau}_{index_melange}"):
+                if action_voir.button("👁", key=cle_widget_safe("pro_mix_view", prefixe_tableau, index_melange)):
                     ouvrir_details_melange(melange_data)
-                if action_modifier.button("✎", key=f"pro_mix_edit_{prefixe_tableau}_{index_melange}"):
+                if action_modifier.button("✎", key=cle_widget_safe("pro_mix_edit", prefixe_tableau, index_melange)):
                     ouvrir_dialogue_actif("modif_melange", index_melange)
                     st.rerun()
-                if action_dupliquer.button("⧉", key=f"pro_mix_copy_{prefixe_tableau}_{index_melange}"):
+                if action_dupliquer.button("⧉", key=cle_widget_safe("pro_mix_copy", prefixe_tableau, index_melange)):
                     copie_melange = copy.deepcopy(melange_data)
                     copie_melange["ref"] = pro_identifiant_unique(
                         f"{pro_texte(melange_data.get('ref'))}-COPIE",
@@ -8723,30 +10342,46 @@ if G_ACTIF == "preparation_melanges":
                     sauvegarder_donnees()
                     st.rerun()
 
-                cle_suppression = f"pro_mix_delete_confirm_{index_melange}"
-                if action_supprimer.button("🗑", key=f"pro_mix_delete_{prefixe_tableau}_{index_melange}"):
-                    fermer_dialogue_actif()  # <-- Réinitialise le dialogue actif
+                cle_suppression = cle_widget_safe(
+                    "pro_mix_delete_confirm",
+                    prefixe_tableau,
+                    index_melange,
+                )
+                if action_supprimer.button(
+                    "🗑",
+                    key=cle_widget_safe("pro_mix_delete", prefixe_tableau, index_melange),
+                ): # <-- Réinitialise le dialogue actif
                     st.session_state[cle_suppression] = True
                 if melange_data.get("has_ft"):
-                    if action_ft.button("FT", key=f"pro_mix_ft_{prefixe_tableau}_{index_melange}"):
+                    if action_ft.button("FT", key=cle_widget_safe("pro_mix_ft", prefixe_tableau, index_melange)):
                         ouvrir_visualisation_ft(melange_data)
 
                 if st.session_state.get(cle_suppression, False):
-                    st.warning(
-                        f"Supprimer définitivement le mélange {melange_data.get('ref', '')} ?"
+                
+                    action_suppression = afficher_confirmation_suppression_avancee(
+                        "Mélange",
+                        melange_data,
+                        cle_suppression,
+                        titre=f"Envoyer le mélange « {melange_data.get('nom', melange_data.get('ref', '-'))} » à la corbeille ?",
+                        libelle_action="envoyer à la corbeille",
                     )
-                    col_oui, col_non = st.columns(2)
-                    if col_oui.button("Oui, supprimer", key=f"pro_mix_delete_yes_{prefixe_tableau}_{index_melange}"):
+                
+                    if action_suppression == "confirmer":
+                
                         item_supprime = liste_melanges.pop(index_melange)
+                
                         deplacer_vers_corbeille(
-                            "Mélange", 
-                            item_supprime, 
-                            identifiant=f"{item_supprime.get('nom', '')} ({item_supprime.get('ref', '-')})"
+                            "Mélange",
+                            item_supprime,
+                            identifiant=f"{item_supprime.get('nom', '')} ({item_supprime.get('ref', '-')})",
                         )
+                
                         st.session_state[cle_suppression] = False
                         sauvegarder_donnees()
                         st.rerun()
-                    if col_non.button("Annuler", key=f"pro_mix_delete_no_{prefixe_tableau}_{index_melange}"):
+                
+                    elif action_suppression == "annuler":
+                
                         st.session_state[cle_suppression] = False
                         st.rerun()
 
@@ -8838,18 +10473,81 @@ if G_ACTIF == "preparation_melanges":
         
                 if liste_ateliers:
                     st.markdown("**Compartiments Ateliers existants :**")
-                    ateliers_a_retirer = []
-                    for idx_at, at_nom in enumerate(liste_ateliers):
-                        col_at_nom, col_at_del = st.columns([4, 1])
+
+                    for idx_at, at_nom in enumerate(list(liste_ateliers)):
+
+                        at_key = re.sub(
+                            r"[^a-zA-Z0-9_]+",
+                            "_",
+                            pro_texte(at_nom),
+                        )
+
+                        confirm_key_at = f"confirm_del_atelier_{idx_at}_{at_key}"
+
+                        nb_utilisations_at = sum(
+                            1
+                            for melange_item in liste_melanges
+                            if any(
+                                normaliser_nom_compartiment(atelier_melange)
+                                == normaliser_nom_compartiment(at_nom)
+                                for atelier_melange in melange_item.get("ateliers", [])
+                            )
+                        )
+
+                        col_at_nom, col_at_nb, col_at_del = st.columns([3, 1, 1])
+
                         col_at_nom.write(f"• **{at_nom}**")
-                        if col_at_del.button("🗑️ Supprimer", key=f"btn_del_atelier_{idx_at}"):
-                            ateliers_a_retirer.append(at_nom)
-        
-                    if ateliers_a_retirer:
-                        for at_rem in ateliers_a_retirer:
-                            liste_ateliers.remove(at_rem)
-                        sauvegarder_donnees()
-                        st.rerun()
+                        col_at_nb.caption(f"{nb_utilisations_at} mélange(s)")
+
+                        if col_at_del.button(
+                            "🗑️",
+                            key=f"btn_del_atelier_{idx_at}_{at_key}",
+                            help="Supprimer ce compartiment Atelier",
+                        ):
+                            st.session_state[confirm_key_at] = True
+
+                        if st.session_state.get(confirm_key_at, False):
+
+                            action_suppression = afficher_confirmation_suppression_avancee(
+                                "Atelier",
+                                {"nom": at_nom},
+                                f"delete_atelier_{idx_at}_{at_key}",
+                                titre=f"Supprimer le compartiment Atelier « {at_nom} » ?",
+                                libelle_action="supprimer ce compartiment Atelier",
+                            )
+
+                            if action_suppression == "confirmer":
+
+                                at_nom_normalise = normaliser_nom_compartiment(at_nom)
+
+                                # Supprime l'atelier de la liste principale
+                                liste_ateliers[:] = [
+                                    at
+                                    for at in liste_ateliers
+                                    if normaliser_nom_compartiment(at) != at_nom_normalise
+                                ]
+
+                                # Retire cet atelier de tous les mélanges qui l'utilisent
+                                for melange_item in liste_melanges:
+                                    melange_item["ateliers"] = [
+                                        atelier_melange
+                                        for atelier_melange in melange_item.get("ateliers", [])
+                                        if normaliser_nom_compartiment(atelier_melange) != at_nom_normalise
+                                    ]
+
+                                st.session_state[confirm_key_at] = False
+
+                                sauvegarder_donnees()
+                                afficher_animation_validation("Compartiment Atelier supprimé")
+                                st.rerun()
+
+                            elif action_suppression == "annuler":
+
+                                st.session_state[confirm_key_at] = False
+                                st.rerun()
+
+                else:
+                    st.info("Aucun compartiment Atelier enregistré.")                
 
                 # -----------------------------------------------------------
                 # RENOMMER UN COMPARTIMENT ATELIER DES AUTRES MÉLANGES
@@ -9521,6 +11219,24 @@ if G_ACTIF == "preparation_melanges":
                 f"Le diagramme « {fiche_suppression.get('nom', 'Sans nom')} » "
                 "et tous ses éléments seront supprimés définitivement."
             )
+
+            dependances_fiche = analyser_dependances_suppression(
+                "Fiche Méthode",
+                fiche_suppression,
+            )
+            
+            with st.expander(
+                f"Voir les éléments impactés ({len(dependances_fiche)})",
+                expanded=False,
+            ):
+                if not dependances_fiche:
+                    st.info("Aucune dépendance active détectée.")
+                else:
+                    for dep in dependances_fiche:
+                        st.markdown(
+                            f"- **{dep['type']} :** {dep['identifiant']}  \n"
+                            f"  ↳ {dep['detail']}"
+                        )
 
             confirmation = st.text_input(
                 "Tapez OUI pour confirmer",
@@ -12329,19 +14045,17 @@ elif G_ACTIF == "corbeille":
                 st.session_state.trash_delete_pending_label = identifiant
 
             if st.session_state.get("trash_delete_pending_id") == id_corbeille:
-
-                st.warning(
-                    f"⚠️ Supprimer définitivement « {identifiant} » ? "
-                    "Cette action est irréversible."
+            
+                action_suppression = afficher_confirmation_suppression_avancee(
+                    item_type,
+                    data_obj,
+                    f"trash_delete_{id_corbeille_key}",
+                    titre=f"Supprimer définitivement « {identifiant} » ?",
+                    libelle_action="supprimer définitivement",
                 )
-
-                col_confirmer_del, col_annuler_del = st.columns(2)
-
-                if col_confirmer_del.button(
-                    "✅ Confirmer la suppression",
-                    key=f"trash_del_confirm_yes_{id_corbeille_key}",
-                    use_container_width=True,
-                ):
+            
+                if action_suppression == "confirmer":
+            
                     index_a_supprimer = next(
                         (
                             i
@@ -12350,26 +14064,22 @@ elif G_ACTIF == "corbeille":
                         ),
                         None,
                     )
-
-                    # Sécurité pour les très anciens éléments sans id_corbeille
+            
                     if index_a_supprimer is None and 0 <= index_original < len(corbeille):
                         index_a_supprimer = index_original
-
+            
                     if index_a_supprimer is not None:
                         corbeille.pop(index_a_supprimer)
-
+            
                     st.session_state.pop("trash_delete_pending_id", None)
                     st.session_state.pop("trash_delete_pending_label", None)
-
+            
                     sauvegarder_donnees()
                     afficher_animation_validation("Élément supprimé définitivement")
                     st.rerun()
-
-                if col_annuler_del.button(
-                    "Annuler",
-                    key=f"trash_del_confirm_no_{id_corbeille_key}",
-                    use_container_width=True,
-                ):
+            
+                elif action_suppression == "annuler":
+            
                     st.session_state.pop("trash_delete_pending_id", None)
                     st.session_state.pop("trash_delete_pending_label", None)
                     st.rerun()
