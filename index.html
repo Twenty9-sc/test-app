@@ -122,6 +122,13 @@
     aside::-webkit-scrollbar-track{background:rgba(255,255,255,.05);border-radius:999px}
     aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:999px}
     aside::-webkit-scrollbar-thumb:hover{background:rgba(225,6,0,.45)}
+    .section-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .detail-tab{border:1px solid rgba(255,255,255,.12);background:#101119;color:#fff;border-radius:18px;padding:14px;text-align:left;cursor:pointer;font-weight:1000;transition:border-color .18s ease,background .18s ease}
+    .detail-tab:hover{border-color:rgba(225,6,0,.35)}
+    .detail-tab.active{background:linear-gradient(135deg,#e10600,#14151d 68%);border-color:rgba(255,255,255,.20)}
+    .detail-tab small{display:block;margin-top:4px;color:rgba(255,255,255,.68);font-weight:800}
+    .detail-section{display:grid;gap:14px}
+    .detail-section.hidden{display:none}
     @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
   </style>
@@ -199,35 +206,59 @@
       <div class="card"><h2 class="section-title"><span class="slash"></span>Setup précis</h2><div id="setupTable"></div></div>
       <div class="card"><h2 class="section-title"><span class="slash"></span>Boîte de vitesses</h2><div id="gearBox"></div><div class="pill-row" id="setupPills"></div></div>
     </div>
-    <div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie qualif expliquée</h2><div id="qualifTable"></div><div class="mini-title">Phrases à suivre en qualif</div><div class="phrase-list" id="qualifPhrases"></div></div>
-    <div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie de course expliquée</h2><div id="strategyTable"></div><div class="mini-title">Phrases à suivre en course</div><div class="phrase-list" id="racePhrases"></div></div>
-    <div class="card">
-      <h2 class="section-title"><span class="slash"></span>Adaptation live pendant la course</h2>
-      <div class="hint">À utiliser si la météo change, si tes pneus s'usent plus vite, si tu es bloqué dans le trafic ou après Safety Car. Ça recalcule la stratégie à partir de ton tour actuel.</div>
-      <div class="live-grid">
-        <div><label for="liveLap">Tour actuel</label><input id="liveLap" type="number" min="1" value="1"></div>
-        <div><label for="liveTyre">Pneu actuel</label><select id="liveTyre"><option>Auto</option><option>Option</option><option>Prime</option><option>Intermédiaires</option><option>Pluie</option></select></div>
-        <div><label for="liveTyreAge">Âge du pneu</label><input id="liveTyreAge" type="number" min="0" value="0"></div>
-        <div><label for="livePosition">Position</label><input id="livePosition" type="number" min="1" max="24" value="10"></div>
-        <div><label for="liveWeather">Météo réelle</label><select id="liveWeather"><option>Comme prévu</option><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select></div>
-        <div><label for="liveTrackState">Piste réelle</label><select id="liveTrackState"><option>Comme prévu</option><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select></div>
-        <div><label for="liveWear">Usure réelle</label><select id="liveWear"><option>Comme prévu</option><option>Faible</option><option>Normale</option><option>Forte</option><option>Très forte</option></select></div>
-        <div><label for="liveTraffic">Situation piste</label><select id="liveTraffic"><option>Air propre</option><option>Bloqué dans le trafic</option><option>Défense derrière</option><option>Safety Car / VSC</option></select></div>
-      </div>
-      <div class="mini-title">Stratégie réadaptée maintenant</div>
-      <div id="liveStrategy"></div>
-      <div class="btn-row">
-        <input id="strategyName" type="text" placeholder="Nom de sauvegarde ex : Monza pluie T18" />
-        <button class="btn btn-red" id="saveStrategyBtn" type="button">Sauvegarder cette stratégie</button>
-      </div>
-      <div class="save-status" id="saveStatus"></div>
-      <div class="mini-title">Historique sauvegardé sur ce navigateur</div>
-      <div id="historyList" class="history-list"></div>
+    <div class="section-tabs" id="detailTabs">
+      <button class="detail-tab active" type="button" data-detail="course">🏁 Course<small>stratégie, adaptation live, météo, corrections</small></button>
+      <button class="detail-tab" type="button" data-detail="qualif">⏱️ Qualif<small>runs, timing météo, adaptation live qualif</small></button>
     </div>
-    <div class="three-col">
-      <div class="card"><h2 class="section-title"><span class="slash"></span>Météo & décisions</h2><div id="weatherAdvice"></div></div>
-      <div class="card"><h2 class="section-title"><span class="slash"></span>Corrections setup</h2><div id="corrections"></div></div>
-      <div class="card"><h2 class="section-title"><span class="slash"></span>Plan rapide</h2><div id="quickPlan"></div></div>
+    <div id="courseSection" class="detail-section">
+      <div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie de course expliquée</h2><div id="strategyTable"></div><div class="mini-title">Phrases à suivre en course</div><div class="phrase-list" id="racePhrases"></div></div>
+      <div class="card">
+        <h2 class="section-title"><span class="slash"></span>Adaptation live pendant la course</h2>
+        <div class="hint">À utiliser si la météo change, si tes pneus s'usent plus vite, si tu es bloqué dans le trafic ou après Safety Car. Ça recalcule la stratégie à partir de ton tour actuel.</div>
+        <div class="live-grid">
+          <div><label for="liveLap">Tour actuel</label><input id="liveLap" type="number" min="1" value="1"></div>
+          <div><label for="liveTyre">Pneu actuel</label><select id="liveTyre"><option>Auto</option><option>Option</option><option>Prime</option><option>Intermédiaires</option><option>Pluie</option></select></div>
+          <div><label for="liveTyreAge">Âge du pneu</label><input id="liveTyreAge" type="number" min="0" value="0"></div>
+          <div><label for="livePosition">Position</label><input id="livePosition" type="number" min="1" max="24" value="10"></div>
+          <div><label for="liveWeather">Météo réelle</label><select id="liveWeather"><option>Comme prévu</option><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select></div>
+          <div><label for="liveTrackState">Piste réelle</label><select id="liveTrackState"><option>Comme prévu</option><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select></div>
+          <div><label for="liveWear">Usure réelle</label><select id="liveWear"><option>Comme prévu</option><option>Faible</option><option>Normale</option><option>Forte</option><option>Très forte</option></select></div>
+          <div><label for="liveTraffic">Situation piste</label><select id="liveTraffic"><option>Air propre</option><option>Bloqué dans le trafic</option><option>Défense derrière</option><option>Safety Car / VSC</option></select></div>
+        </div>
+        <div class="mini-title">Stratégie réadaptée maintenant</div>
+        <div id="liveStrategy"></div>
+        <div class="btn-row">
+          <input id="strategyName" type="text" placeholder="Nom de sauvegarde ex : Monza pluie T18" />
+          <button class="btn btn-red" id="saveStrategyBtn" type="button">Sauvegarder cette stratégie</button>
+        </div>
+        <div class="save-status" id="saveStatus"></div>
+        <div class="mini-title">Historique sauvegardé sur ce navigateur</div>
+        <div id="historyList" class="history-list"></div>
+      </div>
+      <div class="three-col">
+        <div class="card"><h2 class="section-title"><span class="slash"></span>Météo & décisions</h2><div id="weatherAdvice"></div></div>
+        <div class="card"><h2 class="section-title"><span class="slash"></span>Corrections setup</h2><div id="corrections"></div></div>
+        <div class="card"><h2 class="section-title"><span class="slash"></span>Plan rapide</h2><div id="quickPlan"></div></div>
+      </div>
+    </div>
+    <div id="qualifSection" class="detail-section hidden">
+      <div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie qualif expliquée</h2><div id="qualifTable"></div><div class="mini-title">Phrases à suivre en qualif</div><div class="phrase-list" id="qualifPhrases"></div></div>
+      <div class="card">
+        <h2 class="section-title"><span class="slash"></span>Adaptation live pendant les qualifs</h2>
+        <div class="hint">Si la piste sèche, si la pluie arrive, si tu es limite élimination ou si le trafic change, cette section recalcule le timing du run qualif.</div>
+        <div class="live-grid">
+          <div><label for="liveQSession">Séance actuelle</label><select id="liveQSession"><option>Q1</option><option>Q2</option><option>Q3</option><option>Run court</option></select></div>
+          <div><label for="liveQMinutes">Minutes restantes</label><input id="liveQMinutes" type="number" min="0" max="20" value="8"></div>
+          <div><label for="liveQPosition">Position</label><input id="liveQPosition" type="number" min="1" max="24" value="10"></div>
+          <div><label for="liveQStatus">Statut</label><select id="liveQStatus"><option>En sécurité</option><option>Limite élimination</option><option>Éliminé provisoire</option><option>Objectif pole</option></select></div>
+          <div><label for="liveQWeather">Météo réelle qualif</label><select id="liveQWeather"><option>Comme prévu</option><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select></div>
+          <div><label for="liveQTrackState">Piste réelle qualif</label><select id="liveQTrackState"><option>Comme prévu</option><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select></div>
+          <div><label for="liveQTrend">Tendance piste</label><select id="liveQTrend"><option>Stable</option><option>Piste s'améliore</option><option>Pluie imminente</option><option>Drapeau jaune / trafic</option><option>Dernière chance</option></select></div>
+          <div><label for="liveQTyres">Trains Option neufs</label><input id="liveQTyres" type="number" min="0" max="4" value="2"></div>
+        </div>
+        <div class="mini-title">Plan live qualif</div>
+        <div id="liveQualifStrategy"></div>
+      </div>
     </div>
     <div class="footer">F12012_setup donne une base optimale. Valide en essais libres : si tu ajustes, change un seul réglage à la fois.</div>
   </section>
@@ -272,6 +303,15 @@ function setScreenMode(mode){
 function initScreenMode(){ setScreenMode(localStorage.getItem(SCREEN_KEY) || "auto"); }
 let renderRaf = 0;
 function scheduleRender(){ if(renderRaf) cancelAnimationFrame(renderRaf); renderRaf = requestAnimationFrame(()=>{ renderRaf = 0; render(); }); }
+const DETAIL_KEY = "F12012_setup_detail_mode";
+function setDetailMode(mode){
+  const selected = mode === "qualif" ? "qualif" : "course";
+  document.querySelectorAll("#detailTabs .detail-tab").forEach(btn=>btn.classList.toggle("active", btn.dataset.detail === selected));
+  const course = q("courseSection"), qualif = q("qualifSection");
+  if(course && qualif){ course.classList.toggle("hidden", selected !== "course"); qualif.classList.toggle("hidden", selected !== "qualif"); }
+  localStorage.setItem(DETAIL_KEY, selected);
+}
+function initDetailMode(){ setDetailMode(localStorage.getItem(DETAIL_KEY) || "course"); }
 function raceLaps(name, distance){ return Math.max(3, Math.round(circuits[name].laps * distance / 100)); }
 function overText(v){ const labels = {"-3":"très stable","-2":"stable","-1":"légèrement stable","0":"neutre","1":"léger survirage","2":"survirage marqué","3":"très survireuse"}; return labels[String(v)] || "neutre"; }
 function aeroText(v){ if(v<=-4) return "vitesse max absolue"; if(v<=-2) return "priorité vitesse"; if(v===0) return "compromis"; if(v<=2) return "priorité appui"; return "appui maximum"; }
@@ -281,6 +321,7 @@ function vals(){ return {
   air:Number(q("air").value), track:Number(q("track").value), humidity:Number(q("humidity").value), wind:q("wind").value, trackEvolution:q("trackEvolution").value,
   qualifFormat:q("qualifFormat").value, setupPriority:q("setupPriority").value, qWeather:q("qWeather").value, qTrackState:q("qTrackState").value, qEvolution:q("qEvolution").value, qRain:Number(q("qRain").value), qTrack:Number(q("qTrack").value), qHumidity:Number(q("qHumidity").value), qTyreMode:q("qTyreMode").value, qObjective:q("qObjective").value,
   liveLap:Number(q("liveLap").value), liveTyre:q("liveTyre").value, liveTyreAge:Number(q("liveTyreAge").value), livePosition:Number(q("livePosition").value), liveWeather:q("liveWeather").value, liveTrackState:q("liveTrackState").value, liveWear:q("liveWear").value, liveTraffic:q("liveTraffic").value,
+  liveQSession:q("liveQSession").value, liveQMinutes:Number(q("liveQMinutes").value), liveQPosition:Number(q("liveQPosition").value), liveQStatus:q("liveQStatus").value, liveQWeather:q("liveQWeather").value, liveQTrackState:q("liveQTrackState").value, liveQTrend:q("liveQTrend").value, liveQTyres:Number(q("liveQTyres").value),
   option:q("optionTyre").value, prime:q("primeTyre").value, startTyre:q("startTyre").value, wear:q("wear").value, axis:q("axis").value, target:q("target").value,
   over:Number(q("over").value), aero:Number(q("aeroBias").value), aggr:Number(q("aggr").value), stableBraking:q("stableBraking").checked, noAbs:!q("abs").checked, tc:q("tc").checked,
   problems:Array.from(document.querySelectorAll(".problem:checked")).map(x=>x.value)
@@ -484,6 +525,35 @@ function liveAdaptation(i, raceSetup, strat, life){
   phrases.push(`Aileron avant course autorisé : si la voiture sous-vire avec pneus usés, ajoute +1 clic au prochain arrêt; si elle survire, enlève 1 clic.`);
   return {rows,phrases,mode:nextAction};
 }
+
+function liveQualifAdaptation(i){
+  if(i.qualifFormat === "Pas de qualif") return {rows:[["-","-","-","Pas de qualif","Aucune adaptation qualif nécessaire."]], phrases:["Pas de qualif sélectionnée : concentre-toi sur la stratégie course."]};
+  const ctx = {...i, weather:i.liveQWeather === "Comme prévu" ? i.qWeather : i.liveQWeather, trackState:i.liveQTrackState === "Comme prévu" ? i.qTrackState : i.liveQTrackState, evolution:i.liveQTrend === "Pluie imminente" ? "Pluie arrive" : i.liveQTrend === "Piste s'améliore" ? "Séchage progressif" : i.qEvolution, rain:i.liveQWeather === "Comme prévu" ? i.qRain : (i.liveQWeather.includes("Pluie") || i.liveQWeather === "Bruine" ? 90 : i.qRain), track:i.qTrack, humidity:i.qHumidity};
+  const wet = wetness(ctx); const wetTyre = rainTyreFromWet(wet); const minutes = Math.max(0, i.liveQMinutes || 0); const rows = []; const phrases = [];
+  let tyre = wetTyre === "Slicks" ? (i.liveQTyres <= 0 || i.qTyreMode === "Économiser un train" ? `Prime (${i.prime})` : `Option (${i.option})`) : wetTyre;
+  let timing = "sortir maintenant"; let run = "1 tour lancé"; let action = "chrono de sécurité";
+  if(i.liveQStatus === "Éliminé provisoire" || i.liveQStatus === "Limite élimination"){
+    tyre = wetTyre === "Slicks" ? `Option (${i.option})` : wetTyre; timing = "sortir maintenant"; action = "tour obligatoire : risque élimination"; phrases.push("Tu es limite ou éliminé provisoire : priorité au chrono, pas à l'économie de pneus.");
+  } else if(i.liveQTrend === "Pluie imminente"){
+    timing = "sortir tout de suite"; action = "poser un tour avant la pluie"; phrases.push("Pluie imminente : sors avant tout le monde, même si la piste n'est pas parfaite.");
+  } else if(i.liveQTrend === "Piste s'améliore" && minutes > 4){
+    timing = `attendre environ ${Math.max(2, minutes-3)} min`; action = "dernier run sur piste plus rapide"; phrases.push("Piste qui s'améliore : garde un tour lancé pour la fin, sauf si tu es en zone rouge.");
+  } else if(i.liveQTrend === "Drapeau jaune / trafic"){
+    timing = "décaler le run"; action = "chercher piste libre"; phrases.push("Trafic/drapeau jaune : ne lance pas ton tour derrière un groupe, décale le tour de sortie.");
+  } else if(i.liveQStatus === "En sécurité" && i.qObjective === "Préserver pneus course"){
+    tyre = "Pas de run"; timing = "rester au stand"; run = "0"; action = "économiser pneus"; phrases.push("Tu es en sécurité : ne consomme pas un train Option inutilement.");
+  } else if(i.liveQStatus === "Objectif pole"){
+    tyre = wetTyre === "Slicks" ? `Option (${i.option})` : wetTyre; timing = minutes <= 3 ? "sortie immédiate" : "dernier run"; action = "attaque maximale"; phrases.push("Objectif pole : carburant minimum, pneus neufs si disponibles, recharge KERS avant la ligne.");
+  }
+  if(minutes <= 2 && tyre !== "Pas de run"){ timing = "sortir immédiatement"; action = "dernière chance"; }
+  rows.push([i.liveQSession, tyre, timing, run, action]);
+  rows.push(["Réglage", "Setup parc fermé", "inchangé", "-", "Ne change pas suspension/boîte/ailerons hors aileron avant autorisé en course."]);
+  if(wetTyre !== "Slicks") phrases.push(`Conditions ${wetTyre} : freine droit, évite les vibreurs, cherche une piste libre plus qu'une aspiration.`);
+  phrases.push(`Position P${i.liveQPosition} : si le cut est proche, fais un chrono de sécurité avant de tenter le tour parfait.`);
+  phrases.push("Tour qualif : chauffe sans glisser, espace la voiture devant, KERS avant les longues lignes droites, DRS seulement voiture droite.");
+  return {rows, phrases};
+}
+
 const HISTORY_KEY = "F12012_setup_history_v2";
 function getHistory(){ try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");}catch(e){return [];} }
 function setHistory(items){ localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0,30))); }
@@ -518,8 +588,8 @@ function renderTable(rows, heads){ return `<table><thead><tr>${heads.map(h=>`<th
 function render(){
   const i = vals(); const c = circuits[i.circuit];
   const raceSetup = calcSetup(i); const qctx = qualifContext(i); const qualSetup = calcSetup(qctx); const setup = chooseParcSetup(i, raceSetup, qualSetup);
-  const life = tyreLife(i,raceSetup); const dry = dryStrategy(i,life); const strat = weatherStrategy(i,raceSetup,dry,life); const qualif = qualifStrategy(i,qctx,setup,raceSetup,qualSetup,life); const live = liveAdaptation(i,raceSetup,strat,life);
-  const corr = corrections(i); const phrases = racePhrases(i,raceSetup,strat); lastPlan = {i,setup,raceSetup,qualSetup,life,strat,qualif,live};
+  const life = tyreLife(i,raceSetup); const dry = dryStrategy(i,life); const strat = weatherStrategy(i,raceSetup,dry,life); const qualif = qualifStrategy(i,qctx,setup,raceSetup,qualSetup,life); const live = liveAdaptation(i,raceSetup,strat,life); const liveQualif = liveQualifAdaptation(i);
+  const corr = corrections(i); const phrases = racePhrases(i,raceSetup,strat); lastPlan = {i,setup,raceSetup,qualSetup,life,strat,qualif,live,liveQualif};
   q("overLabel").textContent = overText(i.over); q("aeroLabel").textContent = aeroText(i.aero); q("aggrLabel").textContent = i.aggr <= 3 ? "prudente" : i.aggr >= 8 ? "attaque" : "équilibrée";
   q("metrics").innerHTML = [["Circuit",raceLaps(i.circuit,i.distance),c.profile],["Ailerons parc fermé",`${setup.fw}/${setup.rw}`,"base qualif + course"],["Vmax",setup.top,"km/h cible"],["Course",`${strat.stints.length-1}`,"arrêt(s)"],["Qualif",qualif.tyre,"pneu conseillé"]].map(m=>`<div class="card metric"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="s">${m[2]}</div></div>`).join("");
   q("summary").innerHTML = `<b>Plan optimal :</b> setup parc fermé <b>${i.setupPriority.toLowerCase()}</b>. Course : ${dry.summary}. Météo course : <b>${strat.mode}</b>. Qualif : <b>${i.qWeather}</b>. Le circuit demande ${c.notes}.<div class="parc-note"><b>Règle importante :</b> les réglages qualif et course restent identiques. Après le départ, on considère seulement l'aileron avant ajustable : ${frontWingDeltaText(setup,raceSetup)}.</div>` + setup.warnings.map(w=>`<div class="box warn"><b>Attention :</b> ${w}</div>`).join("");
@@ -529,6 +599,7 @@ function render(){
   q("setupPills").innerHTML = `<span class="pill">Vmax cible ${setup.top} km/h</span><span class="pill">Style ${overText(i.over)}</span><span class="pill">${aeroText(i.aero)}</span><span class="pill">Aileron AV course ${raceSetup.fw}</span>`;
   q("qualifTable").innerHTML = renderTable(qualif.rows,["Séance","Pneu","Timing","Run","Consigne"]);
   q("qualifPhrases").innerHTML = qualif.phrases.map(p=>`<div class="phrase">${p}</div>`).join("");
+  q("liveQualifStrategy").innerHTML = renderTable(liveQualif.rows,["Séance","Pneu","Timing","Run","Consigne"]) + `<div class="mini-title">Conseils live qualif</div><div class="phrase-list">${liveQualif.phrases.map(p=>`<div class="phrase">${p}</div>`).join("")}</div>`;
   q("strategyTable").innerHTML = renderTable(strat.stints.map(s=>[s.relai,s.tours,s.pneu,s.fenetre,s.consigne]),["Relais","Tours","Pneu","Arrêt","Consigne"]);
   q("racePhrases").innerHTML = phrases.map(p=>`<div class="phrase">${p}</div>`).join("");
   q("liveStrategy").innerHTML = renderTable(live.rows,["Moment","Pneu","Âge","Action","Consigne"]) + `<div class="mini-title">Conseils live</div><div class="phrase-list">${live.phrases.map(p=>`<div class="phrase">${p}</div>`).join("")}</div>`;
@@ -543,7 +614,8 @@ q("circuit").addEventListener("change",()=>{ setDefaultTyres(); scheduleRender()
 q("saveStrategyBtn").addEventListener("click",saveCurrentStrategy);
 q("historyList").addEventListener("click",handleHistoryClick);
 document.getElementById("screenControls").addEventListener("click",event=>{ const btn = event.target.closest(".screen-btn"); if(btn) setScreenMode(btn.dataset.screen); });
-initScreenMode(); setDefaultTyres(); render(); renderHistory();
+document.getElementById("detailTabs").addEventListener("click",event=>{ const btn = event.target.closest(".detail-tab"); if(btn) setDetailMode(btn.dataset.detail); });
+initScreenMode(); initDetailMode(); setDefaultTyres(); render(); renderHistory();
 </script>
 </body>
 </html>
