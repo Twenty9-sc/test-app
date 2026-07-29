@@ -138,6 +138,7 @@
     @keyframes bgFlow{0%{background-position:0 0,0 0}100%{background-position:220px 140px,0 0}}
     body:before{animation:bgFlow 26s linear infinite!important}
     table{font-size:.84rem}th,td{padding:9px 10px}.phrase{padding:10px 11px;font-size:.88rem;line-height:1.35}.box{padding:10px 12px;font-size:.9rem;line-height:1.35}.mini-title{margin:10px 0 7px}.metric{min-height:98px}.metric .v{font-size:1.9rem}
+    .voice-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:10px 0}.voice-toggle{display:flex;gap:8px;align-items:center;padding:9px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-weight:950}.voice-input{flex:1 1 260px}.voice-status{min-height:22px;color:rgba(255,255,255,.72);font-size:.86rem;font-weight:800}.voice-log{display:grid;gap:8px}.voice-msg{padding:10px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-size:.9rem;line-height:1.35}.voice-msg b{color:#ff2a1a}.voice-examples{font-size:.78rem;color:rgba(255,255,255,.66);line-height:1.45}
     @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
   </style>
@@ -226,6 +227,22 @@
     <div id="courseSection" class="detail-section">
       <div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie de course expliquée</h2><div id="strategyTable"></div><div class="mini-title">Conseils course</div><div class="phrase-list" id="racePhrases"></div></div>
       <div class="card"><h2 class="section-title"><span class="slash"></span>Carburant & mélanges moteur</h2><div id="fuelPlan"></div><div class="mini-title">Conseils moteur</div><div class="phrase-list" id="fuelPhrases"></div></div>
+      <div class="card">
+        <h2 class="section-title"><span class="slash"></span>IA vocale live optionnelle</h2>
+        <div class="hint">Active-la seulement si tu veux parler pendant la course. Elle met à jour uniquement les infos que tu dis, puis elle répond à l'écrit et à l'oral.</div>
+        <div class="voice-controls">
+          <label class="voice-toggle"><input id="voiceEnabled" type="checkbox"> Activer IA vocale</label>
+          <button class="btn btn-red" id="voiceListenBtn" type="button">🎙️ Écouter</button>
+          <button class="btn" id="voiceStopBtn" type="button">Stop</button>
+        </div>
+        <div class="voice-controls">
+          <input id="voiceText" class="voice-input" type="text" placeholder="Ex : tour 18 pneus orange freins jaunes moteur chaud carburant moins 1 pit oui" />
+          <button class="btn" id="voiceApplyBtn" type="button">Appliquer texte</button>
+        </div>
+        <div class="voice-examples">Tu peux donner plusieurs infos en même temps. Exemple : “tour 22, pluie légère, pneus rouges, moteur chaud, KERS HS, pit non”.</div>
+        <div class="voice-status" id="voiceStatus">IA inactive.</div>
+        <div class="voice-log" id="voiceLog"></div>
+      </div>
       <div class="card">
         <h2 class="section-title"><span class="slash"></span>Adaptation live pendant la course</h2>
         <div class="hint">À utiliser si la météo change, si tes pneus s'usent plus vite, si tu es bloqué dans le trafic ou après Safety Car. Ça recalcule la stratégie à partir de ton tour actuel.</div>
@@ -720,6 +737,93 @@ function render(){
   q("quickPlan").innerHTML = `<div class="box ok"><b>Pneus :</b> Option ${life.opt}T, Prime ${life.pri}T, Inters ${life.inter}T, Pluie ${life.wet}T.</div><div class="box info"><b>Carburant :</b> standard par défaut, riche court pour attaque, pauvre si moteur chaud ou carburant négatif.</div><div class="box warn"><b>Casse moteur :</b> éviter riche long, rupteur, surchauffe; short-shift si moteur orange/rouge.</div>`;
 }
 
+
+function cleanVoiceText(text){ return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[,;:.!?]/g," ").replace(/\s+/g," ").trim(); }
+function wordNumber(raw){
+  const t = cleanVoiceText(raw); const map = {"zero":0,"un":1,"une":1,"deux":2,"trois":3,"quatre":4,"cinq":5,"six":6,"sept":7,"huit":8,"neuf":9,"dix":10};
+  if(/^\d+$/.test(t)) return Number(t); return map[t];
+}
+function findNumberAfter(t, keys){
+  for(const key of keys){ const m = t.match(new RegExp(`${key}\\s+(\\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)`, "i")); if(m) return wordNumber(m[1]); }
+  return null;
+}
+function selectValue(id,value,updates,label){ const el=q(id); if(!el || value == null) return; if(el.value !== String(value)){ el.value = String(value); updates.push(`${label}: ${value}`); } }
+function inputValue(id,value,updates,label){ const el=q(id); if(!el || value == null || Number.isNaN(value)) return; if(el.value !== String(value)){ el.value = String(value); updates.push(`${label}: ${value}`); } }
+function parseColorNear(t, key){
+  const colors = [["rouge","Rouge"],["orange","Orange"],["jaune","Jaune"],["vert","Vert"]];
+  const kg = `(?:${key})`;
+  for(const [w,v] of colors){ if(new RegExp(`${kg}\s*(?:couleur|sont|est)?\s*${w}`).test(t)) return v; }
+  for(const [w,v] of colors){ if(new RegExp(`${w}\s*(?:sur|aux|pour)?\s*(?:les\s*)?${kg}`).test(t)) return v; }
+  return null;
+}
+function updateVoiceCommand(raw){
+  const t = cleanVoiceText(raw); const updates = [];
+  const lap = findNumberAfter(t,["tour","t"]); if(lap !== null) inputValue("liveLap",lap,updates,"tour");
+  const pos = findNumberAfter(t,["position","p"]); if(pos !== null) inputValue("livePosition",pos,updates,"position");
+  const age = t.match(/(?:pneu|pneus).{0,16}(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)\s*tours?/); if(age) inputValue("liveTyreAge",wordNumber(age[1]),updates,"âge pneus");
+  if(/\b(option|tendre|tendres|soft)\b/.test(t)) selectValue("liveTyre","Option",updates,"pneu");
+  if(/\b(prime|dur|durs|medium|mediam|mediums|mediums)\b/.test(t)) selectValue("liveTyre","Prime",updates,"pneu");
+  if(/\b(inter|intermediaire|intermediaires)\b/.test(t)) selectValue("liveTyre","Intermédiaires",updates,"pneu");
+  if(/\b(pluie|full wet|wet)\b/.test(t) && /pneu|gomme|monte/.test(t)) selectValue("liveTyre","Pluie",updates,"pneu");
+  if(/pluie forte|grosse pluie|detrempe/.test(t)) selectValue("liveWeather","Pluie forte",updates,"météo");
+  else if(/pluie moyenne/.test(t)) selectValue("liveWeather","Pluie moyenne",updates,"météo");
+  else if(/pluie legere|petite pluie/.test(t)) selectValue("liveWeather","Pluie légère",updates,"météo");
+  else if(/bruine/.test(t)) selectValue("liveWeather","Bruine",updates,"météo");
+  else if(/variable|menacant|menaçant/.test(t)) selectValue("liveWeather","Variable / menaçant",updates,"météo");
+  else if(/sec couvert|couvert/.test(t)) selectValue("liveWeather","Sec couvert",updates,"météo");
+  else if(/\bsec\b|ensoleille/.test(t)) selectValue("liveWeather","Sec ensoleillé",updates,"météo");
+  if(/piste detrempee|piste detrempe|detrempee|detrempe/.test(t)) selectValue("liveTrackState","Détrempée",updates,"piste");
+  else if(/tres humide/.test(t)) selectValue("liveTrackState","Très humide",updates,"piste");
+  else if(/humide hors|hors trajectoire/.test(t)) selectValue("liveTrackState","Humide hors trajectoire",updates,"piste");
+  else if(/piste humide|\bhumide\b/.test(t)) selectValue("liveTrackState","Humide",updates,"piste");
+  else if(/piste seche|piste sèche|\bseche\b/.test(t)) selectValue("liveTrackState","Sèche",updates,"piste");
+  const tyreColor = parseColorNear(t,"pneu|pneus|gomme|gommes"); if(tyreColor){ selectValue("liveTyreColor",tyreColor,updates,"couleur pneus"); selectValue("liveWear",tyreColor==="Rouge"?"Très forte":tyreColor==="Orange"?"Forte":tyreColor==="Jaune"?"Normale":"Faible",updates,"usure"); }
+  const brakeColor = parseColorNear(t,"frein|freins"); if(brakeColor) selectValue("liveBrakeColor",brakeColor,updates,"couleur freins");
+  if(/safety car|vsc/.test(t)) selectValue("liveTraffic","Safety Car / VSC",updates,"trafic"); else if(/trafic|bloque|bloqué/.test(t)) selectValue("liveTraffic","Bloqué dans le trafic",updates,"trafic"); else if(/defense|défense|derriere|derrière/.test(t)) selectValue("liveTraffic","Défense derrière",updates,"trafic"); else if(/air propre|piste libre/.test(t)) selectValue("liveTraffic","Air propre",updates,"trafic");
+  if(/voiture.*degat important|gros degat|degat important/.test(t)) selectValue("liveCarState","Dégât important",updates,"voiture"); else if(/voiture.*instable|instable/.test(t)) selectValue("liveCarState","Instable",updates,"voiture"); else if(/leger degat|petit degat/.test(t)) selectValue("liveCarState","Léger dégât",updates,"voiture"); else if(/voiture ok|voiture va bien/.test(t)) selectValue("liveCarState","OK",updates,"voiture");
+  if(/aileron.*gauche/.test(t)) selectValue("liveFrontWing","Cassé côté gauche",updates,"aileron"); else if(/aileron.*droite|aileron.*droit/.test(t)) selectValue("liveFrontWing","Cassé côté droit",updates,"aileron"); else if(/aileron.*(tres abime|mort|casse|cassé)/.test(t)) selectValue("liveFrontWing","Très abîmé",updates,"aileron"); else if(/aileron.*leger|aileron.*abime/.test(t)) selectValue("liveFrontWing","Léger dégât",updates,"aileron"); else if(/aileron.*ok/.test(t)) selectValue("liveFrontWing","OK",updates,"aileron");
+  if(/kers.*(hs|mort|marche pas|inutilisable|pas utilisable)/.test(t)) selectValue("liveKers","HS",updates,"KERS"); else if(/kers.*(faible|intermittent)/.test(t)) selectValue("liveKers","Faible / intermittent",updates,"KERS"); else if(/kers.*(ok|utilisable|marche)/.test(t)) selectValue("liveKers","Utilisable",updates,"KERS");
+  if(/moteur.*critique|moteur rouge/.test(t)) selectValue("liveEngine","Critique",updates,"moteur"); else if(/moteur.*chaud|moteur orange/.test(t)) selectValue("liveEngine","Chaud",updates,"moteur"); else if(/moteur.*use|moteur jaune|moteur usé/.test(t)) selectValue("liveEngine","Usé",updates,"moteur"); else if(/moteur.*ok/.test(t)) selectValue("liveEngine","OK",updates,"moteur");
+  if(/pneu.*surchauffe|surchauffe.*pneu/.test(t)) selectValue("liveTyreTemp","Surchauffe",updates,"temp pneus"); else if(/pneu.*chaud|chaud.*pneu/.test(t)) selectValue("liveTyreTemp","Chaude",updates,"temp pneus"); else if(/pneu.*froid|froid.*pneu/.test(t)) selectValue("liveTyreTemp","Froide",updates,"temp pneus"); else if(/temperature.*ok/.test(t)) selectValue("liveTyreTemp","OK",updates,"temp pneus");
+  if(/carburant.*moins deux|carburant.*-2|essence.*moins deux/.test(t)) selectValue("liveFuelDelta","-2 tours ou pire",updates,"carburant"); else if(/carburant.*moins un|carburant.*-1|essence.*moins un/.test(t)) selectValue("liveFuelDelta","-1 tour",updates,"carburant"); else if(/carburant.*limite|essence.*limite/.test(t)) selectValue("liveFuelDelta","Limite",updates,"carburant"); else if(/carburant.*plus deux|carburant.*\+2|essence.*plus deux/.test(t)) selectValue("liveFuelDelta","+2 tours ou plus",updates,"carburant"); else if(/carburant.*ok|essence.*ok/.test(t)) selectValue("liveFuelDelta","OK",updates,"carburant");
+  if(/melange.*pauvre|mix.*pauvre/.test(t)) selectValue("liveFuelMix","Pauvre",updates,"mélange"); else if(/melange.*riche|mix.*riche/.test(t)) selectValue("liveFuelMix","Riche",updates,"mélange"); else if(/melange.*standard|mix.*standard/.test(t)) selectValue("liveFuelMix","Standard",updates,"mélange");
+  if(/pit non|stand ferme|stands fermes|pas pit|ne peux pas rentrer/.test(t)) selectValue("liveCanPit","Non",updates,"pit"); else if(/pit oui|stand ouvert|stands ouverts|je peux rentrer|pit possible/.test(t)) selectValue("liveCanPit","Oui",updates,"pit");
+  if(/drive through|drive-through/.test(t)) selectValue("livePenalty","Drive-through",updates,"pénalité"); else if(/stop and go|stop go/.test(t)) selectValue("livePenalty","Stop & Go",updates,"pénalité"); else if(/temps ajoute|temps ajouté|penalite temps/.test(t)) selectValue("livePenalty","Temps ajouté",updates,"pénalité"); else if(/pas de penalite|aucune penalite|penalite aucune/.test(t)) selectValue("livePenalty","Aucune",updates,"pénalité");
+  if(/difficulte legende|difficulté légende/.test(t)) selectValue("difficulty","Légende",updates,"difficulté"); else if(/difficulte pro|difficulté pro/.test(t)) selectValue("difficulty","Pro",updates,"difficulté"); else if(/difficulte facile|difficulté facile/.test(t)) selectValue("difficulty","Facile",updates,"difficulté"); else if(/difficulte inter|difficulté inter/.test(t)) selectValue("difficulty","Intermédiaire",updates,"difficulté");
+  return updates;
+}
+function buildVoiceReply(updates){
+  if(!updates.length) return "Je n'ai rien modifié. Dis par exemple : tour 18, pneus orange, moteur chaud, carburant moins un.";
+  render();
+  const live = lastPlan && lastPlan.live; const action = live?.rows?.[1]?.[3] || live?.rows?.[0]?.[3] || "continuer"; const tip = live?.phrases?.[0] || "Garde un rythme propre.";
+  return `Mis à jour : ${updates.join(", ")}. Action : ${action}. ${tip}`;
+}
+function addVoiceLog(raw, reply){
+  const log = q("voiceLog"); if(!log) return;
+  log.innerHTML = `<div class="voice-msg"><b>Toi :</b> ${raw}</div><div class="voice-msg"><b>IA :</b> ${reply}</div>` + log.innerHTML;
+}
+function speakVoice(text){
+  if(!q("voiceEnabled")?.checked || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.lang = "fr-FR"; utter.rate = 1.05; utter.pitch = 1; window.speechSynthesis.speak(utter);
+}
+function applyVoiceCommand(raw){
+  if(!q("voiceEnabled").checked){ q("voiceStatus").textContent = "Active l'IA vocale avant d'appliquer."; return; }
+  const updates = updateVoiceCommand(raw); const reply = buildVoiceReply(updates); q("voiceStatus").textContent = updates.length ? "Commande appliquée." : "Commande non reconnue."; addVoiceLog(raw, reply); speakVoice(reply);
+}
+let voiceRecognition = null;
+function startVoiceListen(){
+  if(!q("voiceEnabled").checked){ q("voiceStatus").textContent = "IA vocale désactivée."; return; }
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!Rec){ q("voiceStatus").textContent = "Reconnaissance vocale non supportée ici. Utilise le champ texte."; return; }
+  voiceRecognition = new Rec(); voiceRecognition.lang = "fr-FR"; voiceRecognition.interimResults = false; voiceRecognition.continuous = false;
+  voiceRecognition.onstart = ()=> q("voiceStatus").textContent = "J'écoute...";
+  voiceRecognition.onerror = e=> q("voiceStatus").textContent = `Erreur micro : ${e.error || "inconnue"}`;
+  voiceRecognition.onresult = e=>{ const text = Array.from(e.results).map(r=>r[0].transcript).join(" "); q("voiceText").value = text; applyVoiceCommand(text); };
+  voiceRecognition.onend = ()=>{ if(q("voiceStatus").textContent === "J'écoute...") q("voiceStatus").textContent = "Écoute terminée."; };
+  voiceRecognition.start();
+}
+function stopVoiceListen(){ if(voiceRecognition) voiceRecognition.stop(); if("speechSynthesis" in window) window.speechSynthesis.cancel(); q("voiceStatus").textContent = "IA vocale arrêtée."; }
+
 const HELP_DATA = {
   "Course": [
     "Circuit : dans le menu du Grand Prix/Carrière, c'est le tracé sélectionné avant la session.",
@@ -757,6 +861,14 @@ const HELP_DATA = {
     "Carburant : + tours = marge, - tours = mélange pauvre jusqu'à revenir à 0.",
     "Moteur : si chaud/usé/critique, évite riche long, short-shift et cherche air propre.",
     "Sauvegardes : onglet caché à droite. Rien à télécharger, l'historique reste dans ce navigateur."
+  ],
+  "IA vocale": [
+    "L'IA vocale est optionnelle : coche Activer IA vocale puis clique Écouter. Elle fonctionne avec la reconnaissance vocale du navigateur.",
+    "Elle ne modifie que les infos clairement dites. Si tu dis seulement moteur chaud, seul le champ moteur change.",
+    "Tu peux donner plusieurs infos : tour 18, pneus orange, freins jaunes, moteur chaud, carburant moins un, pit oui.",
+    "Parle en mots courts et évite les contradictions dans la même phrase : ne dis pas pneus rouges puis pneus verts.",
+    "Commandes utiles : pluie légère, piste humide, KERS HS, aileron gauche cassé, pénalité drive-through, mélange pauvre.",
+    "Après chaque commande, l'IA écrit et dit l'action conseillée. Si elle n'a pas compris, utilise le champ texte juste dessous."
   ]
 };
 function renderHelp(tab="Course"){
@@ -779,6 +891,10 @@ document.getElementById("helpOpen").addEventListener("click",openHelp);
 document.getElementById("helpClose").addEventListener("click",closeHelp);
 document.getElementById("helpTabs").addEventListener("click",event=>{ const btn = event.target.closest(".help-tab"); if(btn) renderHelp(btn.dataset.help); });
 document.getElementById("helpModal").addEventListener("click",event=>{ if(event.target.id === "helpModal") closeHelp(); });
+q("voiceListenBtn").addEventListener("click",startVoiceListen);
+q("voiceStopBtn").addEventListener("click",stopVoiceListen);
+q("voiceApplyBtn").addEventListener("click",()=>applyVoiceCommand(q("voiceText").value));
+q("voiceEnabled").addEventListener("change",()=>{ q("voiceStatus").textContent = q("voiceEnabled").checked ? "IA prête. Clique Écouter ou écris une commande." : "IA inactive."; if(!q("voiceEnabled").checked) stopVoiceListen(); });
 initScreenMode(); initDetailMode(); setDefaultTyres(); render(); renderHistory();
 </script>
 </body>
