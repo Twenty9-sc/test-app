@@ -49,9 +49,9 @@
     .aside-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.aside-head h2{margin:0;font-size:1.25rem}.live-dot{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:1000;color:var(--f1-red)}.live-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--f1-red);animation:pulseGlow 1.4s ease infinite}
     fieldset{border:0;border-top:1px solid var(--line);margin:14px 0 0;padding:14px 0 0}legend{font-weight:1000;padding-right:9px;color:var(--f1-black)}
     label{display:block;font-size:.78rem;font-weight:950;margin:10px 0 5px;color:#2d2f39}.hint{font-size:.72rem;color:var(--f1-muted);margin-top:5px;line-height:1.35}
-    select,input[type=number],input[type=text],input[type=range]{width:100%;border:1px solid var(--line);background:#fff;color:var(--f1-ink);border-radius:13px;padding:10px 11px;outline:none;transition:border-color .2s,box-shadow .2s,transform .2s}
+    select,textarea,input[type=number],input[type=text],input[type=range]{width:100%;border:1px solid var(--line);background:#fff;color:var(--f1-ink);border-radius:13px;padding:10px 11px;outline:none;transition:border-color .2s,box-shadow .2s,transform .2s}
     select:focus,input:focus{border-color:var(--f1-red);box-shadow:0 0 0 4px rgba(225,6,0,.10)}
-    select:hover,input[type=number]:hover,input[type=text]:hover{transform:translateY(-1px)}
+    select:hover,textarea:hover,input[type=number]:hover,input[type=text]:hover{transform:translateY(-1px)}
     input[type=range]{padding:0;accent-color:var(--f1-red)}input[type=checkbox]{accent-color:var(--f1-red);transform:translateY(1px)}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}.checkline{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-weight:700;color:#3d414e}.content{display:grid;gap:14px}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.card{border-radius:var(--radius);padding:17px;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}.card:hover{transform:translateY(-3px);box-shadow:0 24px 62px rgba(21,21,30,.11);border-color:rgba(225,6,0,.22)}
     .metric{min-height:116px}.metric .k{font-size:.75rem;color:var(--f1-muted);font-weight:1000;text-transform:uppercase;letter-spacing:.04em}.metric .v{font-size:2.15rem;line-height:1;margin-top:10px;color:var(--f1-red);font-weight:1000;letter-spacing:-.05em}.metric .s{font-size:.78rem;color:var(--f1-muted);margin-top:6px;font-weight:800}
@@ -109,8 +109,8 @@
     .card:before,aside:before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,rgba(225,6,0,.88),transparent);pointer-events:none}
     .aside-head h2,legend,label,h2.section-title,.mini-title,.history-title{color:#fff}.hint,.metric .k,.metric .s,.history-meta,.footer,.gear-line small{color:rgba(255,255,255,.68)}.checkline{color:rgba(255,255,255,.84)}
     fieldset{border-top-color:rgba(255,255,255,.10)}
-    select,input[type=number],input[type=text],input[type=range]{background:#0b0c12;color:#fff;border-color:rgba(255,255,255,.14);box-shadow:none}
-    select option{background:#0b0c12;color:#fff}input::placeholder{color:rgba(255,255,255,.45)}select:focus,input:focus{border-color:rgba(225,6,0,.75);box-shadow:0 0 0 3px rgba(225,6,0,.14)}select:hover,input[type=number]:hover,input[type=text]:hover{transform:none}
+    select,textarea,input[type=number],input[type=text],input[type=range]{background:#0b0c12;color:#fff;border-color:rgba(255,255,255,.14);box-shadow:none}
+    select option{background:#0b0c12;color:#fff}input::placeholder{color:rgba(255,255,255,.45)}select:focus,input:focus{border-color:rgba(225,6,0,.75);box-shadow:0 0 0 3px rgba(225,6,0,.14)}select:hover,textarea:hover,input[type=number]:hover,input[type=text]:hover{transform:none}
     .metric .v{color:#ff2a1a;text-shadow:none}.summary{color:#fff;background:linear-gradient(135deg,rgba(14,15,22,.94),rgba(33,20,22,.82));border-color:rgba(255,255,255,.12);box-shadow:var(--shadow)}.summary b,.section-cell,.gear-line b,.parc-note b{color:#ff2a1a}
     table{border-color:rgba(255,255,255,.10)}th{background:#08090d;color:#fff;border-bottom:1px solid rgba(225,6,0,.45)}td{background:#101119;color:#fff;border-top:1px solid rgba(255,255,255,.08)}td:last-child{color:#fff}
     .gear-line,.phrase,.history-item,.pill,.mini-btn,.parc-note{background:#101119;border-color:rgba(255,255,255,.10);color:#fff}.gear-line:hover,.phrase:hover,.history-item:hover{transform:none;border-color:rgba(225,6,0,.30);box-shadow:none}
@@ -138,7 +138,7 @@
     @keyframes bgFlow{0%{background-position:0 0,0 0}100%{background-position:220px 140px,0 0}}
     body:before{animation:bgFlow 26s linear infinite!important}
     table{font-size:.84rem}th,td{padding:9px 10px}.phrase{padding:10px 11px;font-size:.88rem;line-height:1.35}.box{padding:10px 12px;font-size:.9rem;line-height:1.35}.mini-title{margin:10px 0 7px}.metric{min-height:98px}.metric .v{font-size:1.9rem}
-    .voice-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:10px 0}.voice-toggle{display:flex;gap:8px;align-items:center;padding:9px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-weight:950}.voice-input{flex:1 1 260px}.voice-status{min-height:22px;color:rgba(255,255,255,.72);font-size:.86rem;font-weight:800}.voice-log{display:grid;gap:8px}.voice-msg{padding:10px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-size:.9rem;line-height:1.35}.voice-msg b{color:#ff2a1a}.voice-examples{font-size:.78rem;color:rgba(255,255,255,.66);line-height:1.45}
+    .voice-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:10px 0}.voice-toggle{display:flex;gap:8px;align-items:center;padding:9px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-weight:950}.voice-input{flex:1 1 100%;min-height:92px;resize:vertical;line-height:1.35}.voice-status{min-height:22px;color:rgba(255,255,255,.72);font-size:.86rem;font-weight:800}.voice-log{display:grid;gap:8px}.voice-msg{padding:10px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-size:.9rem;line-height:1.35}.voice-msg b{color:#ff2a1a}.voice-examples{font-size:.78rem;color:rgba(255,255,255,.66);line-height:1.45}
     @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
   </style>
@@ -236,7 +236,7 @@
           <button class="btn" id="voiceStopBtn" type="button">Stop</button>
         </div>
         <div class="voice-controls">
-          <input id="voiceText" class="voice-input" type="text" placeholder="Ex : tour 18 pneus orange freins jaunes moteur chaud carburant moins 1 pit oui" />
+          <textarea id="voiceText" class="voice-input" rows="3" placeholder="Ex : tour 18 pneus orange, freins jaunes, moteur chaud, carburant moins 1, pit oui. Tu peux dicter une phrase longue."></textarea>
           <button class="btn" id="voiceApplyBtn" type="button">Appliquer texte</button>
         </div>
         <div class="voice-examples">Tu peux donner plusieurs infos en même temps. Exemple : “tour 22, pluie légère, pneus rouges, moteur chaud, KERS HS, pit non”.</div>
@@ -738,13 +738,26 @@ function render(){
 }
 
 
-function cleanVoiceText(text){ return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[,;:.!?]/g," ").replace(/\s+/g," ").trim(); }
+function cleanVoiceText(text){
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[,;:.!?]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
 function wordNumber(raw){
-  const t = cleanVoiceText(raw); const map = {"zero":0,"un":1,"une":1,"deux":2,"trois":3,"quatre":4,"cinq":5,"six":6,"sept":7,"huit":8,"neuf":9,"dix":10};
-  if(/^\d+$/.test(t)) return Number(t); return map[t];
+  const t = cleanVoiceText(raw);
+  const map = {"zero":0,"un":1,"une":1,"premier":1,"premiere":1,"deux":2,"second":2,"trois":3,"quatre":4,"cinq":5,"six":6,"sept":7,"huit":8,"neuf":9,"dix":10,"onze":11,"douze":12,"treize":13,"quatorze":14,"quinze":15,"seize":16,"dix sept":17,"dix huit":18,"dix neuf":19,"vingt":20};
+  if(/^[-+]?\d+$/.test(t)) return Number(t);
+  return map[t];
 }
 function findNumberAfter(t, keys){
-  for(const key of keys){ const m = t.match(new RegExp(`${key}\\s+(\\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)`, "i")); if(m) return wordNumber(m[1]); }
+  for(const key of keys){
+    const m = t.match(new RegExp(`${key}\\s*(?:est|a|=|:)?\\s*(moins\\s*)?(\\d+|un|une|premier|premiere|deux|second|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingt)`, "i"));
+    if(m){ const n = wordNumber(m[2]); return m[1] ? -Math.abs(n) : n; }
+  }
   return null;
 }
 function selectValue(id,value,updates,label){ const el=q(id); if(!el || value == null) return; if(el.value !== String(value)){ el.value = String(value); updates.push(`${label}: ${value}`); } }
@@ -752,77 +765,107 @@ function inputValue(id,value,updates,label){ const el=q(id); if(!el || value == 
 function parseColorNear(t, key){
   const colors = [["rouge","Rouge"],["orange","Orange"],["jaune","Jaune"],["vert","Vert"]];
   const kg = `(?:${key})`;
-  for(const [w,v] of colors){ if(new RegExp(`${kg}\s*(?:couleur|sont|est)?\s*${w}`).test(t)) return v; }
-  for(const [w,v] of colors){ if(new RegExp(`${w}\s*(?:sur|aux|pour)?\s*(?:les\s*)?${kg}`).test(t)) return v; }
+  for(const [w,v] of colors){ if(new RegExp(`${kg}\\s*(?:couleur|sont|est|en|dans le)?\\s*${w}`).test(t)) return v; }
+  for(const [w,v] of colors){ if(new RegExp(`${w}\\s*(?:sur|aux|pour|dans)?\\s*(?:les\\s*)?${kg}`).test(t)) return v; }
   return null;
+}
+function hasAny(t, words){ return words.some(w => t.includes(w)); }
+function updateWeatherFields(prefix, t, updates){
+  const weatherId = prefix ? "liveQWeather" : "liveWeather";
+  const trackId = prefix ? "liveQTrackState" : "liveTrackState";
+  if(/pluie forte|grosse pluie|detrempe/.test(t)) selectValue(weatherId,"Pluie forte",updates,prefix?"météo qualif":"météo");
+  else if(/pluie moyenne/.test(t)) selectValue(weatherId,"Pluie moyenne",updates,prefix?"météo qualif":"météo");
+  else if(/pluie legere|petite pluie|il pleut leger/.test(t)) selectValue(weatherId,"Pluie légère",updates,prefix?"météo qualif":"météo");
+  else if(/bruine/.test(t)) selectValue(weatherId,"Bruine",updates,prefix?"météo qualif":"météo");
+  else if(/variable|menacant|menaçant|menace/.test(t)) selectValue(weatherId,"Variable / menaçant",updates,prefix?"météo qualif":"météo");
+  else if(/sec couvert|couvert/.test(t)) selectValue(weatherId,"Sec couvert",updates,prefix?"météo qualif":"météo");
+  else if(/\bsec\b|ensoleille/.test(t)) selectValue(weatherId,"Sec ensoleillé",updates,prefix?"météo qualif":"météo");
+  if(/piste detrempee|piste detrempe|detrempee|detrempe/.test(t)) selectValue(trackId,"Détrempée",updates,prefix?"piste qualif":"piste");
+  else if(/tres humide|très humide/.test(t)) selectValue(trackId,"Très humide",updates,prefix?"piste qualif":"piste");
+  else if(/humide hors|hors trajectoire/.test(t)) selectValue(trackId,"Humide hors trajectoire",updates,prefix?"piste qualif":"piste");
+  else if(/piste humide|\bhumide\b/.test(t)) selectValue(trackId,"Humide",updates,prefix?"piste qualif":"piste");
+  else if(/piste seche|piste sèche|\bseche\b/.test(t)) selectValue(trackId,"Sèche",updates,prefix?"piste qualif":"piste");
 }
 function updateVoiceCommand(raw){
   const t = cleanVoiceText(raw); const updates = [];
-  const lap = findNumberAfter(t,["tour","t"]); if(lap !== null) inputValue("liveLap",lap,updates,"tour");
-  const pos = findNumberAfter(t,["position","p"]); if(pos !== null) inputValue("livePosition",pos,updates,"position");
-  const age = t.match(/(?:pneu|pneus).{0,16}(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)\s*tours?/); if(age) inputValue("liveTyreAge",wordNumber(age[1]),updates,"âge pneus");
-  if(/\b(option|tendre|tendres|soft)\b/.test(t)) selectValue("liveTyre","Option",updates,"pneu");
+  const qualifMode = /\b(q1|q2|q3|qualif|qualification|minutes restantes|run court|elimination|elimine|pole)\b/.test(t);
+  const lap = findNumberAfter(t,["tour","t"]); if(lap !== null) inputValue("liveLap",Math.max(1,lap),updates,"tour");
+  const pos = findNumberAfter(t,["position","p"]); if(pos !== null) inputValue(qualifMode?"liveQPosition":"livePosition",Math.max(1,pos),updates,qualifMode?"position qualif":"position");
+  const minutes = findNumberAfter(t,["minutes restantes","minute restante","minutes","temps restant"]); if(minutes !== null) inputValue("liveQMinutes",Math.max(0,minutes),updates,"minutes qualif");
+  const qTyres = findNumberAfter(t,["trains option","options neuves","pneus option neufs","train option"]); if(qTyres !== null) inputValue("liveQTyres",Math.max(0,qTyres),updates,"trains option");
+  const age = t.match(/(?:age|âge|pneu|pneus|gomme|gommes).{0,22}(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|quinze|vingt)\s*tours?/); if(age) inputValue("liveTyreAge",wordNumber(age[1]),updates,"âge pneus");
+  if(/\bq1\b/.test(t)) selectValue("liveQSession","Q1",updates,"séance"); if(/\bq2\b/.test(t)) selectValue("liveQSession","Q2",updates,"séance"); if(/\bq3\b/.test(t)) selectValue("liveQSession","Q3",updates,"séance"); if(/run court|qualif courte/.test(t)) selectValue("liveQSession","Run court",updates,"séance");
+  if(/limite elimination|limite elim|zone rouge/.test(t)) selectValue("liveQStatus","Limite élimination",updates,"statut qualif"); else if(/elimine|éliminé|hors qualif/.test(t)) selectValue("liveQStatus","Éliminé provisoire",updates,"statut qualif"); else if(/objectif pole|pole/.test(t)) selectValue("liveQStatus","Objectif pole",updates,"statut qualif"); else if(/en securite|en sécurité|safe/.test(t)) selectValue("liveQStatus","En sécurité",updates,"statut qualif");
+  if(/piste sameliore|piste s ameliore|s ameliore|s'améliore/.test(t)) selectValue("liveQTrend","Piste s'améliore",updates,"tendance qualif"); else if(/pluie imminente|pluie arrive bientot|pluie arrive/.test(t)) selectValue("liveQTrend","Pluie imminente",updates,"tendance qualif"); else if(/drapeau jaune|trafic qualif/.test(t)) selectValue("liveQTrend","Drapeau jaune / trafic",updates,"tendance qualif"); else if(/derniere chance|dernière chance/.test(t)) selectValue("liveQTrend","Dernière chance",updates,"tendance qualif"); else if(/stable/.test(t) && qualifMode) selectValue("liveQTrend","Stable",updates,"tendance qualif");
+  updateWeatherFields(qualifMode,t,updates);
+  if(/\b(option|options|tendre|tendres|soft)\b/.test(t) && !/train option|options neuves/.test(t)) selectValue("liveTyre","Option",updates,"pneu");
   if(/\b(prime|dur|durs|medium|mediam|mediums|mediums)\b/.test(t)) selectValue("liveTyre","Prime",updates,"pneu");
   if(/\b(inter|intermediaire|intermediaires)\b/.test(t)) selectValue("liveTyre","Intermédiaires",updates,"pneu");
   if(/\b(pluie|full wet|wet)\b/.test(t) && /pneu|gomme|monte/.test(t)) selectValue("liveTyre","Pluie",updates,"pneu");
-  if(/pluie forte|grosse pluie|detrempe/.test(t)) selectValue("liveWeather","Pluie forte",updates,"météo");
-  else if(/pluie moyenne/.test(t)) selectValue("liveWeather","Pluie moyenne",updates,"météo");
-  else if(/pluie legere|petite pluie/.test(t)) selectValue("liveWeather","Pluie légère",updates,"météo");
-  else if(/bruine/.test(t)) selectValue("liveWeather","Bruine",updates,"météo");
-  else if(/variable|menacant|menaçant/.test(t)) selectValue("liveWeather","Variable / menaçant",updates,"météo");
-  else if(/sec couvert|couvert/.test(t)) selectValue("liveWeather","Sec couvert",updates,"météo");
-  else if(/\bsec\b|ensoleille/.test(t)) selectValue("liveWeather","Sec ensoleillé",updates,"météo");
-  if(/piste detrempee|piste detrempe|detrempee|detrempe/.test(t)) selectValue("liveTrackState","Détrempée",updates,"piste");
-  else if(/tres humide/.test(t)) selectValue("liveTrackState","Très humide",updates,"piste");
-  else if(/humide hors|hors trajectoire/.test(t)) selectValue("liveTrackState","Humide hors trajectoire",updates,"piste");
-  else if(/piste humide|\bhumide\b/.test(t)) selectValue("liveTrackState","Humide",updates,"piste");
-  else if(/piste seche|piste sèche|\bseche\b/.test(t)) selectValue("liveTrackState","Sèche",updates,"piste");
+  if(/usure tres forte|usure rouge/.test(t)) selectValue("liveWear","Très forte",updates,"usure"); else if(/usure forte|grosse usure/.test(t)) selectValue("liveWear","Forte",updates,"usure"); else if(/usure normale/.test(t)) selectValue("liveWear","Normale",updates,"usure"); else if(/usure faible/.test(t)) selectValue("liveWear","Faible",updates,"usure");
   const tyreColor = parseColorNear(t,"pneu|pneus|gomme|gommes"); if(tyreColor){ selectValue("liveTyreColor",tyreColor,updates,"couleur pneus"); selectValue("liveWear",tyreColor==="Rouge"?"Très forte":tyreColor==="Orange"?"Forte":tyreColor==="Jaune"?"Normale":"Faible",updates,"usure"); }
   const brakeColor = parseColorNear(t,"frein|freins"); if(brakeColor) selectValue("liveBrakeColor",brakeColor,updates,"couleur freins");
   if(/safety car|vsc/.test(t)) selectValue("liveTraffic","Safety Car / VSC",updates,"trafic"); else if(/trafic|bloque|bloqué/.test(t)) selectValue("liveTraffic","Bloqué dans le trafic",updates,"trafic"); else if(/defense|défense|derriere|derrière/.test(t)) selectValue("liveTraffic","Défense derrière",updates,"trafic"); else if(/air propre|piste libre/.test(t)) selectValue("liveTraffic","Air propre",updates,"trafic");
-  if(/voiture.*degat important|gros degat|degat important/.test(t)) selectValue("liveCarState","Dégât important",updates,"voiture"); else if(/voiture.*instable|instable/.test(t)) selectValue("liveCarState","Instable",updates,"voiture"); else if(/leger degat|petit degat/.test(t)) selectValue("liveCarState","Léger dégât",updates,"voiture"); else if(/voiture ok|voiture va bien/.test(t)) selectValue("liveCarState","OK",updates,"voiture");
+  if(/voiture.*degat important|gros degat|degat important/.test(t)) selectValue("liveCarState","Dégât important",updates,"voiture"); else if(/voiture.*instable|instable/.test(t)) selectValue("liveCarState","Instable",updates,"voiture"); else if(/leger degat|petit degat/.test(t)) selectValue("liveCarState","Léger dégât",updates,"voiture"); else if(/voiture ok|voiture va bien|etat voiture ok/.test(t)) selectValue("liveCarState","OK",updates,"voiture");
   if(/aileron.*gauche/.test(t)) selectValue("liveFrontWing","Cassé côté gauche",updates,"aileron"); else if(/aileron.*droite|aileron.*droit/.test(t)) selectValue("liveFrontWing","Cassé côté droit",updates,"aileron"); else if(/aileron.*(tres abime|mort|casse|cassé)/.test(t)) selectValue("liveFrontWing","Très abîmé",updates,"aileron"); else if(/aileron.*leger|aileron.*abime/.test(t)) selectValue("liveFrontWing","Léger dégât",updates,"aileron"); else if(/aileron.*ok/.test(t)) selectValue("liveFrontWing","OK",updates,"aileron");
   if(/kers.*(hs|mort|marche pas|inutilisable|pas utilisable)/.test(t)) selectValue("liveKers","HS",updates,"KERS"); else if(/kers.*(faible|intermittent)/.test(t)) selectValue("liveKers","Faible / intermittent",updates,"KERS"); else if(/kers.*(ok|utilisable|marche)/.test(t)) selectValue("liveKers","Utilisable",updates,"KERS");
   if(/moteur.*critique|moteur rouge/.test(t)) selectValue("liveEngine","Critique",updates,"moteur"); else if(/moteur.*chaud|moteur orange/.test(t)) selectValue("liveEngine","Chaud",updates,"moteur"); else if(/moteur.*use|moteur jaune|moteur usé/.test(t)) selectValue("liveEngine","Usé",updates,"moteur"); else if(/moteur.*ok/.test(t)) selectValue("liveEngine","OK",updates,"moteur");
-  if(/pneu.*surchauffe|surchauffe.*pneu/.test(t)) selectValue("liveTyreTemp","Surchauffe",updates,"temp pneus"); else if(/pneu.*chaud|chaud.*pneu/.test(t)) selectValue("liveTyreTemp","Chaude",updates,"temp pneus"); else if(/pneu.*froid|froid.*pneu/.test(t)) selectValue("liveTyreTemp","Froide",updates,"temp pneus"); else if(/temperature.*ok/.test(t)) selectValue("liveTyreTemp","OK",updates,"temp pneus");
-  if(/carburant.*moins deux|carburant.*-2|essence.*moins deux/.test(t)) selectValue("liveFuelDelta","-2 tours ou pire",updates,"carburant"); else if(/carburant.*moins un|carburant.*-1|essence.*moins un/.test(t)) selectValue("liveFuelDelta","-1 tour",updates,"carburant"); else if(/carburant.*limite|essence.*limite/.test(t)) selectValue("liveFuelDelta","Limite",updates,"carburant"); else if(/carburant.*plus deux|carburant.*\+2|essence.*plus deux/.test(t)) selectValue("liveFuelDelta","+2 tours ou plus",updates,"carburant"); else if(/carburant.*ok|essence.*ok/.test(t)) selectValue("liveFuelDelta","OK",updates,"carburant");
-  if(/melange.*pauvre|mix.*pauvre/.test(t)) selectValue("liveFuelMix","Pauvre",updates,"mélange"); else if(/melange.*riche|mix.*riche/.test(t)) selectValue("liveFuelMix","Riche",updates,"mélange"); else if(/melange.*standard|mix.*standard/.test(t)) selectValue("liveFuelMix","Standard",updates,"mélange");
-  if(/pit non|stand ferme|stands fermes|pas pit|ne peux pas rentrer/.test(t)) selectValue("liveCanPit","Non",updates,"pit"); else if(/pit oui|stand ouvert|stands ouverts|je peux rentrer|pit possible/.test(t)) selectValue("liveCanPit","Oui",updates,"pit");
+  if(/pneu.*surchauffe|surchauffe.*pneu/.test(t)) selectValue("liveTyreTemp","Surchauffe",updates,"temp pneus"); else if(/pneu.*chaud|chaud.*pneu/.test(t)) selectValue("liveTyreTemp","Chaude",updates,"temp pneus"); else if(/pneu.*froid|froid.*pneu/.test(t)) selectValue("liveTyreTemp","Froide",updates,"temp pneus"); else if(/temperature.*ok|temp.*ok/.test(t)) selectValue("liveTyreTemp","OK",updates,"temp pneus");
+  if(/carburant.*moins (deux|2)|carburant.*-2|essence.*moins (deux|2)/.test(t)) selectValue("liveFuelDelta","-2 tours ou pire",updates,"carburant"); else if(/carburant.*moins (un|1)|carburant.*-1|essence.*moins (un|1)/.test(t)) selectValue("liveFuelDelta","-1 tour",updates,"carburant"); else if(/carburant.*limite|essence.*limite/.test(t)) selectValue("liveFuelDelta","Limite",updates,"carburant"); else if(/carburant.*plus (deux|2)|carburant.*\+2|essence.*plus (deux|2)/.test(t)) selectValue("liveFuelDelta","+2 tours ou plus",updates,"carburant"); else if(/carburant.*ok|essence.*ok/.test(t)) selectValue("liveFuelDelta","OK",updates,"carburant");
+  if(/melange.*pauvre|mix.*pauvre|mode pauvre/.test(t)) selectValue("liveFuelMix","Pauvre",updates,"mélange"); else if(/melange.*riche|mix.*riche|mode riche/.test(t)) selectValue("liveFuelMix","Riche",updates,"mélange"); else if(/melange.*standard|mix.*standard|mode standard/.test(t)) selectValue("liveFuelMix","Standard",updates,"mélange");
+  if(/pit non|stand ferme|stands fermes|pas pit|pas d arret|pas arrêt|ne peux pas rentrer|ne peut pas rentrer/.test(t)) selectValue("liveCanPit","Non",updates,"pit"); else if(/pit oui|stand ouvert|stands ouverts|je peux rentrer|pit possible|arret oui|arrêt oui|arret possible|arrêt possible/.test(t)) selectValue("liveCanPit","Oui",updates,"pit");
   if(/drive through|drive-through/.test(t)) selectValue("livePenalty","Drive-through",updates,"pénalité"); else if(/stop and go|stop go/.test(t)) selectValue("livePenalty","Stop & Go",updates,"pénalité"); else if(/temps ajoute|temps ajouté|penalite temps/.test(t)) selectValue("livePenalty","Temps ajouté",updates,"pénalité"); else if(/pas de penalite|aucune penalite|penalite aucune/.test(t)) selectValue("livePenalty","Aucune",updates,"pénalité");
   if(/difficulte legende|difficulté légende/.test(t)) selectValue("difficulty","Légende",updates,"difficulté"); else if(/difficulte pro|difficulté pro/.test(t)) selectValue("difficulty","Pro",updates,"difficulté"); else if(/difficulte facile|difficulté facile/.test(t)) selectValue("difficulty","Facile",updates,"difficulté"); else if(/difficulte inter|difficulté inter/.test(t)) selectValue("difficulty","Intermédiaire",updates,"difficulté");
   return updates;
 }
 function buildVoiceReply(updates){
-  if(!updates.length) return "Je n'ai rien modifié. Dis par exemple : tour 18, pneus orange, moteur chaud, carburant moins un.";
+  if(!updates.length){ render(); return "rien ne change"; }
   render();
   const live = lastPlan && lastPlan.live; const action = live?.rows?.[1]?.[3] || live?.rows?.[0]?.[3] || "continuer"; const tip = live?.phrases?.[0] || "Garde un rythme propre.";
   return `Mis à jour : ${updates.join(", ")}. Action : ${action}. ${tip}`;
 }
 function addVoiceLog(raw, reply){
   const log = q("voiceLog"); if(!log) return;
-  log.innerHTML = `<div class="voice-msg"><b>Toi :</b> ${raw}</div><div class="voice-msg"><b>IA :</b> ${reply}</div>` + log.innerHTML;
+  log.innerHTML = `<div class="voice-msg"><b>Toi :</b> ${raw || "silence"}</div><div class="voice-msg"><b>IA :</b> ${reply}</div>` + log.innerHTML;
+}
+function pickMaleFrenchVoice(){
+  if(!("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const maleHints = /(male|homme|paul|thomas|antoine|henri|mathieu|alexandre|daniel|google français|google francais)/i;
+  return voices.find(v=>/^fr/i.test(v.lang) && maleHints.test(v.name)) || voices.find(v=>/^fr/i.test(v.lang)) || voices[0] || null;
 }
 function speakVoice(text){
   if(!q("voiceEnabled")?.checked || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.lang = "fr-FR"; utter.rate = 1.05; utter.pitch = 1; window.speechSynthesis.speak(utter);
+  window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.lang = "fr-FR"; utter.rate = 1.38; utter.pitch = 0.78; const voice = pickMaleFrenchVoice(); if(voice) utter.voice = voice; window.speechSynthesis.speak(utter);
 }
 function applyVoiceCommand(raw){
   if(!q("voiceEnabled").checked){ q("voiceStatus").textContent = "Active l'IA vocale avant d'appliquer."; return; }
-  const updates = updateVoiceCommand(raw); const reply = buildVoiceReply(updates); q("voiceStatus").textContent = updates.length ? "Commande appliquée." : "Commande non reconnue."; addVoiceLog(raw, reply); speakVoice(reply);
+  const updates = updateVoiceCommand(raw); const reply = buildVoiceReply(updates); q("voiceStatus").textContent = updates.length ? "Commande appliquée." : "Rien ne change."; addVoiceLog(raw, reply); speakVoice(reply);
 }
-let voiceRecognition = null;
+let voiceRecognition = null, voiceShouldListen = false, voiceIsRunning = false, voiceSilenceTimer = null, voiceBuffer = "";
+function processVoiceBuffer(){ const text = voiceBuffer.trim(); voiceBuffer = ""; applyVoiceCommand(text); }
 function startVoiceListen(){
   if(!q("voiceEnabled").checked){ q("voiceStatus").textContent = "IA vocale désactivée."; return; }
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!Rec){ q("voiceStatus").textContent = "Reconnaissance vocale non supportée ici. Utilise le champ texte."; return; }
-  voiceRecognition = new Rec(); voiceRecognition.lang = "fr-FR"; voiceRecognition.interimResults = false; voiceRecognition.continuous = false;
-  voiceRecognition.onstart = ()=> q("voiceStatus").textContent = "J'écoute...";
-  voiceRecognition.onerror = e=> q("voiceStatus").textContent = `Erreur micro : ${e.error || "inconnue"}`;
-  voiceRecognition.onresult = e=>{ const text = Array.from(e.results).map(r=>r[0].transcript).join(" "); q("voiceText").value = text; applyVoiceCommand(text); };
-  voiceRecognition.onend = ()=>{ if(q("voiceStatus").textContent === "J'écoute...") q("voiceStatus").textContent = "Écoute terminée."; };
-  voiceRecognition.start();
+  if(voiceShouldListen && voiceIsRunning){ q("voiceStatus").textContent = "J’écoute déjà en continu."; return; }
+  voiceShouldListen = true;
+  voiceRecognition = new Rec(); voiceRecognition.lang = "fr-FR"; voiceRecognition.interimResults = true; voiceRecognition.continuous = true; voiceRecognition.maxAlternatives = 3;
+  voiceRecognition.onstart = ()=>{ voiceIsRunning = true; q("voiceStatus").textContent = "J'écoute en continu... parle quand tu veux."; };
+  voiceRecognition.onerror = e=>{ q("voiceStatus").textContent = `Erreur micro : ${e.error || "inconnue"}`; };
+  voiceRecognition.onresult = e=>{
+    let interim = "";
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const txt = e.results[i][0].transcript;
+      if(e.results[i].isFinal) voiceBuffer += ` ${txt}`; else interim += ` ${txt}`;
+    }
+    const shown = `${voiceBuffer} ${interim}`.trim(); if(shown) q("voiceText").value = shown;
+    clearTimeout(voiceSilenceTimer); voiceSilenceTimer = setTimeout(()=>{ if(voiceBuffer.trim()) processVoiceBuffer(); else if(interim.trim()) applyVoiceCommand(interim.trim()); },2500);
+  };
+  voiceRecognition.onend = ()=>{ voiceIsRunning = false; if(voiceShouldListen){ setTimeout(startVoiceListen,350); } else { q("voiceStatus").textContent = "IA vocale arrêtée."; } };
+  try{ voiceRecognition.start(); }catch(e){ q("voiceStatus").textContent = "Micro déjà en écoute ou permission bloquée."; }
 }
-function stopVoiceListen(){ if(voiceRecognition) voiceRecognition.stop(); if("speechSynthesis" in window) window.speechSynthesis.cancel(); q("voiceStatus").textContent = "IA vocale arrêtée."; }
+function stopVoiceListen(){ voiceShouldListen = false; voiceIsRunning = false; clearTimeout(voiceSilenceTimer); if(voiceRecognition){ try{ voiceRecognition.stop(); }catch(e){} } if("speechSynthesis" in window) window.speechSynthesis.cancel(); if(q("voiceEnabled")) q("voiceEnabled").checked = false; q("voiceStatus").textContent = "IA vocale arrêtée."; }
 
 const HELP_DATA = {
   "Course": [
@@ -863,12 +906,13 @@ const HELP_DATA = {
     "Sauvegardes : onglet caché à droite. Rien à télécharger, l'historique reste dans ce navigateur."
   ],
   "IA vocale": [
-    "L'IA vocale est optionnelle : coche Activer IA vocale puis clique Écouter. Elle fonctionne avec la reconnaissance vocale du navigateur.",
+    "L'IA vocale est optionnelle : coche Activer IA vocale. L'écoute reste permanente jusqu'au bouton Stop.",
+    "Elle attend environ 2,5 secondes de silence avant de répondre, pour te laisser donner plusieurs infos dans une phrase longue.",
     "Elle ne modifie que les infos clairement dites. Si tu dis seulement moteur chaud, seul le champ moteur change.",
-    "Tu peux donner plusieurs infos : tour 18, pneus orange, freins jaunes, moteur chaud, carburant moins un, pit oui.",
-    "Parle en mots courts et évite les contradictions dans la même phrase : ne dis pas pneus rouges puis pneus verts.",
-    "Commandes utiles : pluie légère, piste humide, KERS HS, aileron gauche cassé, pénalité drive-through, mélange pauvre.",
-    "Après chaque commande, l'IA écrit et dit l'action conseillée. Si elle n'a pas compris, utilise le champ texte juste dessous."
+    "Si rien ne change, elle répond simplement : rien ne change.",
+    "Tu peux dire : tour 18, pneus orange, freins jaunes, moteur chaud, carburant moins un, KERS HS, pit oui.",
+    "Pour éviter la confusion : parle en blocs courts et évite deux valeurs opposées dans la même phrase, par exemple pneus rouges puis pneus verts.",
+    "La voix est réglée rapide et grave; le navigateur choisit la voix masculine disponible la plus proche."
   ]
 };
 function renderHelp(tab="Course"){
@@ -894,7 +938,7 @@ document.getElementById("helpModal").addEventListener("click",event=>{ if(event.
 q("voiceListenBtn").addEventListener("click",startVoiceListen);
 q("voiceStopBtn").addEventListener("click",stopVoiceListen);
 q("voiceApplyBtn").addEventListener("click",()=>applyVoiceCommand(q("voiceText").value));
-q("voiceEnabled").addEventListener("change",()=>{ q("voiceStatus").textContent = q("voiceEnabled").checked ? "IA prête. Clique Écouter ou écris une commande." : "IA inactive."; if(!q("voiceEnabled").checked) stopVoiceListen(); });
+q("voiceEnabled").addEventListener("change",()=>{ if(q("voiceEnabled").checked){ q("voiceStatus").textContent = "IA prête. Écoute permanente activée."; startVoiceListen(); } else if(voiceShouldListen){ q("voiceEnabled").checked = true; q("voiceStatus").textContent = "Utilise Stop pour désactiver l’écoute."; } else { q("voiceStatus").textContent = "IA inactive."; } });
 initScreenMode(); initDetailMode(); setDefaultTyres(); render(); renderHistory();
 </script>
 </body>
