@@ -236,7 +236,7 @@
           <button class="btn" id="voiceStopBtn" type="button">Stop</button>
         </div>
         <div class="voice-controls">
-          <textarea id="voiceText" class="voice-input" rows="3" placeholder="Ex : tour 18 pneus orange, freins jaunes, moteur chaud, carburant moins 1, pit oui. Tu peux dicter une phrase longue."></textarea>
+          <textarea id="voiceText" class="voice-input" rows="3" placeholder="Ex : je suis en prime tour 17, il commence à pleuvoir fort, que faire ? Pneus orange, moteur chaud, carburant moins 1."></textarea>
           <button class="btn" id="voiceApplyBtn" type="button">Appliquer texte</button>
         </div>
         <div class="voice-examples">Tu peux donner plusieurs infos en même temps. Exemple : “tour 22, pluie légère, pneus rouges, moteur chaud, KERS HS, pit non”.</div>
@@ -773,7 +773,7 @@ function hasAny(t, words){ return words.some(w => t.includes(w)); }
 function updateWeatherFields(prefix, t, updates){
   const weatherId = prefix ? "liveQWeather" : "liveWeather";
   const trackId = prefix ? "liveQTrackState" : "liveTrackState";
-  if(/pluie forte|grosse pluie|detrempe/.test(t)) selectValue(weatherId,"Pluie forte",updates,prefix?"météo qualif":"météo");
+  if(/pluie forte|grosse pluie|pleut fort|pleuvoir fort|commence a pleuvoir fort|commence à pleuvoir fort|detrempe/.test(t)) selectValue(weatherId,"Pluie forte",updates,prefix?"météo qualif":"météo");
   else if(/pluie moyenne/.test(t)) selectValue(weatherId,"Pluie moyenne",updates,prefix?"météo qualif":"météo");
   else if(/pluie legere|petite pluie|il pleut leger/.test(t)) selectValue(weatherId,"Pluie légère",updates,prefix?"météo qualif":"météo");
   else if(/bruine/.test(t)) selectValue(weatherId,"Bruine",updates,prefix?"météo qualif":"météo");
@@ -818,11 +818,64 @@ function updateVoiceCommand(raw){
   if(/difficulte legende|difficulté légende/.test(t)) selectValue("difficulty","Légende",updates,"difficulté"); else if(/difficulte pro|difficulté pro/.test(t)) selectValue("difficulty","Pro",updates,"difficulté"); else if(/difficulte facile|difficulté facile/.test(t)) selectValue("difficulty","Facile",updates,"difficulté"); else if(/difficulte inter|difficulté inter/.test(t)) selectValue("difficulty","Intermédiaire",updates,"difficulté");
   return updates;
 }
-function buildVoiceReply(updates){
+function isStrategyQuestion(raw){
+  const t = cleanVoiceText(raw);
+  return /\?|que faire|quoi faire|je fais quoi|qu est ce que je fais|qu est ce que je doit|qu est ce que je dois|dois je|est ce que|faut il|je rentre|rentrer|pit\?|stand\?|quel pneu|quelle gomme|quel melange|quel mélange|carburant|comment eviter|comment éviter|casse moteur|strategie|stratégie|conseil/.test(String(raw || "").toLowerCase()) || /que faire|quoi faire|je fais quoi|dois je|est ce que|faut il|je rentre|rentrer|quel pneu|quelle gomme|quel melange|carburant|comment eviter|casse moteur|strategie|conseil/.test(t);
+}
+function getLiveActionData(){
+  const live = lastPlan?.live; const rows = live?.rows || [];
+  const pitRow = rows.find(r => String(r[3] || "").toLowerCase().includes("pit") || String(r[3] || "").toLowerCase().includes("arrêt") || String(r[3] || "").toLowerCase().includes("servir"));
+  const current = rows[0] || [];
+  const target = pitRow || rows[1] || current;
+  return {live, rows, current, target, action:String(target[3] || current[3] || "continuer"), tyre:String(target[1] || current[1] || "pneu actuel"), mix:String(target[2] || current[2] || "Standard"), tip:live?.phrases?.[0] || "Garde un rythme propre."};
+}
+function answerStrategyQuestion(raw){
+  render();
+  const t = cleanVoiceText(raw); const i = lastPlan?.i || vals(); const data = getLiveActionData();
+  const actionLow = data.action.toLowerCase(); const pitOpen = i.liveCanPit !== "Non";
+  if(/melange|mélange|mix|carburant|essence/.test(t)){
+    if(i.liveFuelDelta.includes("-")) return "Mets mélange pauvre maintenant, short-shift, pas de riche avant de revenir à zéro carburant.";
+    if(i.liveEngine !== "OK") return "Moteur à protéger : mélange pauvre ou standard. Riche maximum un tour si dépassement vital.";
+    return `Mélange conseillé : ${data.mix}. Riche seulement pour attaque ou undercut, standard sinon.`;
+  }
+  if(/moteur|casse moteur|eviter la casse|éviter la casse/.test(t)){
+    if(i.liveEngine === "Critique") return "Moteur critique : mélange pauvre, short-shift, évite le rupteur et les vibreurs. Rentre si tu peux.";
+    if(i.liveEngine === "Chaud" || i.liveEngine === "Usé") return "Protège le moteur : standard ou pauvre, air propre, pas de riche prolongé, change de rapport plus tôt.";
+    return "Moteur OK : tu peux utiliser riche par petites séquences, mais jamais plusieurs tours d'affilée.";
+  }
+  if(/kers/.test(t)){
+    if(i.liveKers === "HS") return "KERS HS : défends avec la trajectoire et garde le mélange riche pour les lignes droites si le moteur va bien.";
+    if(i.liveKers.includes("Faible")) return "KERS faible : utilise de petites impulsions roues droites, pas en sortie lente.";
+    return "KERS utilisable : garde-le pour les lignes droites, attaque ou défense, jamais pendant que la voiture tourne sous la pluie.";
+  }
+  if(/aileron|degat|dégât|voiture|casse/.test(t)){
+    if(i.liveFrontWing !== "OK" || i.liveCarState !== "OK") return "Voiture abîmée : évite les vibreurs, freine plus tôt. Si perte forte ou aileron très abîmé, pit réparation dès que possible.";
+    return "Voiture OK : continue, pas de réparation nécessaire. Ajuste seulement l'aileron avant si sous-virage aux stands.";
+  }
+  if(/pneu|gomme|inter|pluie|slick|prime|option/.test(t)){
+    if(actionLow.includes("pit") && pitOpen) return `Rentre ${data.target[0] || "maintenant"} pour ${data.tyre}. Fais un tour de sortie propre, pneus froids.`;
+    if(!pitOpen && actionLow.includes("pit")) return `Il faudrait ${data.action}, mais pit fermé : reste en piste en mode survie jusqu'à ouverture.`;
+    return `Pneu conseillé : ${data.tyre}. Action : ${data.action}. ${data.tip}`;
+  }
+  if(/penalite|pénalité|drive|stop/.test(t)){
+    if(i.livePenalty === "Aucune") return "Aucune pénalité en cours : ne rentre que pour stratégie ou dégâts.";
+    return `Pénalité ${i.livePenalty} : sers-la dès que possible si l'entrée des stands est ouverte.`;
+  }
+  if(actionLow.includes("pit") && pitOpen) return `Rentre ${data.target[0] || "maintenant"} pour ${data.tyre}. Mélange ${data.mix}. ${data.tip}`;
+  if(actionLow.includes("pit") && !pitOpen) return `Pit conseillé mais impossible : reste dehors, mélange pauvre, évite risques, rentre dès que possible.`;
+  if(actionLow.includes("aller au bout")) return `Reste dehors. Tu peux aller au bout avec ${data.tyre}. Mélange ${data.mix}.`;
+  return `Action : ${data.action}. Pneu : ${data.tyre}. Mélange : ${data.mix}. ${data.tip}`;
+}
+function buildVoiceReply(updates, raw=""){
+  const question = isStrategyQuestion(raw);
+  if(question){
+    const answer = answerStrategyQuestion(raw);
+    return updates.length ? `Mis à jour : ${updates.join(", ")}. ${answer}` : answer;
+  }
   if(!updates.length){ render(); return "rien ne change"; }
   render();
-  const live = lastPlan && lastPlan.live; const action = live?.rows?.[1]?.[3] || live?.rows?.[0]?.[3] || "continuer"; const tip = live?.phrases?.[0] || "Garde un rythme propre.";
-  return `Mis à jour : ${updates.join(", ")}. Action : ${action}. ${tip}`;
+  const data = getLiveActionData();
+  return `Mis à jour : ${updates.join(", ")}. Action : ${data.action}. ${data.tip}`;
 }
 function addVoiceLog(raw, reply){
   const log = q("voiceLog"); if(!log) return;
@@ -840,7 +893,7 @@ function speakVoice(text){
 }
 function applyVoiceCommand(raw){
   if(!q("voiceEnabled").checked){ q("voiceStatus").textContent = "Active l'IA vocale avant d'appliquer."; return; }
-  const updates = updateVoiceCommand(raw); const reply = buildVoiceReply(updates); q("voiceStatus").textContent = updates.length ? "Commande appliquée." : "Rien ne change."; addVoiceLog(raw, reply); speakVoice(reply);
+  const updates = updateVoiceCommand(raw); const reply = buildVoiceReply(updates, raw); q("voiceStatus").textContent = updates.length ? "Commande appliquée." : "Rien ne change."; addVoiceLog(raw, reply); speakVoice(reply);
 }
 let voiceRecognition = null, voiceShouldListen = false, voiceIsRunning = false, voiceSilenceTimer = null, voiceBuffer = "";
 function processVoiceBuffer(){ const text = voiceBuffer.trim(); voiceBuffer = ""; applyVoiceCommand(text); }
@@ -911,6 +964,8 @@ const HELP_DATA = {
     "Elle ne modifie que les infos clairement dites. Si tu dis seulement moteur chaud, seul le champ moteur change.",
     "Si rien ne change, elle répond simplement : rien ne change.",
     "Tu peux dire : tour 18, pneus orange, freins jaunes, moteur chaud, carburant moins un, KERS HS, pit oui.",
+    "Tu peux poser une question complète : je suis en prime tour 17, il commence à pleuvoir fort, que faire ? Elle mettra à jour prime/tour/pluie et répondra quoi faire.",
+    "Elle répond aussi aux questions sans changement : quel mélange, est-ce que je pit, comment éviter la casse moteur, quel pneu mettre.",
     "Pour éviter la confusion : parle en blocs courts et évite deux valeurs opposées dans la même phrase, par exemple pneus rouges puis pneus verts.",
     "La voix est réglée rapide et grave; le navigateur choisit la voix masculine disponible la plus proche."
   ]
