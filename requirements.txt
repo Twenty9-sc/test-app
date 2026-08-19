@@ -5,3 +5,5 @@ pandas
 xlsxwriter
 openpyxl
 filelock
+# Optionnel : navigation par page des PDF (rendu des pages)
+# pymupdf
