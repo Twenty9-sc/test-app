@@ -1,0 +1,6 @@
+[
+  { "subjectId": "cpp", "chapterId": "cpp-ch3", "title": "Cours de C / C++ (polycopié complet)", "file": "Cours de C C++_copie.pdf" },
+  { "subjectId": "python", "chapterId": "py-ch1", "title": "Cours de Python", "file": "cours-python_copie.pdf" },
+  { "subjectId": "python", "chapterId": "py-ch5", "title": "Notions de Python avancées", "file": "notions-de-python-avancees_copie.pdf" },
+  { "subjectId": "python", "chapterId": "py-ch6", "title": "Cours (supplément)", "file": "cours.pdf" }
+]

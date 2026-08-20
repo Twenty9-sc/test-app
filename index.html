@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1C1C1E" />
+  <title>Boss-e 🎯 — Beta</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%231C1C1E'/><circle cx='50' cy='50' r='28' fill='white'/><circle cx='50' cy='50' r='16' fill='%2334C759'/><circle cx='50' cy='50' r='6' fill='white'/></svg>" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ======================= BARRE SUPÉRIEURE ======================= -->
+    <header class="appbar">
+      <button class="back-btn" id="backBtn" style="display:none;" title="Retour">←</button>
+      <div class="logo" id="appLogo">
+        <span class="target">
+          <svg viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="18" fill="#1C1C1E"/>
+            <circle cx="20" cy="20" r="12.5" fill="#fff"/>
+            <circle cx="20" cy="20" r="7" fill="#34C759"/>
+            <circle cx="20" cy="20" r="2.5" fill="#fff"/>
+          </svg>
+        </span>
+        <span>Boss-e</span>
+      </div>
+      <div class="title" id="appTitle"></div>
+      <div class="spacer"></div>
+      <button class="help-pill" id="helpPill" title="Besoin d'aide ?">❔ Aide</button>
+      <button class="icon-btn" id="btnBell" title="Notifications">🔔</button>
+      <div class="avatar" title="Mon profil">B</div>
+    </header>
+
+    <!-- ======================= VUE ACCUEIL ======================= -->
+    <main class="view" id="view-home">
+      <div class="hero">
+        <h1>Salut Boss 👋</h1>
+        <p>Prêt à progresser aujourd'hui ?</p>
+      </div>
+      <div class="search"><span>🔎</span><input id="globalSearch" type="text" placeholder="Rechercher un cours, une notion…" /></div>
+      <div class="section-title">Matières</div>
+      <div class="subjects-grid" id="subjectsGrid"></div>
+      <div class="section-title">Vue d'ensemble</div>
+      <div class="quick-stats">
+        <div class="qs"><div class="num" id="statStreak">7</div><div class="lbl">Jours de suite 🔥</div></div>
+        <div class="qs"><div class="num" id="statQuiz">0</div><div class="lbl">Quiz faits</div></div>
+        <div class="qs"><div class="num" id="statAvg">—</div><div class="lbl">Réussite moy.</div></div>
+      </div>
+      <div class="section-title">À faire maintenant</div>
+      <div id="todoList"></div>
+    </main>
+
+    <!-- ======================= VUE QUIZ ======================= -->
+    <main class="view hidden" id="view-quiz"></main>
+
+    <!-- ======================= VUE STATS ======================= -->
+    <main class="view hidden" id="view-stats"></main>
+
+    <!-- ======================= VUE OUTILS ======================= -->
+    <main class="view hidden" id="view-tools"></main>
+
+    <!-- ======================= VUE IA ======================= -->
+    <main class="view hidden" id="view-ia"></main>
+
+    <!-- ======================= LECTEUR PDF (même fenêtre) ======================= -->
+    <div class="pdf-reader hidden" id="pdfReader">
+      <div class="pr-bar">
+        <button class="pr-btn" id="pdfBack" title="Retour">←</button>
+        <span class="t"><span id="pdfTitle">Document</span><br/><span id="pdfSub"></span></span>
+        <button class="pr-btn" id="pdfGen" title="Générer résumé, cartes, quiz et mindmap">✨</button>
+        <button class="pr-btn" id="pdfSidebarToggle" title="Pages">☰</button>
+      </div>
+      <div class="pr-layout">
+        <div class="pr-sidebar" id="pdfSidebar"></div>
+        <div class="pr-canvas-wrap" id="pdfCanvasWrap"><div class="pr-loading" id="pdfLoading">Chargement…</div></div>
+      </div>
+      <div class="pr-footer">
+        <button class="pr-btn" id="pdfPrev">←</button>
+        <span class="pr-pagelabel" id="pdfPageLabel">— / —</span>
+        <button class="pr-btn" id="pdfNext">→</button>
+      </div>
+    </div>
+
+    <!-- ======================= NAVIGATION BASSE ======================= -->
+    <nav class="tabbar">
+      <div class="tab active" data-view="home"><span class="ico">🏠</span>Accueil</div>
+      <div class="tab" data-view="quiz"><span class="ico">❓</span>Quiz</div>
+      <div class="tab" data-view="stats"><span class="ico">📊</span>Stats</div>
+      <div class="tab" data-view="tools"><span class="ico">📁</span>Outils</div>
+      <div class="tab" data-view="ia"><span class="ico">✨</span>IA</div>
+    </nav>
+
+    <div class="modal-backdrop" id="modal"><div class="sheet" id="sheetContent"></div></div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="js/vendor/pdf.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
