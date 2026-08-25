@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>F12012_setup</title>
+  <style>
+    :root{
+      --f1-red:#e10600;--f1-red-2:#ff1e00;--f1-black:#15151e;--f1-carbon:#1f2029;
+      --f1-silver:#f3f4f6;--f1-white:#ffffff;--f1-ink:#15151e;--f1-muted:#69707d;
+      --f1-blue:#00a3ff;--f1-green:#00d084;--f1-yellow:#ffd23f;--line:rgba(21,21,30,.13);
+      --shadow:0 24px 70px rgba(21,21,30,.14);--radius:22px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;font-family:Inter,ui-sans-serif,system-ui,"Segoe UI",Arial,sans-serif;color:var(--f1-ink);
+      background:
+        radial-gradient(circle at 10% 0%,rgba(225,6,0,.20),transparent 34rem),
+        radial-gradient(circle at 100% 8%,rgba(0,163,255,.10),transparent 28rem),
+        linear-gradient(180deg,#fbfbfc 0%,#f2f3f6 48%,#ffffff 100%);
+      overflow-x:hidden;
+    }
+    body:before{
+      content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.45;
+      background-image:linear-gradient(120deg,transparent 0 45%,rgba(21,21,30,.04) 45% 45.8%,transparent 45.8% 100%);
+      background-size:140px 140px;animation:gridShift 18s linear infinite;
+    }
+    @keyframes gridShift{to{background-position:280px 140px}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes redSweep{0%{transform:translateX(-110%) skewX(-18deg)}55%,100%{transform:translateX(210%) skewX(-18deg)}}
+    @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 rgba(225,6,0,0)}50%{box-shadow:0 0 38px rgba(225,6,0,.25)}}
+    header{max-width:1420px;margin:22px auto 16px;padding:0 16px;animation:fadeUp .55s ease both}
+    .hero{
+      position:relative;overflow:hidden;border-radius:30px;padding:32px 34px;color:#fff;background:
+        linear-gradient(135deg,rgba(21,21,30,.99),rgba(31,32,41,.96) 52%,rgba(225,6,0,.94));
+      border:1px solid rgba(255,255,255,.16);box-shadow:var(--shadow);
+    }
+    .hero:before{content:"";position:absolute;top:-40%;bottom:-40%;width:34%;left:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:redSweep 5s ease-in-out infinite}
+    .hero:after{content:"";position:absolute;inset:auto 24px 20px auto;width:260px;height:86px;border-radius:999px;background:rgba(255,255,255,.07);filter:blur(12px)}
+    .title-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
+    .logo-mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#fff,var(--f1-red));display:grid;place-items:center;color:var(--f1-black);font-weight:1000;letter-spacing:-.08em;box-shadow:0 10px 26px rgba(0,0,0,.25)}
+    h1{margin:0;font-size:clamp(2rem,5vw,4.4rem);letter-spacing:-.075em;line-height:.92;font-weight:1000}
+    .hero p{position:relative;z-index:1;margin:12px 0 0;max-width:1030px;color:rgba(255,255,255,.78);line-height:1.55;font-size:1.02rem}
+    .badges{position:relative;z-index:1;display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.badge{padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);font-size:.76rem;font-weight:950;backdrop-filter:blur(10px)}.screen-controls{position:relative;z-index:1;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:18px;padding:10px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(12px)}.screen-label{font-size:.76rem;font-weight:1000;color:rgba(255,255,255,.72);text-transform:uppercase;letter-spacing:.06em}.screen-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.10);color:#fff;border-radius:13px;padding:9px 11px;font-weight:1000;cursor:pointer;transition:transform .2s ease,background .2s ease,border-color .2s ease}.screen-btn:hover{transform:translateY(-2px);background:rgba(255,255,255,.18)}.screen-btn.active{background:#fff;color:var(--f1-black);border-color:#fff}.screen-btn small{display:block;font-size:.63rem;font-weight:850;color:inherit;opacity:.68;margin-top:1px}
+    main{max-width:1420px;margin:0 auto 42px;padding:0 16px;display:grid;grid-template-columns:390px 1fr;gap:18px}
+    aside,.card{background:rgba(255,255,255,.86);border:1px solid var(--line);box-shadow:0 18px 48px rgba(21,21,30,.08);backdrop-filter:blur(18px);animation:fadeUp .65s ease both}
+    aside{border-radius:26px;padding:17px;position:sticky;top:14px;align-self:start;max-height:calc(100vh - 28px);overflow:auto;scrollbar-width:thin}
+    .aside-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.aside-head h2{margin:0;font-size:1.25rem}.live-dot{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:1000;color:var(--f1-red)}.live-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--f1-red);animation:pulseGlow 1.4s ease infinite}
+    fieldset{border:0;border-top:1px solid var(--line);margin:14px 0 0;padding:14px 0 0}legend{font-weight:1000;padding-right:9px;color:var(--f1-black)}
+    label{display:block;font-size:.78rem;font-weight:950;margin:10px 0 5px;color:#2d2f39}.hint{font-size:.72rem;color:var(--f1-muted);margin-top:5px;line-height:1.35}
+    select,textarea,input[type=number],input[type=text],input[type=range]{width:100%;border:1px solid var(--line);background:#fff;color:var(--f1-ink);border-radius:13px;padding:10px 11px;outline:none;transition:border-color .2s,box-shadow .2s,transform .2s}
+    select:focus,input:focus{border-color:var(--f1-red);box-shadow:0 0 0 4px rgba(225,6,0,.10)}
+    select:hover,textarea:hover,input[type=number]:hover,input[type=text]:hover{transform:translateY(-1px)}
+    input[type=range]{padding:0;accent-color:var(--f1-red)}input[type=checkbox]{accent-color:var(--f1-red);transform:translateY(1px)}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}.checkline{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-weight:700;color:#3d414e}.content{display:grid;gap:14px}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.card{border-radius:var(--radius);padding:17px;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}.card:hover{transform:translateY(-3px);box-shadow:0 24px 62px rgba(21,21,30,.11);border-color:rgba(225,6,0,.22)}
+    .metric{min-height:116px}.metric .k{font-size:.75rem;color:var(--f1-muted);font-weight:1000;text-transform:uppercase;letter-spacing:.04em}.metric .v{font-size:2.15rem;line-height:1;margin-top:10px;color:var(--f1-red);font-weight:1000;letter-spacing:-.05em}.metric .s{font-size:.78rem;color:var(--f1-muted);margin-top:6px;font-weight:800}
+    h2.section-title{display:flex;align-items:center;gap:10px;margin:2px 0 13px;font-size:1.25rem;letter-spacing:-.03em}.slash{height:24px;width:6px;border-radius:99px;background:var(--f1-red);transform:skewX(-18deg)}
+    .summary{border-radius:20px;padding:15px 17px;background:linear-gradient(135deg,#ffffff,#fff5f4);border:1px solid rgba(225,6,0,.18);box-shadow:0 14px 38px rgba(225,6,0,.08);line-height:1.5}.summary b{color:var(--f1-red)}
+    .two-col{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border-radius:16px;border:1px solid var(--line);font-size:.9rem}th{background:var(--f1-black);color:#fff;text-align:left;padding:11px 12px;font-size:.77rem;text-transform:uppercase;letter-spacing:.04em}td{background:#fff;padding:11px 12px;border-top:1px solid var(--line);vertical-align:top}td:last-child{font-weight:900}.section-cell{font-weight:1000;color:var(--f1-red)}
+    .gear-list{display:grid;gap:8px}.gear-line{display:grid;grid-template-columns:74px 1fr 1.25fr;gap:10px;align-items:center;padding:11px 12px;border-radius:16px;background:linear-gradient(90deg,#fff,#f8f8fa);border:1px solid var(--line);transition:transform .22s ease,border-color .22s ease}.gear-line:hover{transform:translateX(5px);border-color:rgba(225,6,0,.28)}.gear-line .rapport{font-size:.78rem;color:var(--f1-muted);font-weight:1000}.gear-line b{font-size:1.28rem;color:var(--f1-red);letter-spacing:-.04em}.gear-line small{color:var(--f1-muted);font-weight:850;line-height:1.35}.parc-note{margin-top:10px;padding:12px 13px;border-radius:16px;background:#fff5f4;border:1px solid rgba(225,6,0,.18);font-size:.86rem;line-height:1.45}.parc-note b{color:var(--f1-red)}
+    .box{border-radius:16px;padding:12px 14px;margin:8px 0;line-height:1.45;border:1px solid transparent}.ok{background:#ecfdf5;border-color:rgba(0,208,132,.22);border-left:5px solid var(--f1-green)}.warn{background:#fff8e5;border-color:rgba(255,210,63,.35);border-left:5px solid var(--f1-yellow)}.danger{background:#fff1f2;border-color:rgba(225,6,0,.18);border-left:5px solid var(--f1-red)}.info{background:#eef7ff;border-color:rgba(0,163,255,.18);border-left:5px solid var(--f1-blue)}
+    .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.pill{display:inline-flex;align-items:center;gap:7px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:.78rem;font-weight:1000}.phrase-list{display:grid;gap:8px}.phrase{padding:12px 13px;border-radius:16px;background:#fff;border:1px solid var(--line);line-height:1.45;transition:transform .22s ease}.phrase:hover{transform:translateX(4px);border-color:rgba(225,6,0,.28)}.mini-title{font-size:.83rem;color:var(--f1-muted);font-weight:1000;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 8px}.btn-row{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}.btn{border:0;border-radius:14px;padding:11px 14px;background:var(--f1-black);color:#fff;font-weight:1000;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,background .2s ease}.btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(21,21,30,.18)}.btn-red{background:var(--f1-red)}.btn-light{background:#fff;color:var(--f1-black);border:1px solid var(--line)}.history-list{display:grid;gap:9px;margin-top:10px}.history-item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 13px;border-radius:16px;background:#fff;border:1px solid var(--line);transition:transform .22s ease,border-color .22s ease}.history-item:hover{transform:translateX(4px);border-color:rgba(225,6,0,.28)}.history-title{font-weight:1000}.history-meta{font-size:.76rem;color:var(--f1-muted);margin-top:3px}.history-actions{display:flex;gap:7px;flex-wrap:wrap}.mini-btn{border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 10px;font-weight:950;cursor:pointer}.mini-btn:hover{border-color:rgba(225,6,0,.35);color:var(--f1-red)}.save-status{min-height:20px;font-size:.82rem;font-weight:900;color:var(--f1-green)}.live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.footer{color:var(--f1-muted);font-size:.8rem;padding:2px 4px 18px}.hide{display:none!important}
+    body.screen-tablet header,body.screen-tablet main{max-width:980px}body.screen-tablet main{grid-template-columns:320px 1fr}body.screen-tablet aside{top:10px}body.screen-tablet .metrics{grid-template-columns:repeat(2,1fr)}body.screen-tablet .two-col,body.screen-tablet .three-col{grid-template-columns:1fr}body.screen-tablet .live-grid{grid-template-columns:1fr 1fr}body.screen-tablet table{display:block;overflow-x:auto}body.screen-phone header,body.screen-phone main{max-width:430px}body.screen-phone header{margin-top:10px;padding:0 9px}body.screen-phone .hero{border-radius:22px;padding:22px 18px}body.screen-phone h1{font-size:2.2rem}body.screen-phone .hero p{font-size:.92rem}body.screen-phone main{grid-template-columns:1fr;padding:0 9px;gap:12px}body.screen-phone aside{position:static;max-height:none;border-radius:22px;padding:13px}body.screen-phone .metrics{grid-template-columns:1fr}body.screen-phone .row2,body.screen-phone .row3,body.screen-phone .live-grid{grid-template-columns:1fr}body.screen-phone .two-col,body.screen-phone .three-col{grid-template-columns:1fr}body.screen-phone table{display:block;overflow-x:auto}body.screen-phone .gear-line{grid-template-columns:58px 1fr}body.screen-phone .gear-line small{grid-column:1 / -1}body.screen-phone .screen-controls{align-items:stretch}body.screen-phone .screen-btn{flex:1 1 46%}@media(max-width:1120px){main{grid-template-columns:1fr}aside{position:static;max-height:none}.metrics{grid-template-columns:repeat(2,1fr)}.two-col,.three-col{grid-template-columns:1fr}.gear-line{grid-template-columns:62px 1fr}.live-grid{grid-template-columns:1fr 1fr}.history-item{grid-template-columns:1fr}}
+
+
+    /* === Smooth F1-inspired performance skin: noir/carbone + accents rouges maîtrisés === */
+    :root{
+      --f1-red:#e10600;--f1-red-2:#ff2a1a;--f1-black:#07080d;--f1-carbon:#12131b;
+      --f1-silver:#d7dbe6;--f1-white:#ffffff;--f1-ink:#ffffff;--f1-muted:rgba(255,255,255,.70);
+      --f1-blue:#6ab8ff;--f1-green:#20d994;--f1-yellow:#ffd75a;--line:rgba(255,255,255,.12);
+      --shadow:0 14px 38px rgba(0,0,0,.30);--radius:22px;
+    }
+    *{scrollbar-color:rgba(255,255,255,.30) rgba(255,255,255,.06)}
+    body{
+      color:#fff;
+      background:
+        radial-gradient(circle at 10% -8%,rgba(225,6,0,.28),transparent 30rem),
+        radial-gradient(circle at 92% 0%,rgba(225,6,0,.12),transparent 28rem),
+        linear-gradient(135deg,#05060a 0%,#0b0c12 44%,#14151d 72%,#07080d 100%);
+      background-attachment:fixed;
+    }
+    body:before{
+      z-index:0;opacity:.14;animation:none;
+      background:
+        linear-gradient(120deg,transparent 0 46%,rgba(255,255,255,.08) 46.4% 46.8%,transparent 47.2%),
+        linear-gradient(90deg,rgba(225,6,0,.08),transparent 38%,rgba(0,0,0,.16));
+      background-size:190px 190px,100% 100%;
+    }
+    body:after{display:none!important;content:none!important}
+    header,main{position:relative;z-index:1}
+    header,aside,.card{animation:none!important}
+    .hero{
+      background:linear-gradient(135deg,rgba(8,9,14,.98),rgba(18,19,27,.96) 62%,rgba(70,0,0,.88));
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:0 18px 48px rgba(0,0,0,.34);
+    }
+    .hero:before{animation:none!important;top:auto;left:0;right:0;bottom:0;width:100%;height:4px;background:linear-gradient(90deg,transparent,#e10600,#fff,#e10600,transparent);opacity:.85;transform:none!important}
+    .hero:after{display:none}
+    .hero p{color:rgba(255,255,255,.80)}
+    h1{color:#fff;text-shadow:none}.logo-mark{background:linear-gradient(135deg,#fff,#e10600 54%,#111217);color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.34)}
+    .badges,.screen-controls{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);backdrop-filter:none}.badge{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);backdrop-filter:none}.screen-btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#fff}.screen-btn.active{background:#fff;color:#08090d;border-color:#fff}
+    aside,.card{
+      color:#fff;background:linear-gradient(145deg,rgba(14,15,22,.92),rgba(20,21,30,.86));
+      border:1px solid rgba(255,255,255,.11);box-shadow:var(--shadow);backdrop-filter:none;overflow:hidden;
+    }
+    .card:hover{transform:none;box-shadow:0 16px 42px rgba(0,0,0,.34);border-color:rgba(255,255,255,.16)}
+    .card:before,aside:before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,rgba(225,6,0,.88),transparent);pointer-events:none}
+    .aside-head h2,legend,label,h2.section-title,.mini-title,.history-title{color:#fff}.hint,.metric .k,.metric .s,.history-meta,.footer,.gear-line small{color:rgba(255,255,255,.68)}.checkline{color:rgba(255,255,255,.84)}
+    fieldset{border-top-color:rgba(255,255,255,.10)}
+    select,textarea,input[type=number],input[type=text],input[type=range]{background:#0b0c12;color:#fff;border-color:rgba(255,255,255,.14);box-shadow:none}
+    select option{background:#0b0c12;color:#fff}input::placeholder{color:rgba(255,255,255,.45)}select:focus,input:focus{border-color:rgba(225,6,0,.75);box-shadow:0 0 0 3px rgba(225,6,0,.14)}select:hover,textarea:hover,input[type=number]:hover,input[type=text]:hover{transform:none}
+    .metric .v{color:#ff2a1a;text-shadow:none}.summary{color:#fff;background:linear-gradient(135deg,rgba(14,15,22,.94),rgba(33,20,22,.82));border-color:rgba(255,255,255,.12);box-shadow:var(--shadow)}.summary b,.section-cell,.gear-line b,.parc-note b{color:#ff2a1a}
+    table{border-color:rgba(255,255,255,.10)}th{background:#08090d;color:#fff;border-bottom:1px solid rgba(225,6,0,.45)}td{background:#101119;color:#fff;border-top:1px solid rgba(255,255,255,.08)}td:last-child{color:#fff}
+    .gear-line,.phrase,.history-item,.pill,.mini-btn,.parc-note{background:#101119;border-color:rgba(255,255,255,.10);color:#fff}.gear-line:hover,.phrase:hover,.history-item:hover{transform:none;border-color:rgba(225,6,0,.30);box-shadow:none}
+    .box{color:#fff;background:#101119;border-color:rgba(255,255,255,.10)}.ok{background:linear-gradient(135deg,rgba(32,217,148,.14),#101119);border-left-color:var(--f1-green)}.warn{background:linear-gradient(135deg,rgba(255,215,90,.14),#101119);border-left-color:var(--f1-yellow)}.danger{background:linear-gradient(135deg,rgba(225,6,0,.15),#101119);border-left-color:var(--f1-red)}.info{background:linear-gradient(135deg,rgba(106,184,255,.14),#101119);border-left-color:var(--f1-blue)}
+    .btn{background:#08090d;border:1px solid rgba(255,255,255,.12);box-shadow:none}.btn:hover{transform:none;box-shadow:none}.btn-red{background:#e10600}.btn-light{background:#fff;color:#08090d}.mini-btn{background:#11121a}.mini-btn:hover{color:#fff;border-color:rgba(225,6,0,.35)}
+    .live-dot{color:#ff2a1a}.live-dot:before{background:#ff2a1a;animation:none!important}.slash{background:#e10600}.save-status{color:#20d994}
+    aside{overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:thin}
+    aside::-webkit-scrollbar{width:8px}
+    aside::-webkit-scrollbar-track{background:rgba(255,255,255,.05);border-radius:999px}
+    aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:999px}
+    aside::-webkit-scrollbar-thumb:hover{background:rgba(225,6,0,.45)}
+    .section-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .detail-tab{border:1px solid rgba(255,255,255,.12);background:#101119;color:#fff;border-radius:18px;padding:14px;text-align:left;cursor:pointer;font-weight:1000;transition:border-color .18s ease,background .18s ease}
+    .detail-tab:hover{border-color:rgba(225,6,0,.35)}
+    .detail-tab.active{background:linear-gradient(135deg,#e10600,#14151d 68%);border-color:rgba(255,255,255,.20)}
+    .detail-tab small{display:block;margin-top:4px;color:rgba(255,255,255,.68);font-weight:800}
+    .detail-section{display:grid;gap:14px}
+    .detail-section.hidden{display:none}
+    .help-modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.64)}
+    .help-modal.hidden{display:none}
+    .help-panel{width:min(980px,96vw);max-height:88vh;overflow:auto;border-radius:24px;background:#0e0f16;border:1px solid rgba(255,255,255,.16);box-shadow:0 28px 90px rgba(0,0,0,.55);padding:18px}
+    .help-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.help-head h2{margin:0;color:#fff}.help-close{border:1px solid rgba(255,255,255,.14);background:#151620;color:#fff;border-radius:12px;padding:9px 12px;font-weight:1000;cursor:pointer}
+    .help-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.help-tab{border:1px solid rgba(255,255,255,.12);background:#101119;color:#fff;border-radius:999px;padding:9px 11px;font-weight:950;cursor:pointer}.help-tab.active{background:#e10600;border-color:#e10600}
+    .help-content{display:grid;gap:10px}.help-content h3{margin:6px 0;color:#fff}.help-content ul{margin:0;padding-left:20px}.help-content li{margin:7px 0;color:rgba(255,255,255,.84);line-height:1.45}
+    @keyframes bgFlow{0%{background-position:0 0,0 0}100%{background-position:220px 140px,0 0}}
+    body:before{animation:bgFlow 26s linear infinite!important}
+    table{font-size:.84rem}th,td{padding:9px 10px}.phrase{padding:10px 11px;font-size:.88rem;line-height:1.35}.box{padding:10px 12px;font-size:.9rem;line-height:1.35}.mini-title{margin:10px 0 7px}.metric{min-height:98px}.metric .v{font-size:1.9rem}
+    .voice-controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:10px 0}.voice-toggle{display:flex;gap:8px;align-items:center;padding:9px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-weight:950}.voice-input{flex:1 1 100%;min-height:92px;resize:vertical;line-height:1.35}.voice-status{min-height:22px;color:rgba(255,255,255,.72);font-size:.86rem;font-weight:800}.voice-log{display:grid;gap:8px}.voice-msg{padding:10px 11px;border-radius:14px;background:#101119;border:1px solid rgba(255,255,255,.10);font-size:.9rem;line-height:1.35}.voice-msg b{color:#ff2a1a}.voice-examples{font-size:.78rem;color:rgba(255,255,255,.66);line-height:1.45}
+    .game-nav{text-decoration:none;display:inline-block;text-align:center}.game-nav-blue{border-color:rgba(0,163,255,.55);background:rgba(0,112,255,.20)}
+    @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+  </style>
+</head>
+<body>
+<header>
+  <div class="hero">
+    <div class="title-line"><div class="logo-mark">F1</div><h1>F12012_setup</h1></div>
+    <p>Calculateur setup et stratégie course pour F1 2012 : choisis le circuit, la météo détaillée, les pneus, ton style de voiture, puis lis directement les réglages et les consignes à appliquer en course.</p>
+    <div class="badges"><span class="badge">Interface style F1 2026</span><span class="badge">Réglages visibles sans téléchargement</span><span class="badge">Météo détaillée</span><span class="badge">Stratégie expliquée</span><span class="badge">Transitions live</span></div>
+    <div class="screen-controls" id="screenControls">
+      <a class="screen-btn game-nav" href="index.html">← Jeux<small>menu principal</small></a>
+      <a class="screen-btn game-nav game-nav-blue" href="f1-2017.html">F1 2017<small>ouvrir le menu bleu</small></a>
+      <span class="screen-label">Affichage écran</span>
+      <button class="screen-btn" type="button" data-screen="auto">Auto<small>responsive</small></button>
+      <button class="screen-btn" type="button" data-screen="pc">PC<small>grand écran</small></button>
+      <button class="screen-btn" type="button" data-screen="tablet">Tablette<small>Xiaomi Pad 7</small></button>
+      <button class="screen-btn" type="button" data-screen="phone">Téléphone<small>compact</small></button>
+      <button class="screen-btn" id="helpOpen" type="button">Aide<small>où trouver les infos</small></button>
+    </div>
+  </div>
+</header>
+<main>
+  <aside>
+    <div class="aside-head"><h2>Paramètres</h2><span class="live-dot">LIVE</span></div>
+    <fieldset><legend>1. Course</legend>
+      <label for="circuit">Circuit</label><select id="circuit"></select>
+      <div class="row2"><div><label for="distance">Distance</label><select id="distance"><option value="25">25%</option><option value="50" selected>50%</option><option value="100">100%</option></select></div><div><label for="session">Session</label><select id="session"><option>Course</option><option>Qualif + Course</option><option>Carrière</option><option>En ligne</option></select></div></div>
+      <div class="row2"><div><label for="team">Écurie / voiture</label><select id="team"><option>Red Bull Racing</option><option>McLaren</option><option>Ferrari</option><option>Mercedes AMG</option><option>Lotus F1 Team</option><option>Force India</option><option>Sauber</option><option>Toro Rosso</option><option>Williams</option><option>Caterham</option><option>HRT</option><option>Marussia</option></select></div><div><label for="ai">IA</label><input id="ai" type="number" min="0" max="110" value="70"></div></div>
+      <div class="row2"><div><label for="difficulty">Difficulté</label><select id="difficulty"><option>Facile</option><option>Intermédiaire</option><option selected>Pro</option><option>Légende</option></select></div><div><label for="fuelPlanMode">Plan carburant</label><select id="fuelPlanMode"><option>Équilibré</option><option>Attaque départ</option><option>Économie carburant</option><option>Attaque fin de course</option></select></div></div>
+    </fieldset>
+    <fieldset><legend>2. Course — météo et stratégie</legend>
+      <label for="weather">Météo au départ</label><select id="weather"><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select>
+      <label for="trackState">État de la piste au départ</label><select id="trackState"><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select>
+      <label for="evolution">Évolution prévue</label><select id="evolution"><option>Stable</option><option>Pluie arrive</option><option>Pluie s'intensifie</option><option>Pluie faiblit</option><option>Pluie s'arrête</option><option>Séchage progressif</option><option>Averses intermittentes</option></select>
+      <div class="row3"><div><label for="rain">Risque pluie</label><input id="rain" type="number" min="0" max="100" value="20"></div><div><label for="changeLap">Tour changement</label><input id="changeLap" type="number" min="0" value="0"></div><div><label for="dryLap">Tour piste sèche</label><input id="dryLap" type="number" min="0" value="0"></div></div>
+      <div class="row2"><div><label for="intensity">Intensité attendue</label><select id="intensity"><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select></div><div><label for="radar">Radar météo</label><select id="radar"><option>Fiable</option><option>Incertain</option><option>Averses locales</option><option>Fort risque Safety Car</option></select></div></div>
+      <div class="row3"><div><label for="air">Air °C</label><input id="air" type="number" min="5" max="45" value="25"></div><div><label for="track">Piste °C</label><input id="track" type="number" min="10" max="62" value="34"></div><div><label for="humidity">Humidité %</label><input id="humidity" type="number" min="0" max="100" value="55"></div></div>
+      <div class="row2"><div><label for="wind">Vent</label><select id="wind"><option>Faible</option><option>Moyen</option><option>Fort / rafales</option></select></div><div><label for="trackEvolution">Évolution grip</label><select id="trackEvolution"><option>Normale</option><option>Se gomme vite</option><option>Piste sale</option><option>Se refroidit</option><option>Surchauffe pneus</option></select></div></div>
+      <label for="raceObjective">Objectif de course</label><select id="raceObjective"><option>Victoire / attaque maximale</option><option>Podium</option><option selected>Points solides</option><option>Remonter le peloton</option><option>Finir sans risque</option><option>Économiser pneus et moteur</option></select>
+    </fieldset>
+    <fieldset><legend>3. Qualifs — météo et stratégie</legend>
+      <label for="qualifFormat">Format qualif</label><select id="qualifFormat"><option>Q1 / Q2 / Q3</option><option>Session courte</option><option>Pas de qualif</option></select>
+      <label for="setupPriority">Parc fermé — priorité du setup</label><select id="setupPriority"><option>Course prioritaire</option><option selected>Compromis qualif/course</option><option>Qualif prioritaire</option></select>
+      <div class="hint">Le setup est identique entre qualif et course. Après le départ, seul l'aileron avant est considéré modifiable.</div>
+      <label for="qWeather">Météo qualif</label><select id="qWeather"><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select>
+      <label for="qTrackState">État piste qualif</label><select id="qTrackState"><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select>
+      <label for="qEvolution">Évolution qualif</label><select id="qEvolution"><option>Stable</option><option>Pluie arrive</option><option>Pluie s'intensifie</option><option>Pluie faiblit</option><option>Pluie s'arrête</option><option>Séchage progressif</option><option>Averses intermittentes</option></select>
+      <div class="row3"><div><label for="qRain">Risque pluie</label><input id="qRain" type="number" min="0" max="100" value="20"></div><div><label for="qTrack">Piste °C</label><input id="qTrack" type="number" min="10" max="62" value="34"></div><div><label for="qHumidity">Humidité %</label><input id="qHumidity" type="number" min="0" max="100" value="55"></div></div>
+      <div class="row2"><div><label for="qTyreMode">Gestion pneus qualif</label><select id="qTyreMode"><option>Chrono maximum</option><option>Économiser un train</option><option>Départ course prioritaire</option></select></div><div><label for="qObjective">Objectif qualif</label><select id="qObjective"><option>Pole / meilleur chrono</option><option>Passer en sécurité</option><option>Préserver pneus course</option></select></div></div>
+    </fieldset>
+    <fieldset><legend>4. Pneus course</legend>
+      <div class="row2"><div><label for="optionTyre">Option</label><select id="optionTyre"><option>Super-tendres</option><option>Tendres</option><option>Médiums</option><option>Durs</option></select></div><div><label for="primeTyre">Prime</label><select id="primeTyre"><option>Super-tendres</option><option>Tendres</option><option>Médiums</option><option>Durs</option></select></div></div>
+      <div class="row2"><div><label for="startTyre">Pneu de départ course</label><select id="startTyre"><option>Auto</option><option>Option</option><option>Prime</option><option>Intermédiaires</option><option>Pluie</option></select></div><div><label for="wear">Usure course observée</label><select id="wear"><option>Faible</option><option selected>Normale</option><option>Forte</option><option>Très forte</option></select></div></div>
+      <div class="row2"><div><label for="axis">Usure surtout</label><select id="axis"><option>Équilibrée</option><option>Avant</option><option>Arrière</option></select></div><div><label for="target">Objectif relais</label><select id="target"><option>Rythme pur</option><option selected>Équilibre</option><option>Économiser pneus</option></select></div></div>
+    </fieldset>
+    <fieldset><legend>5. Style voiture</legend>
+      <label for="over">Survirage : <span id="overLabel"></span></label><input id="over" type="range" min="-3" max="3" value="1">
+      <label for="aeroBias">Vitesse max ↔ Appui : <span id="aeroLabel"></span></label><input id="aeroBias" type="range" min="-5" max="5" value="0">
+      <label for="aggr">Agressivité stratégie : <span id="aggrLabel"></span></label><input id="aggr" type="range" min="0" max="10" value="6">
+      <label class="checkline"><input id="stableBraking" type="checkbox" checked> Je veux une voiture stable au freinage</label>
+      <label class="checkline"><input id="abs" type="checkbox" checked> ABS activé</label>
+      <label class="checkline"><input id="tc" type="checkbox" checked> Contrôle traction activé</label>
+    </fieldset>
+    <fieldset><legend>6. Problèmes à corriger</legend>
+      <label class="checkline"><input class="problem" type="checkbox" value="Sous-virage entrée/milieu de virage"> Sous-virage entrée/milieu</label>
+      <label class="checkline"><input class="problem" type="checkbox" value="Survirage en sortie"> Survirage en sortie</label>
+      <label class="checkline"><input class="problem" type="checkbox" value="Arrière instable au freinage"> Arrière instable au freinage</label>
+      <label class="checkline"><input class="problem" type="checkbox" value="Blocage roues avant"> Blocage roues avant</label>
+      <label class="checkline"><input class="problem" type="checkbox" value="Manque de vitesse max"> Manque de vitesse max</label>
+      <label class="checkline"><input class="problem" type="checkbox" value="Pneus arrière trop chauds"> Pneus arrière trop chauds</label>
+      <label class="checkline"><input class="problem" type="checkbox" value="Pneus avant trop chauds"> Pneus avant trop chauds</label>
+      <label class="checkline"><input class="problem" type="checkbox" value="Voiture molle / lente en changements d'appui"> Voiture molle</label>
+    </fieldset>
+  </aside>
+  <section class="content">
+    <div class="metrics" id="metrics"></div>
+    <div class="summary" id="summary"></div>
+    <div class="two-col">
+      <div class="card"><h2 class="section-title"><span class="slash"></span>Setup précis</h2><div id="setupTable"></div></div>
+      <div class="card"><h2 class="section-title"><span class="slash"></span>Boîte de vitesses</h2><div id="gearBox"></div><div class="pill-row" id="setupPills"></div></div>
+    </div>
+    <div class="section-tabs" id="detailTabs">
+      <button class="detail-tab active" type="button" data-detail="course">🏁 Course<small>stratégie, adaptation live, météo, corrections</small></button>
+      <button class="detail-tab" type="button" data-detail="qualif">⏱️ Qualif<small>runs, timing météo, adaptation live qualif</small></button>
+      <button class="detail-tab" type="button" data-detail="saves">💾 Sauvegardes<small>historique caché et chargement</small></button>
+    </div>
+    <div id="courseSection" class="detail-section">
+      <div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie de course expliquée</h2><div id="strategyTable"></div><div class="mini-title">Conseils course</div><div class="phrase-list" id="racePhrases"></div></div>
+      <div class="card"><h2 class="section-title"><span class="slash"></span>Carburant & mélanges moteur</h2><div id="fuelPlan"></div><div class="mini-title">Conseils moteur</div><div class="phrase-list" id="fuelPhrases"></div></div>
+      <div class="card">
+        <h2 class="section-title"><span class="slash"></span>IA vocale live optionnelle</h2>
+        <div class="hint">Active-la seulement si tu veux parler pendant la course. Elle met à jour uniquement les infos que tu dis, puis elle répond à l'écrit et à l'oral.</div>
+        <div class="voice-controls">
+          <label class="voice-toggle"><input id="voiceEnabled" type="checkbox"> Activer IA vocale</label>
+          <button class="btn btn-red" id="voiceListenBtn" type="button">🎙️ Écouter</button>
+          <button class="btn" id="voiceStopBtn" type="button">Stop</button>
+        </div>
+        <div class="voice-controls">
+          <textarea id="voiceText" class="voice-input" rows="3" placeholder="Ex : je suis en prime tour 17, il commence à pleuvoir fort, que faire ? Pneus orange, moteur chaud, carburant moins 1."></textarea>
+          <button class="btn" id="voiceApplyBtn" type="button">Appliquer texte</button>
+        </div>
+        <div class="voice-examples">Tu peux donner plusieurs infos en même temps. Exemple : “tour 22, pluie légère, pneus rouges, moteur chaud, KERS HS, pit non”.</div>
+        <div class="voice-status" id="voiceStatus">IA inactive.</div>
+        <div class="voice-log" id="voiceLog"></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title"><span class="slash"></span>Adaptation live pendant la course</h2>
+        <div class="hint">À utiliser si la météo change, si tes pneus s'usent plus vite, si tu es bloqué dans le trafic ou après Safety Car. Ça recalcule la stratégie à partir de ton tour actuel.</div>
+        <div class="live-grid">
+          <div><label for="liveLap">Tour actuel</label><input id="liveLap" type="number" min="1" value="1"></div>
+          <div><label for="liveTyre">Pneu actuel</label><select id="liveTyre"><option>Auto</option><option>Option</option><option>Prime</option><option>Intermédiaires</option><option>Pluie</option></select></div>
+          <div><label for="liveTyreAge">Âge du pneu</label><input id="liveTyreAge" type="number" min="0" value="0"></div>
+          <div><label for="livePosition">Position</label><input id="livePosition" type="number" min="1" max="24" value="10"></div>
+          <div><label for="liveWeather">Météo réelle</label><select id="liveWeather"><option>Comme prévu</option><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select></div>
+          <div><label for="liveTrackState">Piste réelle</label><select id="liveTrackState"><option>Comme prévu</option><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select></div>
+          <div><label for="liveWear">Usure réelle</label><select id="liveWear"><option>Comme prévu</option><option>Faible</option><option>Normale</option><option>Forte</option><option>Très forte</option></select></div>
+          <div><label for="liveTraffic">Situation piste</label><select id="liveTraffic"><option>Air propre</option><option>Bloqué dans le trafic</option><option>Défense derrière</option><option>Safety Car / VSC</option></select></div>
+          <div><label for="liveTyreColor">Usure pneus couleur</label><select id="liveTyreColor"><option>Vert</option><option>Jaune</option><option>Orange</option><option>Rouge</option></select></div>
+          <div><label for="liveBrakeColor">Usure freins couleur</label><select id="liveBrakeColor"><option>Vert</option><option>Jaune</option><option>Orange</option><option>Rouge</option></select></div>
+          <div><label for="liveCarState">État voiture</label><select id="liveCarState"><option>OK</option><option>Léger dégât</option><option>Instable</option><option>Dégât important</option></select></div>
+          <div><label for="liveFrontWing">Aileron avant</label><select id="liveFrontWing"><option>OK</option><option>Léger dégât</option><option>Cassé côté gauche</option><option>Cassé côté droit</option><option>Très abîmé</option></select></div>
+          <div><label for="liveKers">KERS</label><select id="liveKers"><option>Utilisable</option><option>Faible / intermittent</option><option>HS</option></select></div>
+          <div><label for="liveEngine">Moteur</label><select id="liveEngine"><option>OK</option><option>Chaud</option><option>Usé</option><option>Critique</option></select></div>
+          <div><label for="liveTyreTemp">Température pneus</label><select id="liveTyreTemp"><option>Froide</option><option selected>OK</option><option>Chaude</option><option>Surchauffe</option></select></div>
+          <div><label for="liveFuelDelta">Carburant restant</label><select id="liveFuelDelta"><option>+2 tours ou plus</option><option selected>OK</option><option>Limite</option><option>-1 tour</option><option>-2 tours ou pire</option></select></div>
+          <div><label for="liveFuelMix">Mélange actuel</label><select id="liveFuelMix"><option>Pauvre</option><option selected>Standard</option><option>Riche</option></select></div>
+          <div><label for="liveCanPit">Pit possible ?</label><select id="liveCanPit"><option selected>Oui</option><option>Non</option></select></div>
+          <div><label for="livePenalty">Pénalité</label><select id="livePenalty"><option>Aucune</option><option>Drive-through</option><option>Stop & Go</option><option>Temps ajouté</option></select></div>
+        </div>
+        <div class="mini-title">Stratégie réadaptée maintenant</div>
+        <div id="liveStrategy"></div>
+      </div>
+      <div class="three-col">
+        <div class="card"><h2 class="section-title"><span class="slash"></span>Météo & décisions</h2><div id="weatherAdvice"></div></div>
+        <div class="card"><h2 class="section-title"><span class="slash"></span>Corrections setup</h2><div id="corrections"></div></div>
+        <div class="card"><h2 class="section-title"><span class="slash"></span>Plan rapide</h2><div id="quickPlan"></div></div>
+      </div>
+    </div>
+    <div id="qualifSection" class="detail-section hidden">
+      <div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie qualif expliquée</h2><div id="qualifTable"></div><div class="mini-title">Phrases à suivre en qualif</div><div class="phrase-list" id="qualifPhrases"></div></div>
+      <div class="card">
+        <h2 class="section-title"><span class="slash"></span>Adaptation live pendant les qualifs</h2>
+        <div class="hint">Si la piste sèche, si la pluie arrive, si tu es limite élimination ou si le trafic change, cette section recalcule le timing du run qualif.</div>
+        <div class="live-grid">
+          <div><label for="liveQSession">Séance actuelle</label><select id="liveQSession"><option>Q1</option><option>Q2</option><option>Q3</option><option>Run court</option></select></div>
+          <div><label for="liveQMinutes">Minutes restantes</label><input id="liveQMinutes" type="number" min="0" max="20" value="8"></div>
+          <div><label for="liveQPosition">Position</label><input id="liveQPosition" type="number" min="1" max="24" value="10"></div>
+          <div><label for="liveQStatus">Statut</label><select id="liveQStatus"><option>En sécurité</option><option>Limite élimination</option><option>Éliminé provisoire</option><option>Objectif pole</option></select></div>
+          <div><label for="liveQWeather">Météo réelle qualif</label><select id="liveQWeather"><option>Comme prévu</option><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select></div>
+          <div><label for="liveQTrackState">Piste réelle qualif</label><select id="liveQTrackState"><option>Comme prévu</option><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select></div>
+          <div><label for="liveQTrend">Tendance piste</label><select id="liveQTrend"><option>Stable</option><option>Piste s'améliore</option><option>Pluie imminente</option><option>Drapeau jaune / trafic</option><option>Dernière chance</option></select></div>
+          <div><label for="liveQTyres">Trains Option neufs</label><input id="liveQTyres" type="number" min="0" max="4" value="2"></div>
+        </div>
+        <div class="mini-title">Plan live qualif</div>
+        <div id="liveQualifStrategy"></div>
+      </div>
+    </div>
+    <div id="savesSection" class="detail-section hidden">
+      <div class="card">
+        <h2 class="section-title"><span class="slash"></span>Sauvegardes & historique</h2>
+        <div class="hint">Cet onglet garde tes stratégies dans le navigateur. Rien à télécharger : tu peux sauvegarder, charger ou supprimer une stratégie directement ici.</div>
+        <div class="btn-row">
+          <input id="strategyName" type="text" placeholder="Nom de sauvegarde ex : Monza pluie T18" />
+          <button class="btn btn-red" id="saveStrategyBtn" type="button">Sauvegarder la stratégie actuelle</button>
+        </div>
+        <div class="save-status" id="saveStatus"></div>
+        <div class="mini-title">Historique sauvegardé sur ce navigateur</div>
+        <div id="historyList" class="history-list"></div>
+      </div>
+    </div>
+    <div class="footer">F12012_setup donne une base optimale. Valide en essais libres : si tu ajustes, change un seul réglage à la fois.</div>
+  </section>
+</main>
+<div id="helpModal" class="help-modal hidden" aria-hidden="true">
+  <div class="help-panel">
+    <div class="help-head"><h2>❓ Aide — où trouver les infos dans F1 2012</h2><button class="help-close" id="helpClose" type="button">Fermer</button></div>
+    <div class="help-tabs" id="helpTabs"></div>
+    <div class="help-content" id="helpContent"></div>
+  </div>
+</div>
+<script>
+const circuits = {
+  "Australie - Melbourne":{laps:58,profile:"mixte",fw:6,rw:7,top:322,stress:3,front:3,rear:3,brake:3,bump:2,kerb:2,over:2,pit:22,option:"Tendres",prime:"Médiums",notes:"stop-and-go avec traction importante en sortie de virage"},
+  "Malaisie - Sepang":{laps:56,profile:"aéro chaud",fw:7,rw:7,top:326,stress:5,front:4,rear:4,brake:3,bump:2,kerb:2,over:3,pit:22.5,option:"Médiums",prime:"Durs",notes:"très chaud, pneus vite en température"},
+  "Chine - Shanghai":{laps:56,profile:"mixte",fw:6,rw:6,top:331,stress:3,front:4,rear:3,brake:3,bump:1,kerb:1,over:3,pit:21.5,option:"Tendres",prime:"Médiums",notes:"longue ligne droite et virage 1 très dur pour l'avant"},
+  "Bahreïn - Sakhir":{laps:57,profile:"traction",fw:6,rw:6,top:328,stress:4,front:3,rear:4,brake:4,bump:2,kerb:2,over:3,pit:22,option:"Tendres",prime:"Médiums",notes:"traction et freinage, attention aux pneus arrière"},
+  "Espagne - Catalunya":{laps:66,profile:"aéro",fw:8,rw:8,top:320,stress:4,front:5,rear:3,brake:3,bump:1,kerb:2,over:1,pit:21,option:"Tendres",prime:"Durs",notes:"gros appui, longues courbes et usure avant"},
+  "Monaco - Monte-Carlo":{laps:78,profile:"urbain lent",fw:11,rw:11,top:292,stress:2,front:2,rear:3,brake:3,bump:5,kerb:5,over:1,pit:24,option:"Super-tendres",prime:"Tendres",notes:"appui maximum, motricité et bosses"},
+  "Canada - Montréal":{laps:70,profile:"vitesse freinage",fw:4,rw:3,top:344,stress:3,front:2,rear:3,brake:5,bump:4,kerb:4,over:3,pit:20,option:"Super-tendres",prime:"Tendres",notes:"faible appui, gros freinages et vibreurs"},
+  "Europe - Valencia":{laps:57,profile:"urbain rapide",fw:7,rw:7,top:323,stress:3,front:3,rear:3,brake:3,bump:3,kerb:3,over:1,pit:23,option:"Tendres",prime:"Médiums",notes:"peu d'adhérence et dépassements difficiles"},
+  "Grande-Bretagne - Silverstone":{laps:52,profile:"haute vitesse",fw:8,rw:8,top:326,stress:4,front:5,rear:3,brake:2,bump:2,kerb:2,over:2,pit:22,option:"Tendres",prime:"Durs",notes:"courbes rapides et stabilité aéro"},
+  "Allemagne - Hockenheim":{laps:67,profile:"mixte vitesse",fw:5,rw:5,top:338,stress:3,front:3,rear:3,brake:4,bump:2,kerb:2,over:3,pit:20.5,option:"Tendres",prime:"Médiums",notes:"compromis vitesse, traction et freinage"},
+  "Hongrie - Hungaroring":{laps:70,profile:"aéro lent",fw:10,rw:10,top:306,stress:3,front:3,rear:4,brake:3,bump:2,kerb:3,over:1,pit:22.5,option:"Tendres",prime:"Médiums",notes:"dépassements difficiles et fort appui"},
+  "Belgique - Spa-Francorchamps":{laps:44,profile:"haute vitesse",fw:5,rw:5,top:347,stress:4,front:4,rear:3,brake:3,bump:3,kerb:3,over:3,pit:21,option:"Médiums",prime:"Durs",notes:"compromis Kemmel, Eau Rouge et secteur 2"},
+  "Italie - Monza":{laps:53,profile:"vitesse pure",fw:2,rw:1,top:356,stress:3,front:2,rear:3,brake:5,bump:3,kerb:4,over:3,pit:19.5,option:"Médiums",prime:"Durs",notes:"vitesse max prioritaire et freinages lourds"},
+  "Singapour - Marina Bay":{laps:61,profile:"urbain traction",fw:10,rw:11,top:302,stress:4,front:3,rear:5,brake:4,bump:4,kerb:4,over:1,pit:25,option:"Super-tendres",prime:"Tendres",notes:"chaud, bosselé, traction arrière critique"},
+  "Japon - Suzuka":{laps:53,profile:"aéro technique",fw:8,rw:8,top:330,stress:4,front:5,rear:3,brake:3,bump:2,kerb:2,over:2,pit:21.5,option:"Tendres",prime:"Durs",notes:"S rapides et stabilité du train avant"},
+  "Corée - Yeongam":{laps:55,profile:"mixte",fw:6,rw:6,top:332,stress:3,front:3,rear:3,brake:4,bump:2,kerb:2,over:2,pit:21.5,option:"Super-tendres",prime:"Tendres",notes:"longues lignes droites puis secteur sinueux"},
+  "Inde - Buddh":{laps:60,profile:"vitesse aéro",fw:5,rw:5,top:340,stress:3,front:4,rear:3,brake:3,bump:1,kerb:2,over:2,pit:21,option:"Tendres",prime:"Durs",notes:"ligne droite longue et virages rapides"},
+  "Abu Dhabi - Yas Marina":{laps:55,profile:"traction mixte",fw:6,rw:7,top:328,stress:3,front:3,rear:4,brake:4,bump:2,kerb:2,over:3,pit:21,option:"Tendres",prime:"Médiums",notes:"freinage, traction et deux zones DRS"},
+  "États-Unis - Austin":{laps:56,profile:"aéro mixte",fw:7,rw:7,top:330,stress:4,front:4,rear:3,brake:3,bump:2,kerb:3,over:2,pit:22,option:"Médiums",prime:"Durs",notes:"premier secteur rapide et épingles"},
+  "Brésil - Interlagos":{laps:71,profile:"mixte bosselé",fw:7,rw:7,top:322,stress:4,front:4,rear:4,brake:3,bump:4,kerb:3,over:2,pit:21,option:"Médiums",prime:"Durs",notes:"bosses, météo variable et traction en montée"}
+};
+const q = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const cInt = v => Math.round(clamp(v,1,11));
+const dur = {"Super-tendres":-3,"Tendres":-1,"Médiums":1,"Durs":4};
+const wearMod = {"Faible":-1,"Normale":0,"Forte":1,"Très forte":2};
+const TEAM_PROFILES = {
+  "Red Bull Racing":{level:5,top:2,wear:-0.45,label:"top car : forte aéro, pneus solides, stratégie agressive possible"},
+  "McLaren":{level:5,top:3,wear:-0.25,label:"top car rapide en ligne droite, bonne attaque/undercut"},
+  "Ferrari":{level:5,top:1,wear:-0.20,label:"top car équilibrée, bon rythme de course"},
+  "Mercedes AMG":{level:4,top:3,wear:0.05,label:"bonne vitesse, attention gestion pneus"},
+  "Lotus F1 Team":{level:4,top:1,wear:-0.35,label:"bonne gestion pneus, relais longs possibles"},
+  "Force India":{level:3,top:2,wear:0.05,label:"milieu de grille rapide, privilégier air propre"},
+  "Sauber":{level:3,top:1,wear:-0.10,label:"milieu de grille efficace, bonne stratégie pneus"},
+  "Toro Rosso":{level:2,top:0,wear:0.15,label:"milieu/bas de grille, stratégie opportuniste"},
+  "Williams":{level:3,top:2,wear:0.10,label:"bonne vitesse, défendre en ligne droite"},
+  "Caterham":{level:1,top:-1,wear:0.35,label:"bas de grille, éviter les arrêts inutiles"},
+  "HRT":{level:1,top:-2,wear:0.50,label:"voiture lente, priorité régularité et survie pneus"},
+  "Marussia":{level:1,top:-1,wear:0.45,label:"bas de grille, profiter météo/Safety Car"}
+};
+function teamProfile(i){ return TEAM_PROFILES[i.team] || TEAM_PROFILES["Red Bull Racing"]; }
+function objectiveAggression(i){
+  const o = i.raceObjective || "Points solides";
+  if(o.includes("Victoire") || o.includes("Remonter")) return 1;
+  if(o.includes("Finir") || o.includes("Économiser")) return -1;
+  return 0;
+}
+let lastPlan = null;
+const SCREEN_KEY = "F12012_setup_screen_mode";
+function setScreenMode(mode){
+  const selected = ["auto","pc","tablet","phone"].includes(mode) ? mode : "auto";
+  document.body.classList.remove("screen-pc","screen-tablet","screen-phone");
+  if(selected !== "auto") document.body.classList.add(`screen-${selected}`);
+  localStorage.setItem(SCREEN_KEY, selected);
+  document.querySelectorAll("#screenControls .screen-btn").forEach(btn=>btn.classList.toggle("active", btn.dataset.screen === selected));
+}
+function initScreenMode(){ setScreenMode(localStorage.getItem(SCREEN_KEY) || "auto"); }
+let renderRaf = 0;
+function scheduleRender(){ if(renderRaf) cancelAnimationFrame(renderRaf); renderRaf = requestAnimationFrame(()=>{ renderRaf = 0; render(); }); }
+const DETAIL_KEY = "F12012_setup_detail_mode";
+function setDetailMode(mode){
+  const selected = ["course","qualif","saves"].includes(mode) ? mode : "course";
+  document.querySelectorAll("#detailTabs .detail-tab").forEach(btn=>btn.classList.toggle("active", btn.dataset.detail === selected));
+  const sections = {course:q("courseSection"), qualif:q("qualifSection"), saves:q("savesSection")};
+  Object.entries(sections).forEach(([key,el])=>{ if(el) el.classList.toggle("hidden", selected !== key); });
+  localStorage.setItem(DETAIL_KEY, selected);
+}
+function initDetailMode(){ setDetailMode(localStorage.getItem(DETAIL_KEY) || "course"); }
+function raceLaps(name, distance){ return Math.max(3, Math.round(circuits[name].laps * distance / 100)); }
+function overText(v){ const labels = {"-3":"très stable","-2":"stable","-1":"légèrement stable","0":"neutre","1":"léger survirage","2":"survirage marqué","3":"très survireuse"}; return labels[String(v)] || "neutre"; }
+function aeroText(v){ if(v<=-4) return "vitesse max absolue"; if(v<=-2) return "priorité vitesse"; if(v===0) return "compromis"; if(v<=2) return "priorité appui"; return "appui maximum"; }
+function vals(){ return {
+  circuit:q("circuit").value, distance:Number(q("distance").value), session:q("session").value, team:q("team").value, ai:Number(q("ai").value), difficulty:q("difficulty").value, fuelPlanMode:q("fuelPlanMode").value,
+  weather:q("weather").value, trackState:q("trackState").value, evolution:q("evolution").value, rain:Number(q("rain").value), changeLap:Number(q("changeLap").value), dryLap:Number(q("dryLap").value), intensity:q("intensity").value, radar:q("radar").value,
+  air:Number(q("air").value), track:Number(q("track").value), humidity:Number(q("humidity").value), wind:q("wind").value, trackEvolution:q("trackEvolution").value, raceObjective:q("raceObjective").value,
+  qualifFormat:q("qualifFormat").value, setupPriority:q("setupPriority").value, qWeather:q("qWeather").value, qTrackState:q("qTrackState").value, qEvolution:q("qEvolution").value, qRain:Number(q("qRain").value), qTrack:Number(q("qTrack").value), qHumidity:Number(q("qHumidity").value), qTyreMode:q("qTyreMode").value, qObjective:q("qObjective").value,
+  liveLap:Number(q("liveLap").value), liveTyre:q("liveTyre").value, liveTyreAge:Number(q("liveTyreAge").value), livePosition:Number(q("livePosition").value), liveWeather:q("liveWeather").value, liveTrackState:q("liveTrackState").value, liveWear:q("liveWear").value, liveTraffic:q("liveTraffic").value,
+  liveTyreColor:q("liveTyreColor").value, liveBrakeColor:q("liveBrakeColor").value, liveCarState:q("liveCarState").value, liveFrontWing:q("liveFrontWing").value, liveKers:q("liveKers").value, liveEngine:q("liveEngine").value, liveTyreTemp:q("liveTyreTemp").value, liveFuelDelta:q("liveFuelDelta").value, liveFuelMix:q("liveFuelMix").value, liveCanPit:q("liveCanPit").value, livePenalty:q("livePenalty").value,
+  liveQSession:q("liveQSession").value, liveQMinutes:Number(q("liveQMinutes").value), liveQPosition:Number(q("liveQPosition").value), liveQStatus:q("liveQStatus").value, liveQWeather:q("liveQWeather").value, liveQTrackState:q("liveQTrackState").value, liveQTrend:q("liveQTrend").value, liveQTyres:Number(q("liveQTyres").value),
+  option:q("optionTyre").value, prime:q("primeTyre").value, startTyre:q("startTyre").value, wear:q("wear").value, axis:q("axis").value, target:q("target").value,
+  over:Number(q("over").value), aero:Number(q("aeroBias").value), aggr:Number(q("aggr").value), stableBraking:q("stableBraking").checked, noAbs:!q("abs").checked, tc:q("tc").checked,
+  problems:Array.from(document.querySelectorAll(".problem:checked")).map(x=>x.value)
+}; }
+function wetness(i){
+  let weatherBase = {"Sec ensoleillé":0,"Sec couvert":0.05,"Variable / menaçant":0.35,"Bruine":0.7,"Pluie légère":1.0,"Pluie moyenne":1.45,"Pluie forte":2.0}[i.weather] || 0;
+  let stateBase = {"Sèche":0,"Verte / froide":0.05,"Humide hors trajectoire":0.55,"Humide":1.0,"Très humide":1.45,"Détrempée":2.0}[i.trackState] || 0;
+  let base = Math.max(weatherBase, stateBase);
+  if(["Pluie arrive","Pluie s'intensifie","Averses intermittentes"].includes(i.evolution) && i.rain >= 45) base = Math.max(base, .85);
+  if(i.evolution === "Pluie s'intensifie") base += .35;
+  if(["Pluie s'arrête","Séchage progressif","Pluie faiblit"].includes(i.evolution)) base -= .18;
+  if(i.humidity >= 80 && i.track < 26) base += .12;
+  return clamp(base,0,2.4);
+}
+function rainTyreFromWet(w){ return w >= 1.55 ? "Pluie" : w >= .62 ? "Intermédiaires" : "Slicks"; }
+function calcSetup(i){
+  const c = circuits[i.circuit]; const wet = wetness(i); const shift = Math.round(i.aero / 2.2); const wetWing = wet>=1.55 ? 2 : wet>=.75 ? 1 : 0;
+  let fw = c.fw + shift + wetWing, rw = c.rw + shift + wetWing;
+  if(wet >= .85) rw += 1;
+  if(i.over > 0){ fw += Math.ceil(i.over/2); rw -= Math.max(0,Math.floor(i.over/2)); }
+  if(i.over < 0){ fw -= Math.max(0,Math.floor(Math.abs(i.over)/2)); rw += Math.ceil(Math.abs(i.over)/2); }
+  if(wet >= .85) rw = Math.max(rw, fw);
+  fw = cInt(fw); rw = cInt(rw);
+  let top = Math.round(clamp(c.top - ((fw+rw)-(c.fw+c.rw))*2.7 - wet*6 + Math.max(0,-i.aero)*1.8 + (["vitesse pure","vitesse freinage","haute vitesse"].includes(c.profile)?2:0), 286, 360));
+  top = Math.round(clamp(top + teamProfile(i).top, 286, 360));
+  let fast = ["haute vitesse","aéro","aéro technique","aéro mixte"].includes(c.profile) ? 1 : 0;
+  let traction = (c.profile.includes("traction") || c.profile.includes("urbain")) ? 1 : 0;
+  let smooth = c.bump <= 2 ? 1 : 0;
+  let arbF = cInt(6 + smooth + fast - traction - (wet>=.85?1:0) - (c.bump>=4?1:0) - Math.round(i.over/2));
+  let arbR = cInt(6 + smooth - traction - (wet>=.85?1:0) - (c.bump>=4?1:0) + Math.round(i.over/2) - ((i.axis==="Arrière" || i.track>=42 || i.target==="Économiser pneus")?1:0));
+  let ride = 2 + (c.bump>=3?1:0) + (c.kerb>=4?1:0) - (c.profile==="vitesse pure"?1:0) + (wet>=.85?1:0) + (wet>=1.55?1:0);
+  let hF = cInt(ride), hR = cInt(ride + (c.profile.includes("traction") || wet>=.85 ? 1 : 0));
+  let springBase = 6 + fast + (i.aero>2?1:0) - traction - (c.bump>=4?1:0) - (wet>=.85?2:0) - (i.target==="Économiser pneus"?1:0);
+  let sF = cInt(springBase - ((i.axis==="Avant" || i.track>=42)?1:0));
+  let sR = cInt(springBase - ((i.axis==="Arrière" || c.profile.includes("traction") || i.track>=42)?1:0) + (i.over>1?1:i.over<-1?-1:0));
+  let brakeFront = clamp(Math.round(49 + (c.brake>=4?1:0) + (wet>=.85?1:0) + (i.stableBraking?1:0) - (i.noAbs?1:0) - (i.over>=2 && wet<.85?1:0)),48,52);
+  let brakePressure = (wet>=1.55 && i.noAbs) ? "Faible" : (wet>=.85 || i.noAbs || i.track<22) ? "Moyenne" : "Élevée";
+  let brakeSize = (c.brake>=4 || i.distance===100 || i.track>=40) ? "Grande" : "Standard";
+  let gears = [.40,.51,.62,.72,.815,.905,1].map(r=>Math.round(top*r));
+  if(c.profile.includes("traction") || c.profile.includes("urbain")){ gears[0]-=3; gears[1]-=2; gears[2]-=1; }
+  if(["vitesse pure","haute vitesse","vitesse freinage"].includes(c.profile)){ gears[5]+=2; gears[6]+=3; }
+  if(wet>=.85 || !i.tc){ gears[0]+=5; gears[1]+=4; }
+  gears = gears.map(g=>Math.round(clamp(g,110,365)));
+  let camF = clamp(-3.18 - .045*((fw+rw)/2 + c.front*.45 - 7) - (i.over>0?.03*i.over:0) + ((i.track>=42 || ["Forte","Très forte"].includes(i.wear) || i.target==="Économiser pneus")?.12:0) + (wet>=.85?.10:0), -3.5, -2.5);
+  let camR = clamp(-1.18 - .04*(c.rear-3) + (i.over>0?.02*i.over:i.over<0?-.02*Math.abs(i.over):0) + ((i.track>=42 || ["Forte","Très forte"].includes(i.wear) || i.target==="Économiser pneus")?.10:0) + (wet>=.85?.08:0), -1.5, -.5);
+  let toeF = clamp(.10 + .01*Math.max(0,i.over) - (i.aero<-2?.01:0) + (wet>=.85?-.01:0) + ((i.track>=42 || ["Forte","Très forte"].includes(i.wear) || i.target==="Économiser pneus")?-.02:0), .05, .15);
+  let toeR = clamp(.32 + .025*Math.max(0,-i.over) - .025*Math.max(0,i.over) + (wet>=.85?.06:0) + ((i.track>=42 || ["Forte","Très forte"].includes(i.wear) || i.target==="Économiser pneus")?-.03:0), .20, .50);
+  const warnings = [];
+  if(wet>=.85 && i.over>=2) warnings.push("Sur piste humide, le survirage fort devient risqué : le setup garde volontairement plus d'arrière.");
+  if(i.track>=42 || i.trackEvolution==="Surchauffe pneus") warnings.push("Piste chaude : le carrossage/pincement et les ressorts sont calmés pour sauver les pneus.");
+  if(i.wind==="Fort / rafales") warnings.push("Vent fort : évite un aileron arrière trop bas, surtout dans les courbes rapides.");
+  return {fw,rw,top,arbF,arbR,hF,hR,sF,sR,brakeFront,brakeRear:100-brakeFront,brakePressure,brakeSize,gears,camF:camF.toFixed(2),camR:camR.toFixed(2),toeF:toeF.toFixed(2),toeR:toeR.toFixed(2),wet,warnings};
+}
+function tyreLife(i, setup){
+  const c = circuits[i.circuit]; let stress = c.stress + teamProfile(i).wear + (wearMod[i.wear]||0) + (i.track>=42?1:0) + (i.aggr>=8?.5:0) + (i.axis==="Arrière"&&i.over>=2?.5:0) + (i.trackEvolution==="Surchauffe pneus"?.5:0) - (i.target==="Économiser pneus"?.5:0) + (objectiveAggression(i)<0?-.25:0);
+  stress = Math.round(clamp(stress,1,6)); const base = {1:25,2:23,3:20,4:17,5:14,6:12}[stress]; const scale = {25:.38,50:.62,100:1}[i.distance]; const factor = 1 - Math.max(0,i.aggr-5)*.025 + (i.target==="Économiser pneus"?.06:0);
+  const opt = Math.max(4,Math.round((base + (dur[i.option]||0))*scale*factor)); const pri = Math.max(opt+2,Math.round((base+8+(dur[i.prime]||1))*scale*factor));
+  return {stress,opt,pri,inter:Math.max(5,Math.round((18-Math.max(0,stress-3))*scale)),wet:Math.max(6,Math.round((22-Math.max(0,stress-3))*scale))};
+}
+function allocate(seq,total,lives){
+  const weights = seq.map(t=>lives[t]); const sum = weights.reduce((a,b)=>a+b,0); const raw = weights.map(w=>total*w/sum); const len = raw.map(v=>Math.max(2,Math.round(v)));
+  let diff = total - len.reduce((a,b)=>a+b,0), guard = 0;
+  while(diff !== 0 && guard++ < 200){ if(diff > 0){ let idx = 0, best = -999; len.forEach((l,k)=>{ const margin = lives[seq[k]] - l; if(margin > best){best=margin; idx=k;} }); len[idx]++; diff--; } else { let idx = len.findIndex(v=>v>2); if(idx<0) break; len[idx]--; diff++; } }
+  return len;
+}
+function dryStrategy(i, life){
+  const total = raceLaps(i.circuit,i.distance); const lives = {Option:life.opt, Prime:life.pri}; let seq = i.startTyre==="Prime" ? ["Prime","Option"] : ["Option","Prime"];
+  if(lives[seq[0]] + lives[seq[1]] < total){ seq = i.startTyre==="Prime" ? ["Prime","Option","Prime"] : ["Option","Prime","Option"]; }
+  const obj = i.raceObjective || "Points solides";
+  if((obj.includes("Victoire") || obj.includes("Remonter")) && i.distance !== 25 && seq.length === 2 && (lives.Option*2 + lives.Prime) >= total){ seq = i.startTyre==="Prime" ? ["Prime","Option","Option"] : ["Option","Prime","Option"]; }
+  if((obj.includes("Finir") || obj.includes("Économiser")) && seq.length > 2 && (lives.Option + lives.Prime) >= total){ seq = i.startTyre==="Prime" ? ["Prime","Option"] : ["Option","Prime"]; }
+  if(seq.reduce((s,t)=>s+lives[t],0) < total){ seq.push("Prime"); }
+  const lens = allocate(seq,total,lives); const stints = []; let start = 1;
+  seq.forEach((tyre,idx)=>{ const end = start + lens[idx] - 1; const label = tyre==="Option" ? i.option : i.prime; stints.push({relai:idx+1,tours:`${start}-${end}`,pneu:`${tyre} (${label})`,longueur:lens[idx],fenetre:idx===seq.length-1?"Arrivée":`fin T${end} ±1`,consigne:stintSentence(tyre,lens[idx],lives[tyre],idx,seq.length,i)}); start=end+1; });
+  return {total,stints,summary:`${stints.length-1} arrêt(s), départ ${stints[0].pneu}, dernier relais ${stints[stints.length-1].pneu}`};
+}
+function stintSentence(tyre,length,life,idx,total,i){
+  if(idx===0) return "Départ propre : évite de patiner et garde les pneus vivants jusqu'à la fenêtre d'arrêt.";
+  if(idx===total-1 && tyre==="Option") return "Relais final court : attaque fort dès la sortie des stands, pneus en température au bout d'un tour.";
+  if(length > life*.94) return "Relais long : roule 2-3 dixièmes plus calme au début pour éviter la chute de grip en fin de relais.";
+  if(tyre==="Prime") return "Relais de constance : chauffe progressive, rythme stable, ne bloque pas les roues.";
+  return "Relais d'attaque : utilise le grip neuf pour undercut ou dépasser dans la fenêtre DRS.";
+}
+function weatherStrategy(i, setup, dry, life){
+  const total = dry.total; const currentTyre = rainTyreFromWet(setup.wet); const dec = [];
+  if((i.startTyre==="Intermédiaires" || i.startTyre==="Pluie") && setup.wet < .62) dec.push("Tu as choisi un pneu pluie alors que le calcul voit une piste presque sèche : ne le fais que si le radar annonce une averse immédiate.");
+  if(currentTyre === "Slicks" && ["Stable","Séchage progressif"].includes(i.evolution)){ dec.push("Base sèche : respecte la règle Option + Prime si aucune pluie ne tombe."); if(i.weather.includes("couvert") || i.weather.includes("Variable")) dec.push("Prépare les inters seulement si les chronos slicks chutent d'environ 3 secondes au tour."); return {mode:"sec",stints:dry.stints,dec}; }
+  if(currentTyre !== "Slicks" && i.evolution === "Stable"){
+    const lifeWet = currentTyre === "Pluie" ? life.wet : life.inter; const count = Math.max(1,Math.ceil(total / Math.max(1,lifeWet))); const len = Math.ceil(total/count); let stints = [], start = 1;
+    for(let idx=1; idx<=count; idx++){ const end = Math.min(total,start+len-1); stints.push({relai:idx,tours:`${start}-${end}`,pneu:currentTyre,longueur:end-start+1,fenetre:idx===count?"Arrivée":`fin T${end} ±1`,consigne:currentTyre==="Pluie"?"Priorité survie : freine droit, évite les vibreurs peints, KERS roues droites.":"Cherche les zones humides si les inters chauffent, mais garde la trajectoire sèche pour le chrono."}); start=end+1; }
+    dec.push("Course humide : la règle Option + Prime ne s'applique plus."); return {mode:"pluie",stints,dec};
+  }
+  if(["Pluie arrive","Pluie s'intensifie","Averses intermittentes"].includes(i.evolution) && i.changeLap > 0){ const targetWet = i.intensity==="Pluie forte" || i.evolution==="Pluie s'intensifie" ? "Pluie" : "Intermédiaires"; const pit = targetWet==="Pluie" ? i.changeLap : Math.min(total,i.changeLap+1); dec.push(`Pluie vers T${i.changeLap} : vise l'arrêt ${targetWet} autour de T${pit}, sauf si la piste reste assez sèche.`); dec.push("Ne rentre pas au premier nuage : attends que les slicks perdent 2,5 à 3 secondes par tour."); const stints = [{...dry.stints[0],tours:`1-${Math.max(1,pit-1)}`,longueur:Math.max(1,pit-1),fenetre:`T${pit}`,consigne:"Premier relais : ne détruis pas les slicks avant l'arrivée de la pluie."},{relai:2,tours:`${pit}-${total}`,pneu:targetWet,longueur:total-pit+1,fenetre:"Arrivée",consigne:"Sous la pluie : moteur standard/lean, KERS seulement en ligne droite, pas de vibreurs peints."}]; return {mode:"transition pluie",stints,dec}; }
+  if(["Pluie s'arrête","Séchage progressif","Pluie faiblit"].includes(i.evolution) && (i.changeLap > 0 || setup.wet >= .62)){ const sw = Math.min(total, Math.max(1, (i.dryLap>0?i.dryLap:i.changeLap+2))); const startWet = currentTyre==="Slicks" ? "Intermédiaires" : currentTyre; const slick = (total-sw+1)<=life.opt ? `Option (${i.option})` : `Prime (${i.prime})`; dec.push(`Piste qui sèche : départ ${startWet}, puis slicks vers T${sw} quand la trajectoire sèche apparaît.`); dec.push("Passe aux slicks quand les inters surchauffent et que 2 secteurs deviennent plus rapides en pneus secs."); return {mode:"piste séchante",stints:[{relai:1,tours:`1-${Math.max(1,sw-1)}`,pneu:startWet,longueur:Math.max(1,sw-1),fenetre:`T${sw} ±1`,consigne:"Reste propre, évite les flaques et protège les pneus pluie."},{relai:2,tours:`${sw}-${total}`,pneu:slick,longueur:total-sw+1,fenetre:"Arrivée",consigne:"Chauffe les slicks un tour, puis attaque hors zones humides."}],dec}; }
+  dec.push("Météo incertaine : garde la stratégie sèche comme base et réserve un arrêt flexible pour inters/pluie."); return {mode:"mixte",stints:dry.stints,dec};
+}
+
+function qualifContext(i){
+  return {...i, weather:i.qWeather, trackState:i.qTrackState, evolution:i.qEvolution, rain:i.qRain, track:i.qTrack, humidity:i.qHumidity, changeLap:0, dryLap:0, intensity:i.qWeather === "Pluie forte" ? "Pluie forte" : i.qWeather === "Pluie moyenne" ? "Pluie moyenne" : "Pluie légère"};
+}
+function mergeSetups(a,b){
+  const avg = (x,y)=>Math.round((x+y)/2); const out = {...a};
+  ["fw","rw","top","arbF","arbR","hF","hR","sF","sR","brakeFront"].forEach(k=>out[k]=avg(a[k],b[k]));
+  out.brakeRear = 100 - out.brakeFront;
+  out.gears = a.gears.map((g,idx)=>avg(g,b.gears[idx]));
+  out.brakePressure = (a.brakePressure==="Faible" || b.brakePressure==="Faible") ? "Faible" : (a.brakePressure==="Moyenne" || b.brakePressure==="Moyenne") ? "Moyenne" : "Élevée";
+  out.brakeSize = (a.brakeSize==="Grande" || b.brakeSize==="Grande") ? "Grande" : "Standard";
+  out.camF = ((Number(a.camF)+Number(b.camF))/2).toFixed(2); out.camR = ((Number(a.camR)+Number(b.camR))/2).toFixed(2); out.toeF = ((Number(a.toeF)+Number(b.toeF))/2).toFixed(2); out.toeR = ((Number(a.toeR)+Number(b.toeR))/2).toFixed(2);
+  out.wet = (a.wet + b.wet) / 2; out.warnings = [...new Set([...(a.warnings||[]),...(b.warnings||[])])]; return out;
+}
+function chooseParcSetup(i, raceSetup, qualifSetup){
+  if(i.setupPriority === "Course prioritaire") return {...raceSetup, source:"course"};
+  if(i.setupPriority === "Qualif prioritaire") return {...qualifSetup, source:"qualif"};
+  return {...mergeSetups(raceSetup, qualifSetup), source:"compromis"};
+}
+function frontWingDeltaText(base, race){
+  const delta = race.fw - base.fw;
+  if(delta === 0) return "garde l'aileron avant identique en course";
+  if(delta > 0) return `course : +${delta} clic aileron avant si tu peux l'ajuster`;
+  return `course : ${delta} clic aileron avant si tu peux l'ajuster`;
+}
+function gearAdvice(idx, i){
+  const n = idx + 1;
+  if(n <= 2) return (wetness(i) >= .62 || !i.tc) ? "allongée pour éviter le patinage" : "traction sortie virage lent";
+  if(n <= 5) return "relance et rythme de course";
+  if(n === 6) return "prépare la vitesse de pointe";
+  return "réglée pour DRS/KERS en bout de ligne droite";
+}
+function qualifStrategy(i, qctx, parcSetup, raceSetup, qualifSetup, life){
+  if(i.qualifFormat === "Pas de qualif") return {rows:[["-","-","Pas de qualif sélectionnée","-","Utilise directement le plan course."]], phrases:["Pas de qualif : garde le setup parc fermé calculé pour la course."], tyre:"-"};
+  const qWet = wetness(qctx); const qTyre = rainTyreFromWet(qWet); const rows = []; const phrases = [];
+  const sessionNames = i.qualifFormat === "Session courte" ? ["Run 1","Run 2"] : ["Q1","Q2","Q3"];
+  let baseSlick = i.qTyreMode === "Économiser un train" || i.qObjective === "Préserver pneus course" ? `Prime (${i.prime})` : `Option (${i.option})`;
+  if(qTyre !== "Slicks") baseSlick = qTyre;
+  sessionNames.forEach((name,idx)=>{
+    let tyre = baseSlick, timing = "milieu de séance", instruction = "tour de sortie, tour lancé, tour de rentrée";
+    if(qTyre === "Slicks"){
+      if(name === "Q1" && (i.qTyreMode === "Économiser un train" || i.qObjective === "Préserver pneus course")) tyre = `Prime (${i.prime})`;
+      if(name === "Q2" && i.qObjective === "Passer en sécurité") tyre = `Option (${i.option})`;
+      if(name === "Q3" || name === "Run 2") tyre = `Option (${i.option})`;
+      if(i.qEvolution === "Pluie arrive" || i.qEvolution === "Averses intermittentes" || i.qRain >= 65){ timing = "sortir tôt"; instruction = "pose un chrono de sécurité avant que la pluie arrive"; }
+      else if(i.qEvolution === "Séchage progressif" || i.qEvolution === "Pluie s'arrête"){ timing = "attendre la fin"; instruction = "la piste s'améliore : dernier tour lancé le plus tard possible"; }
+      else { timing = idx === 0 && i.qObjective !== "Pole / meilleur chrono" ? "premier run prudent" : "dernier run rapide"; instruction = tyre.includes("Option") ? "attaque maximale sur le tour lancé, recharge KERS avant la ligne" : "chrono de sécurité sans consommer un train Option"; }
+    } else {
+      timing = qWet >= 1.5 ? "sortir quand la visibilité est correcte" : "sortir tôt puis surveiller le séchage";
+      instruction = qTyre === "Pluie" ? "évite aquaplaning, freine droit, pas de vibreurs peints" : "garde les inters frais et cherche une trajectoire propre";
+    }
+    rows.push([name, tyre, timing, "1 tour lancé", instruction]);
+  });
+  phrases.push("Le setup qualif et course est le même : ne cherche pas un réglage qualif impossible à garder en course.");
+  phrases.push(`Setup parc fermé choisi : ${i.setupPriority.toLowerCase()} ; en course, ${frontWingDeltaText(parcSetup,raceSetup)}.`);
+  if(qTyre === "Slicks") phrases.push("En qualif sèche : pneus Option pour le chrono pur; Prime seulement si tu es sûr de passer et veux garder un train frais.");
+  if(i.qRain >= 60 || i.qEvolution !== "Stable") phrases.push("Météo qualif changeante : le timing vaut plus que le pneu, sors avant la pluie ou attends la piste la plus sèche.");
+  phrases.push("Sur le tour lancé : chauffe pneus en secteur 1 sans glisser, KERS avant les longues lignes droites, DRS dès que la voiture est droite.");
+  return {rows, phrases, tyre:qTyre === "Slicks" ? "Option" : qTyre};
+}
+
+
+
+function difficultyText(i){
+  return {"Facile":"marge large, freinage tôt","Intermédiaire":"marge moyenne","Pro":"marge faible, surveille usure","Légende":"zéro erreur : décisions rapides"}[i.difficulty] || "marge moyenne";
+}
+function colorSeverity(color){ return {"Vert":0,"Jaune":1,"Orange":2,"Rouge":3}[color] ?? 0; }
+function fuelMixPlan(i, strat){
+  const aggressive = objectiveAggression(i) > 0 || i.fuelPlanMode === "Attaque départ";
+  const save = objectiveAggression(i) < 0 || i.fuelPlanMode === "Économie carburant";
+  const rows = [];
+  rows.push(["Départ", aggressive ? "Riche" : save ? "Standard" : "Riche 1 tour", aggressive ? "Attaque ou défense au T1" : "Sortie propre, pas plus de 1 tour riche"]);
+  rows.push(["Relais normal", save ? "Pauvre/Standard" : "Standard", save ? "Garder +1 tour carburant" : "Base stable, moteur protégé"]);
+  rows.push(["Attaque/undercut", "Riche 1-2 tours", "Seulement pneus en température et moteur OK"]);
+  rows.push(["Trafic / Safety Car", "Pauvre", "Économiser carburant et refroidir moteur"]);
+  rows.push(["Fin de course", i.fuelPlanMode === "Attaque fin de course" ? "Riche si moteur OK" : "Standard", "Riche uniquement si carburant positif"]);
+  const phrases = [
+    "Évite la casse moteur : pas de mélange riche prolongé, surtout moteur chaud/usé.",
+    "Passe en pauvre si tu glisses, si tu suis une voiture ou sous Safety Car.",
+    `Difficulté ${i.difficulty} : ${difficultyText(i)}.`
+  ];
+  if(strat.mode !== "sec") phrases.push("Sous la pluie : standard ou pauvre, jamais riche en sortie de virage lent.");
+  return {rows, phrases};
+}
+function liveEngineAdvice(i){
+  const out = [];
+  if(i.liveEngine === "Critique") out.push("Moteur critique : mélange pauvre, short-shift, évite rupteur et vibreurs, pit si possible.");
+  else if(i.liveEngine === "Chaud" || i.liveEngine === "Usé") out.push("Moteur à protéger : standard/pauvre, riche max 1 tour, air propre pour refroidir.");
+  if(i.liveKers === "HS") out.push("KERS HS : garde le riche pour les lignes droites, défends avec trajectoire plutôt qu'accélération.");
+  if(i.liveKers === "Faible / intermittent") out.push("KERS intermittent : utilise-le seulement roues droites et en petites impulsions.");
+  if(i.liveFuelDelta.includes("-2") || i.liveFuelDelta.includes("-1")) out.push("Carburant négatif : mélange pauvre jusqu'à revenir à 0, short-shift 1 rapport plus tôt.");
+  if(i.liveFuelDelta === "Limite") out.push("Carburant limite : standard, riche seulement dépassement/ défense.");
+  if(i.liveTyreTemp === "Surchauffe") out.push("Pneus en surchauffe : mélange pauvre 1-2 tours, évite patinage et braquage long.");
+  return out;
+}
+
+function plannedTyreAtLap(stints, lap){
+  for(const stint of stints){
+    const parts = String(stint.tours).split("-").map(Number);
+    if(parts.length === 2 && lap >= parts[0] && lap <= parts[1]){
+      if(String(stint.pneu).includes("Option")) return "Option";
+      if(String(stint.pneu).includes("Prime")) return "Prime";
+      if(String(stint.pneu).includes("Intermédiaires")) return "Intermédiaires";
+      if(String(stint.pneu).includes("Pluie")) return "Pluie";
+    }
+  }
+  return "Option";
+}
+function tyreDisplay(name,i){
+  if(name === "Option") return `Option (${i.option})`;
+  if(name === "Prime") return `Prime (${i.prime})`;
+  return name;
+}
+function tyreLifeFor(name,life){
+  if(name === "Option") return life.opt;
+  if(name === "Prime") return life.pri;
+  if(name === "Intermédiaires") return life.inter;
+  if(name === "Pluie") return life.wet;
+  return life.opt;
+}
+function liveContext(i){
+  return {...i, weather:i.liveWeather === "Comme prévu" ? i.weather : i.liveWeather, trackState:i.liveTrackState === "Comme prévu" ? i.trackState : i.liveTrackState, wear:i.liveWear === "Comme prévu" ? i.wear : i.liveWear, evolution:"Stable", rain:i.liveWeather === "Comme prévu" ? i.rain : (i.liveWeather.includes("Pluie") || i.liveWeather === "Bruine" ? 90 : i.rain)};
+}
+function liveAdaptation(i, raceSetup, strat, life){
+  const total = raceLaps(i.circuit,i.distance); const lap = Math.max(1, Math.min(total, i.liveLap || 1)); const remaining = Math.max(0,total-lap+1);
+  const ctx = liveContext(i); const liveWet = wetness(ctx); const wanted = rainTyreFromWet(liveWet); const planned = plannedTyreAtLap(strat.stints, lap); const current = i.liveTyre === "Auto" ? planned : i.liveTyre;
+  const age = Math.max(0, i.liveTyreAge || 0); const currentLife = tyreLifeFor(current, life); let lifeLeft = Math.max(0, currentLife - age);
+  lifeLeft -= colorSeverity(i.liveTyreColor); if(i.liveWear === "Forte") lifeLeft -= 2; if(i.liveWear === "Très forte") lifeLeft -= 4; lifeLeft = Math.max(0, lifeLeft);
+  const rows = []; const phrases = [];
+  let nextAction = "continuer", nextTyre = current, pitLap = null, mix = i.liveFuelMix || "Standard";
+  const pitAllowed = i.liveCanPit === "Oui";
+  const damagePit = i.liveFrontWing !== "OK" && i.liveFrontWing !== "Léger dégât" || i.liveCarState === "Dégât important";
+  const tyreDanger = i.liveTyreColor === "Rouge" || lifeLeft <= 0;
+  const brakeDanger = i.liveBrakeColor === "Rouge";
+  if(remaining <= 0){ rows.push(["Arrivée","-","-","Terminé","Sauvegarde si utile."]); return {rows,phrases:["Course terminée : garde cette stratégie dans l'historique si elle marche."], mode:"terminé"}; }
+  if(i.livePenalty === "Drive-through" || i.livePenalty === "Stop & Go"){
+    nextAction = "servir pénalité"; pitLap = lap; nextTyre = current; phrases.push(`${i.livePenalty} : sers-la dès que possible, sauf entrée stand fermée.`);
+  } else if((damagePit || tyreDanger || brakeDanger) && pitAllowed){
+    nextAction = damagePit ? "pit réparations" : tyreDanger ? "pit pneus" : "pit sécurité freins"; pitLap = lap; nextTyre = wanted === "Slicks" ? (remaining <= life.opt ? "Option" : "Prime") : wanted; phrases.push("Rentre : état critique détecté (pneus/freins/aileron/voiture). Perdre 1 arrêt vaut mieux que casser.");
+  } else if((damagePit || tyreDanger || brakeDanger) && !pitAllowed){
+    nextAction = "survie jusqu'au pit"; phrases.push("Pit impossible : baisse rythme, mélange pauvre, évite vibreurs et freinages tardifs jusqu'à pouvoir rentrer.");
+  } else if(wanted !== "Slicks" && current !== wanted && pitAllowed){ nextAction = "pit météo"; nextTyre = wanted; pitLap = lap; phrases.push(`Piste ${wanted} : rentre maintenant ou tour suivant.`); }
+  else if(wanted === "Slicks" && (current === "Intermédiaires" || current === "Pluie") && pitAllowed){ nextAction = "pit slicks"; nextTyre = remaining <= life.opt ? "Option" : "Prime"; pitLap = lap; phrases.push("Retour slicks : trajectoire sèche et inters/pluie trop chauds."); }
+  else if(i.liveTraffic === "Safety Car / VSC" && remaining > 3 && pitAllowed){ nextAction = "pit SC"; nextTyre = wanted === "Slicks" ? (remaining <= life.opt ? "Option" : "Prime") : wanted; pitLap = lap; phrases.push("SC/VSC : arrêt à coût réduit, choisis un pneu pour aller au bout."); }
+  else if(i.liveTraffic === "Bloqué dans le trafic" && remaining > 6 && wanted === "Slicks" && pitAllowed){ nextAction = "undercut"; nextTyre = current === "Option" ? "Prime" : "Option"; pitLap = Math.max(lap, lap + Math.max(1, Math.min(3, lifeLeft))); phrases.push("Trafic : undercut 1-3 tours plus tôt si sortie en air propre."); }
+  else if(lifeLeft >= remaining){ nextAction = "aller au bout"; phrases.push("Pneus capables d'aller au bout : rythme propre, pas de blocage."); }
+  else { nextAction = "arrêt planifié"; pitLap = lap + Math.max(1, lifeLeft); nextTyre = wanted === "Slicks" ? ((total-pitLap+1) <= life.opt ? "Option" : "Prime") : wanted; phrases.push(`Fenêtre arrêt vers T${pitLap} ±1 selon chrono.`); }
+  if(i.liveFuelDelta.includes("-")) mix = "Pauvre"; else if(nextAction.includes("undercut") || nextAction.includes("pit météo")) mix = i.liveEngine === "OK" ? "Riche 1 tour" : "Standard"; else if(i.liveEngine !== "OK" || i.liveTyreTemp === "Surchauffe") mix = "Pauvre";
+  rows.push([`T${lap}`, tyreDisplay(current,i), mix, "État", `${remaining}T restants • pneus ${i.liveTyreColor} • freins ${i.liveBrakeColor} • moteur ${i.liveEngine}`]);
+  if(pitLap !== null){ rows.push([`T${pitLap}`, tyreDisplay(nextTyre,i), "Standard", nextAction, pitLap === lap ? "Rentre maintenant si possible." : "Fenêtre ±1 tour."]); }
+  rows.push([`Fin`, tyreDisplay(nextTyre,i), mix === "Riche 1 tour" ? "Standard" : mix, "Objectif", nextTyre === current && pitLap === null ? "Finir sans arrêt." : "Sortie prudente, pneus froids."]);
+  phrases.push(...liveEngineAdvice(i));
+  if(i.liveBrakeColor === "Orange") phrases.push("Freins orange : freine plus tôt, moins de pression, évite l'attaque prolongée.");
+  if(i.liveFrontWing !== "OK") phrases.push("Aileron touché : sous-virage probable, évite les vibreurs et prépare réparation si perte >1s/tour.");
+  if(i.difficulty === "Légende") phrases.push("Légende : anticipe le pit 1 tour plus tôt, l'IA punit les pneus rouges.");
+  if(i.difficulty === "Facile") phrases.push("Facile : tu peux privilégier sécurité, pas besoin d'undercut risqué.");
+  return {rows,phrases,mode:nextAction};
+}
+function liveQualifAdaptation(i){
+  if(i.qualifFormat === "Pas de qualif") return {rows:[["-","-","-","Pas de qualif","Aucune adaptation qualif nécessaire."]], phrases:["Pas de qualif sélectionnée : concentre-toi sur la stratégie course."]};
+  const ctx = {...i, weather:i.liveQWeather === "Comme prévu" ? i.qWeather : i.liveQWeather, trackState:i.liveQTrackState === "Comme prévu" ? i.qTrackState : i.liveQTrackState, evolution:i.liveQTrend === "Pluie imminente" ? "Pluie arrive" : i.liveQTrend === "Piste s'améliore" ? "Séchage progressif" : i.qEvolution, rain:i.liveQWeather === "Comme prévu" ? i.qRain : (i.liveQWeather.includes("Pluie") || i.liveQWeather === "Bruine" ? 90 : i.qRain), track:i.qTrack, humidity:i.qHumidity};
+  const wet = wetness(ctx); const wetTyre = rainTyreFromWet(wet); const minutes = Math.max(0, i.liveQMinutes || 0); const rows = []; const phrases = [];
+  let tyre = wetTyre === "Slicks" ? (i.liveQTyres <= 0 || i.qTyreMode === "Économiser un train" ? `Prime (${i.prime})` : `Option (${i.option})`) : wetTyre;
+  let timing = "sortir maintenant"; let run = "1 tour lancé"; let action = "chrono de sécurité";
+  if(i.liveQStatus === "Éliminé provisoire" || i.liveQStatus === "Limite élimination"){
+    tyre = wetTyre === "Slicks" ? `Option (${i.option})` : wetTyre; timing = "sortir maintenant"; action = "tour obligatoire : risque élimination"; phrases.push("Tu es limite ou éliminé provisoire : priorité au chrono, pas à l'économie de pneus.");
+  } else if(i.liveQTrend === "Pluie imminente"){
+    timing = "sortir tout de suite"; action = "poser un tour avant la pluie"; phrases.push("Pluie imminente : sors avant tout le monde, même si la piste n'est pas parfaite.");
+  } else if(i.liveQTrend === "Piste s'améliore" && minutes > 4){
+    timing = `attendre environ ${Math.max(2, minutes-3)} min`; action = "dernier run sur piste plus rapide"; phrases.push("Piste qui s'améliore : garde un tour lancé pour la fin, sauf si tu es en zone rouge.");
+  } else if(i.liveQTrend === "Drapeau jaune / trafic"){
+    timing = "décaler le run"; action = "chercher piste libre"; phrases.push("Trafic/drapeau jaune : ne lance pas ton tour derrière un groupe, décale le tour de sortie.");
+  } else if(i.liveQStatus === "En sécurité" && i.qObjective === "Préserver pneus course"){
+    tyre = "Pas de run"; timing = "rester au stand"; run = "0"; action = "économiser pneus"; phrases.push("Tu es en sécurité : ne consomme pas un train Option inutilement.");
+  } else if(i.liveQStatus === "Objectif pole"){
+    tyre = wetTyre === "Slicks" ? `Option (${i.option})` : wetTyre; timing = minutes <= 3 ? "sortie immédiate" : "dernier run"; action = "attaque maximale"; phrases.push("Objectif pole : carburant minimum, pneus neufs si disponibles, recharge KERS avant la ligne.");
+  }
+  if(minutes <= 2 && tyre !== "Pas de run"){ timing = "sortir immédiatement"; action = "dernière chance"; }
+  rows.push([i.liveQSession, tyre, timing, run, action]);
+  rows.push(["Réglage", "Setup parc fermé", "inchangé", "-", "Ne change pas suspension/boîte/ailerons hors aileron avant autorisé en course."]);
+  if(wetTyre !== "Slicks") phrases.push(`Conditions ${wetTyre} : freine droit, évite les vibreurs, cherche une piste libre plus qu'une aspiration.`);
+  phrases.push(`Position P${i.liveQPosition} : si le cut est proche, fais un chrono de sécurité avant de tenter le tour parfait.`);
+  phrases.push("Tour qualif : chauffe sans glisser, espace la voiture devant, KERS avant les longues lignes droites, DRS seulement voiture droite.");
+  return {rows, phrases};
+}
+
+const HISTORY_KEY = "F12012_setup_history_v2";
+function getHistory(){ try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");}catch(e){return [];} }
+function setHistory(items){ localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0,30))); }
+function collectFormState(){
+  const data = {fields:{}, checks:{}, problems:Array.from(document.querySelectorAll(".problem:checked")).map(x=>x.value)};
+  document.querySelectorAll("input[id],select[id]").forEach(el=>{ if(el.type === "checkbox") data.checks[el.id] = el.checked; else data.fields[el.id] = el.value; });
+  return data;
+}
+function applyFormState(state){
+  if(!state) return; Object.entries(state.fields||{}).forEach(([id,value])=>{ const el=q(id); if(el) el.value=value; }); Object.entries(state.checks||{}).forEach(([id,value])=>{ const el=q(id); if(el) el.checked=!!value; });
+  const chosen = new Set(state.problems||[]); document.querySelectorAll(".problem").forEach(el=>{ el.checked = chosen.has(el.value); }); render();
+}
+function saveCurrentStrategy(){
+  if(!lastPlan) render(); const name = (q("strategyName").value || `${lastPlan.i.circuit} — ${new Date().toLocaleString("fr-FR")}`).trim(); const entry = {id:Date.now(), name, date:new Date().toISOString(), form:collectFormState(), circuit:lastPlan.i.circuit, distance:lastPlan.i.distance, summary:`Course ${lastPlan.strat.mode}, ${lastPlan.strat.stints.length-1} arrêt(s), Qualif ${lastPlan.qualif.tyre}`, setup:`Ailerons ${lastPlan.setup.fw}/${lastPlan.setup.rw}, Vmax ${lastPlan.setup.top}`};
+  const history = getHistory(); history.unshift(entry); setHistory(history); q("saveStatus").textContent = "Stratégie sauvegardée dans l'historique du site."; q("strategyName").value = ""; renderHistory();
+}
+function renderHistory(){
+  const list = q("historyList"); if(!list) return; const history = getHistory();
+  if(!history.length){ list.innerHTML = `<div class="box info">Aucune stratégie sauvegardée pour l'instant. Clique sur “Sauvegarder cette stratégie” pour la garder sur ce navigateur.</div>`; return; }
+  list.innerHTML = history.map((h,idx)=>`<div class="history-item"><div><div class="history-title">${h.name}</div><div class="history-meta">${new Date(h.date).toLocaleString("fr-FR")} • ${h.circuit} • ${h.distance}% • ${h.summary} • ${h.setup}</div></div><div class="history-actions"><button class="mini-btn" data-load="${idx}" type="button">Charger</button><button class="mini-btn" data-delete="${idx}" type="button">Supprimer</button></div></div>`).join("");
+}
+function handleHistoryClick(e){
+  const load = e.target.getAttribute("data-load"); const del = e.target.getAttribute("data-delete"); const history = getHistory();
+  if(load !== null){ const entry = history[Number(load)]; if(entry){ applyFormState(entry.form); q("saveStatus").textContent = `Stratégie chargée : ${entry.name}`; window.scrollTo({top:0,behavior:"smooth"}); } }
+  if(del !== null){ history.splice(Number(del),1); setHistory(history); renderHistory(); q("saveStatus").textContent = "Stratégie supprimée de l'historique."; }
+}
+
+function corrections(i){ const out = []; i.problems.forEach(p=>{ if(p.includes("Sous-virage")) out.push("Sous-virage : +1 aileron avant ou -1 barre antiroulis avant. Si les pneus avant chauffent, baisse aussi le pincement avant de 0.01."); if(p.includes("Survirage en sortie")) out.push("Survirage en sortie : +1 aileron arrière, -1 barre arrière, -1 ressort arrière. Allonge 1ère/2ème si tu patines."); if(p.includes("freinage")) out.push("Arrière instable au freinage : +1% frein vers l'avant, pression moyenne, +0.03 pincement arrière."); if(p.includes("Blocage")) out.push("Blocage roues avant : -1% de frein avant, pression moyenne, freine plus droit et relâche plus tôt."); if(p.includes("vitesse")) out.push("Manque de vitesse max : -1 aileron avant/arrière et +3 à +6 km/h sur la 7ème."); if(p.includes("arrière trop")) out.push("Pneus arrière chauds : -1 barre arrière, -1 ressort arrière, pincement arrière -0.02, sortie de virage plus douce."); if(p.includes("avant trop")) out.push("Pneus avant chauds : carrossage avant moins négatif de +0.10°, pincement avant -0.02, évite de forcer le volant."); if(p.includes("molle")) out.push("Voiture molle : +1 barre avant/arrière et +1 ressort avant, mais garde l'arrière souple si tu manques de traction."); }); return out.length ? out : ["Aucun problème sélectionné : pars avec ce setup, fais 3 tours propres, puis ajuste d'un clic maximum."]; }
+function racePhrases(i, setup, strategy){ const c = circuits[i.circuit]; const team = teamProfile(i); const phrases = [`Voiture : ${i.team} — ${team.label}.`, `Objectif course : ${i.raceObjective}. La stratégie privilégie ${objectiveAggression(i)>0?'attaque/undercut':objectiveAggression(i)<0?'sécurité et gestion':'équilibre rythme/risque'}.`, `Départ : utilise le KERS en deux impulsions, une courte à la traction puis une longue quand la voiture est droite.`, `Avec ${c.notes}, évite les glisses longues : elles coûtent plus cher que 1 dixième gagné à l'entrée.`, `Fenêtre d'arrêt : si tu ressors dans le trafic, décale ton arrêt d'un tour sauf si tes pneus chutent brutalement.`, `DRS : ouvre seulement volant presque droit; si l'arrière bouge, retarde l'ouverture de 0,2 seconde.`]; if(c.over<=1) phrases.push("Dépassements difficiles : privilégie l'undercut et la position piste plutôt qu'un relais trop long."); if(c.brake>=4) phrases.push("Freinages lourds : si le réservoir est plein ou la piste humide, mets +1% de frein vers l'avant."); if(setup.wet>=.62) phrases.push("Piste humide : freine 10 à 15 mètres plus tôt, KERS uniquement roues droites, évite les vibreurs peints."); if(i.aggr>=8 || objectiveAggression(i)>0) phrases.push("Mode attaque : mélange riche uniquement sur tours d'undercut, attaque ou défense; repasse standard pour sauver les pneus."); return phrases; }
+function setupTableRows(setup){ return [["Aéro","Aileron avant",setup.fw],["Aéro","Aileron arrière",setup.rw],["Freins","Répartition",`${setup.brakeFront}% avant / ${setup.brakeRear}% arrière`],["Freins","Pression",setup.brakePressure],["Freins","Taille",setup.brakeSize],["Balance","Barre antiroulis avant",setup.arbF],["Balance","Barre antiroulis arrière",setup.arbR],["Suspension","Hauteur avant",setup.hF],["Suspension","Hauteur arrière",setup.hR],["Suspension","Ressorts avant",setup.sF],["Suspension","Ressorts arrière",setup.sR],["Alignement","Carrossage avant",`${setup.camF}°`],["Alignement","Carrossage arrière",`${setup.camR}°`],["Alignement","Pincement avant",setup.toeF],["Alignement","Pincement arrière",setup.toeR]]; }
+function renderTable(rows, heads){ return `<table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((x,idx)=>`<td class="${idx===0?'section-cell':''}">${x}</td>`).join("")}</tr>`).join("")}</tbody></table>`; }
+function render(){
+  const i = vals(); const c = circuits[i.circuit];
+  const raceSetup = calcSetup(i); const qctx = qualifContext(i); const qualSetup = calcSetup(qctx); const setup = chooseParcSetup(i, raceSetup, qualSetup);
+  const life = tyreLife(i,raceSetup); const dry = dryStrategy(i,life); const strat = weatherStrategy(i,raceSetup,dry,life); const qualif = qualifStrategy(i,qctx,setup,raceSetup,qualSetup,life); const live = liveAdaptation(i,raceSetup,strat,life); const liveQualif = liveQualifAdaptation(i); const fuel = fuelMixPlan(i,strat);
+  const corr = corrections(i); const phrases = racePhrases(i,raceSetup,strat); lastPlan = {i,setup,raceSetup,qualSetup,life,strat,qualif,live,liveQualif,fuel};
+  q("overLabel").textContent = overText(i.over); q("aeroLabel").textContent = aeroText(i.aero); q("aggrLabel").textContent = i.aggr <= 3 ? "prudente" : i.aggr >= 8 ? "attaque" : "équilibrée";
+  q("metrics").innerHTML = [["Circuit",raceLaps(i.circuit,i.distance),c.profile],["Ailerons parc fermé",`${setup.fw}/${setup.rw}`,"base qualif + course"],["Vmax",setup.top,"km/h cible"],["Course",`${strat.stints.length-1}`,"arrêt(s)"],["Qualif",qualif.tyre,"pneu conseillé"]].map(m=>`<div class="card metric"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="s">${m[2]}</div></div>`).join("");
+  q("summary").innerHTML = `<b>Plan optimal :</b> setup parc fermé <b>${i.setupPriority.toLowerCase()}</b>. Voiture : <b>${i.team}</b> (${teamProfile(i).label}). Objectif : <b>${i.raceObjective}</b>. Course : ${dry.summary}. Météo course : <b>${strat.mode}</b>. Qualif : <b>${i.qWeather}</b>. Le circuit demande ${c.notes}.<div class="parc-note"><b>Règle importante :</b> les réglages qualif et course restent identiques. Après le départ, on considère seulement l'aileron avant ajustable : ${frontWingDeltaText(setup,raceSetup)}.</div>` + setup.warnings.map(w=>`<div class="box warn"><b>Attention :</b> ${w}</div>`).join("");
+  const setupRows = [["Parc fermé","Base choisie",i.setupPriority],["Course","Ajustement autorisé",frontWingDeltaText(setup,raceSetup)],...setupTableRows(setup)];
+  q("setupTable").innerHTML = renderTable(setupRows,["Section","Réglage","Valeur"]);
+  q("gearBox").innerHTML = `<div class="gear-list">${setup.gears.map((g,idx)=>`<div class="gear-line"><span class="rapport">${idx+1}${idx===0?'ère':'ème'}</span><b>${g} km/h</b><small>${gearAdvice(idx,i)}</small></div>`).join("")}</div>`;
+  q("setupPills").innerHTML = `<span class="pill">Vmax cible ${setup.top} km/h</span><span class="pill">Style ${overText(i.over)}</span><span class="pill">${aeroText(i.aero)}</span><span class="pill">Aileron AV course ${raceSetup.fw}</span>`;
+  q("qualifTable").innerHTML = renderTable(qualif.rows,["Séance","Pneu","Timing","Run","Consigne"]);
+  q("qualifPhrases").innerHTML = qualif.phrases.map(p=>`<div class="phrase">${p}</div>`).join("");
+  q("liveQualifStrategy").innerHTML = renderTable(liveQualif.rows,["Séance","Pneu","Timing","Run","Consigne"]) + `<div class="mini-title">Conseils live qualif</div><div class="phrase-list">${liveQualif.phrases.map(p=>`<div class="phrase">${p}</div>`).join("")}</div>`;
+  q("strategyTable").innerHTML = renderTable(strat.stints.map(s=>[s.relai,s.tours,s.pneu,s.fenetre,s.consigne]),["Relais","Tours","Pneu","Arrêt","Consigne"]);
+  q("racePhrases").innerHTML = phrases.map(p=>`<div class="phrase">${p}</div>`).join("");
+  q("fuelPlan").innerHTML = renderTable(fuel.rows,["Moment","Mélange","Pourquoi"]);
+  q("fuelPhrases").innerHTML = fuel.phrases.map(p=>`<div class="phrase">${p}</div>`).join("");
+  q("liveStrategy").innerHTML = renderTable(live.rows,["Moment","Pneu","Mélange","Action","Conseil"]) + `<div class="mini-title">Conseils live +</div><div class="phrase-list">${live.phrases.map(p=>`<div class="phrase">${p}</div>`).join("")}</div>`;
+  q("weatherAdvice").innerHTML = strat.dec.map(d=>`<div class="box ok">✅ ${d}</div>`).join("") + `<div class="box info"><b>Seuils :</b> slicks → inters si perte 2,5-3 s/tour; inters → pluie si aquaplaning ou perte >5 s/tour; retour slicks quand la trajectoire sèche est visible.</div>`;
+  q("corrections").innerHTML = corr.map(x=>`<div class="box danger">${x}</div>`).join("");
+  q("quickPlan").innerHTML = `<div class="box ok"><b>Pneus :</b> Option ${life.opt}T, Prime ${life.pri}T, Inters ${life.inter}T, Pluie ${life.wet}T.</div><div class="box info"><b>Carburant :</b> standard par défaut, riche court pour attaque, pauvre si moteur chaud ou carburant négatif.</div><div class="box warn"><b>Casse moteur :</b> éviter riche long, rupteur, surchauffe; short-shift si moteur orange/rouge.</div>`;
+}
+
+
+function cleanVoiceText(text){
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[,;:.!?]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function wordNumber(raw){
+  const t = cleanVoiceText(raw);
+  const map = {"zero":0,"un":1,"une":1,"premier":1,"premiere":1,"deux":2,"second":2,"trois":3,"quatre":4,"cinq":5,"six":6,"sept":7,"huit":8,"neuf":9,"dix":10,"onze":11,"douze":12,"treize":13,"quatorze":14,"quinze":15,"seize":16,"dix sept":17,"dix huit":18,"dix neuf":19,"vingt":20};
+  if(/^[-+]?\d+$/.test(t)) return Number(t);
+  return map[t];
+}
+function findNumberAfter(t, keys){
+  for(const key of keys){
+    const m = t.match(new RegExp(`${key}\\s*(?:est|a|=|:)?\\s*(moins\\s*)?(\\d+|un|une|premier|premiere|deux|second|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingt)`, "i"));
+    if(m){ const n = wordNumber(m[2]); return m[1] ? -Math.abs(n) : n; }
+  }
+  return null;
+}
+function selectValue(id,value,updates,label){ const el=q(id); if(!el || value == null) return; if(el.value !== String(value)){ el.value = String(value); updates.push(`${label}: ${value}`); } }
+function inputValue(id,value,updates,label){ const el=q(id); if(!el || value == null || Number.isNaN(value)) return; if(el.value !== String(value)){ el.value = String(value); updates.push(`${label}: ${value}`); } }
+function parseColorNear(t, key){
+  const colors = [["rouge","Rouge"],["orange","Orange"],["jaune","Jaune"],["vert","Vert"]];
+  const kg = `(?:${key})`;
+  for(const [w,v] of colors){ if(new RegExp(`${kg}\\s*(?:couleur|sont|est|en|dans le)?\\s*${w}`).test(t)) return v; }
+  for(const [w,v] of colors){ if(new RegExp(`${w}\\s*(?:sur|aux|pour|dans)?\\s*(?:les\\s*)?${kg}`).test(t)) return v; }
+  return null;
+}
+function hasAny(t, words){ return words.some(w => t.includes(w)); }
+function updateWeatherFields(prefix, t, updates){
+  const weatherId = prefix ? "liveQWeather" : "liveWeather";
+  const trackId = prefix ? "liveQTrackState" : "liveTrackState";
+  if(/pluie forte|grosse pluie|pleut fort|pleuvoir fort|commence a pleuvoir fort|commence à pleuvoir fort|detrempe/.test(t)) selectValue(weatherId,"Pluie forte",updates,prefix?"météo qualif":"météo");
+  else if(/pluie moyenne/.test(t)) selectValue(weatherId,"Pluie moyenne",updates,prefix?"météo qualif":"météo");
+  else if(/pluie legere|petite pluie|il pleut leger/.test(t)) selectValue(weatherId,"Pluie légère",updates,prefix?"météo qualif":"météo");
+  else if(/bruine/.test(t)) selectValue(weatherId,"Bruine",updates,prefix?"météo qualif":"météo");
+  else if(/variable|menacant|menaçant|menace/.test(t)) selectValue(weatherId,"Variable / menaçant",updates,prefix?"météo qualif":"météo");
+  else if(/sec couvert|couvert/.test(t)) selectValue(weatherId,"Sec couvert",updates,prefix?"météo qualif":"météo");
+  else if(/\bsec\b|ensoleille/.test(t)) selectValue(weatherId,"Sec ensoleillé",updates,prefix?"météo qualif":"météo");
+  if(/piste detrempee|piste detrempe|detrempee|detrempe/.test(t)) selectValue(trackId,"Détrempée",updates,prefix?"piste qualif":"piste");
+  else if(/tres humide|très humide/.test(t)) selectValue(trackId,"Très humide",updates,prefix?"piste qualif":"piste");
+  else if(/humide hors|hors trajectoire/.test(t)) selectValue(trackId,"Humide hors trajectoire",updates,prefix?"piste qualif":"piste");
+  else if(/piste humide|\bhumide\b/.test(t)) selectValue(trackId,"Humide",updates,prefix?"piste qualif":"piste");
+  else if(/piste seche|piste sèche|\bseche\b/.test(t)) selectValue(trackId,"Sèche",updates,prefix?"piste qualif":"piste");
+}
+function updateVoiceCommand(raw){
+  const t = cleanVoiceText(raw); const updates = [];
+  const qualifMode = /\b(q1|q2|q3|qualif|qualification|minutes restantes|run court|elimination|elimine|pole)\b/.test(t);
+  const lap = findNumberAfter(t,["tour","t"]); if(lap !== null) inputValue("liveLap",Math.max(1,lap),updates,"tour");
+  const pos = findNumberAfter(t,["position","p"]); if(pos !== null) inputValue(qualifMode?"liveQPosition":"livePosition",Math.max(1,pos),updates,qualifMode?"position qualif":"position");
+  const minutes = findNumberAfter(t,["minutes restantes","minute restante","minutes","temps restant"]); if(minutes !== null) inputValue("liveQMinutes",Math.max(0,minutes),updates,"minutes qualif");
+  const qTyres = findNumberAfter(t,["trains option","options neuves","pneus option neufs","train option"]); if(qTyres !== null) inputValue("liveQTyres",Math.max(0,qTyres),updates,"trains option");
+  const age = t.match(/(?:age|âge|pneu|pneus|gomme|gommes).{0,22}(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|quinze|vingt)\s*tours?/); if(age) inputValue("liveTyreAge",wordNumber(age[1]),updates,"âge pneus");
+  if(/\bq1\b/.test(t)) selectValue("liveQSession","Q1",updates,"séance"); if(/\bq2\b/.test(t)) selectValue("liveQSession","Q2",updates,"séance"); if(/\bq3\b/.test(t)) selectValue("liveQSession","Q3",updates,"séance"); if(/run court|qualif courte/.test(t)) selectValue("liveQSession","Run court",updates,"séance");
+  if(/limite elimination|limite elim|zone rouge/.test(t)) selectValue("liveQStatus","Limite élimination",updates,"statut qualif"); else if(/elimine|éliminé|hors qualif/.test(t)) selectValue("liveQStatus","Éliminé provisoire",updates,"statut qualif"); else if(/objectif pole|pole/.test(t)) selectValue("liveQStatus","Objectif pole",updates,"statut qualif"); else if(/en securite|en sécurité|safe/.test(t)) selectValue("liveQStatus","En sécurité",updates,"statut qualif");
+  if(/piste sameliore|piste s ameliore|s ameliore|s'améliore/.test(t)) selectValue("liveQTrend","Piste s'améliore",updates,"tendance qualif"); else if(/pluie imminente|pluie arrive bientot|pluie arrive/.test(t)) selectValue("liveQTrend","Pluie imminente",updates,"tendance qualif"); else if(/drapeau jaune|trafic qualif/.test(t)) selectValue("liveQTrend","Drapeau jaune / trafic",updates,"tendance qualif"); else if(/derniere chance|dernière chance/.test(t)) selectValue("liveQTrend","Dernière chance",updates,"tendance qualif"); else if(/stable/.test(t) && qualifMode) selectValue("liveQTrend","Stable",updates,"tendance qualif");
+  updateWeatherFields(qualifMode,t,updates);
+  if(/\b(option|options|tendre|tendres|soft)\b/.test(t) && !/train option|options neuves/.test(t)) selectValue("liveTyre","Option",updates,"pneu");
+  if(/\b(prime|dur|durs|medium|mediam|mediums|mediums)\b/.test(t)) selectValue("liveTyre","Prime",updates,"pneu");
+  if(/\b(inter|intermediaire|intermediaires)\b/.test(t)) selectValue("liveTyre","Intermédiaires",updates,"pneu");
+  if(/\b(pluie|full wet|wet)\b/.test(t) && /pneu|gomme|monte/.test(t)) selectValue("liveTyre","Pluie",updates,"pneu");
+  if(/usure tres forte|usure rouge/.test(t)) selectValue("liveWear","Très forte",updates,"usure"); else if(/usure forte|grosse usure/.test(t)) selectValue("liveWear","Forte",updates,"usure"); else if(/usure normale/.test(t)) selectValue("liveWear","Normale",updates,"usure"); else if(/usure faible/.test(t)) selectValue("liveWear","Faible",updates,"usure");
+  const tyreColor = parseColorNear(t,"pneu|pneus|gomme|gommes"); if(tyreColor){ selectValue("liveTyreColor",tyreColor,updates,"couleur pneus"); selectValue("liveWear",tyreColor==="Rouge"?"Très forte":tyreColor==="Orange"?"Forte":tyreColor==="Jaune"?"Normale":"Faible",updates,"usure"); }
+  const brakeColor = parseColorNear(t,"frein|freins"); if(brakeColor) selectValue("liveBrakeColor",brakeColor,updates,"couleur freins");
+  if(/safety car|vsc/.test(t)) selectValue("liveTraffic","Safety Car / VSC",updates,"trafic"); else if(/trafic|bloque|bloqué/.test(t)) selectValue("liveTraffic","Bloqué dans le trafic",updates,"trafic"); else if(/defense|défense|derriere|derrière/.test(t)) selectValue("liveTraffic","Défense derrière",updates,"trafic"); else if(/air propre|piste libre/.test(t)) selectValue("liveTraffic","Air propre",updates,"trafic");
+  if(/voiture.*degat important|gros degat|degat important/.test(t)) selectValue("liveCarState","Dégât important",updates,"voiture"); else if(/voiture.*instable|instable/.test(t)) selectValue("liveCarState","Instable",updates,"voiture"); else if(/leger degat|petit degat/.test(t)) selectValue("liveCarState","Léger dégât",updates,"voiture"); else if(/voiture ok|voiture va bien|etat voiture ok/.test(t)) selectValue("liveCarState","OK",updates,"voiture");
+  if(/aileron.*gauche/.test(t)) selectValue("liveFrontWing","Cassé côté gauche",updates,"aileron"); else if(/aileron.*droite|aileron.*droit/.test(t)) selectValue("liveFrontWing","Cassé côté droit",updates,"aileron"); else if(/aileron.*(tres abime|mort|casse|cassé)/.test(t)) selectValue("liveFrontWing","Très abîmé",updates,"aileron"); else if(/aileron.*leger|aileron.*abime/.test(t)) selectValue("liveFrontWing","Léger dégât",updates,"aileron"); else if(/aileron.*ok/.test(t)) selectValue("liveFrontWing","OK",updates,"aileron");
+  if(/kers.*(hs|mort|marche pas|inutilisable|pas utilisable)/.test(t)) selectValue("liveKers","HS",updates,"KERS"); else if(/kers.*(faible|intermittent)/.test(t)) selectValue("liveKers","Faible / intermittent",updates,"KERS"); else if(/kers.*(ok|utilisable|marche)/.test(t)) selectValue("liveKers","Utilisable",updates,"KERS");
+  if(/moteur.*critique|moteur rouge/.test(t)) selectValue("liveEngine","Critique",updates,"moteur"); else if(/moteur.*chaud|moteur orange/.test(t)) selectValue("liveEngine","Chaud",updates,"moteur"); else if(/moteur.*use|moteur jaune|moteur usé/.test(t)) selectValue("liveEngine","Usé",updates,"moteur"); else if(/moteur.*ok/.test(t)) selectValue("liveEngine","OK",updates,"moteur");
+  if(/pneu.*surchauffe|surchauffe.*pneu/.test(t)) selectValue("liveTyreTemp","Surchauffe",updates,"temp pneus"); else if(/pneu.*chaud|chaud.*pneu/.test(t)) selectValue("liveTyreTemp","Chaude",updates,"temp pneus"); else if(/pneu.*froid|froid.*pneu/.test(t)) selectValue("liveTyreTemp","Froide",updates,"temp pneus"); else if(/temperature.*ok|temp.*ok/.test(t)) selectValue("liveTyreTemp","OK",updates,"temp pneus");
+  if(/carburant.*moins (deux|2)|carburant.*-2|essence.*moins (deux|2)/.test(t)) selectValue("liveFuelDelta","-2 tours ou pire",updates,"carburant"); else if(/carburant.*moins (un|1)|carburant.*-1|essence.*moins (un|1)/.test(t)) selectValue("liveFuelDelta","-1 tour",updates,"carburant"); else if(/carburant.*limite|essence.*limite/.test(t)) selectValue("liveFuelDelta","Limite",updates,"carburant"); else if(/carburant.*plus (deux|2)|carburant.*\+2|essence.*plus (deux|2)/.test(t)) selectValue("liveFuelDelta","+2 tours ou plus",updates,"carburant"); else if(/carburant.*ok|essence.*ok/.test(t)) selectValue("liveFuelDelta","OK",updates,"carburant");
+  if(/melange.*pauvre|mix.*pauvre|mode pauvre/.test(t)) selectValue("liveFuelMix","Pauvre",updates,"mélange"); else if(/melange.*riche|mix.*riche|mode riche/.test(t)) selectValue("liveFuelMix","Riche",updates,"mélange"); else if(/melange.*standard|mix.*standard|mode standard/.test(t)) selectValue("liveFuelMix","Standard",updates,"mélange");
+  if(/pit non|stand ferme|stands fermes|pas pit|pas d arret|pas arrêt|ne peux pas rentrer|ne peut pas rentrer/.test(t)) selectValue("liveCanPit","Non",updates,"pit"); else if(/pit oui|stand ouvert|stands ouverts|je peux rentrer|pit possible|arret oui|arrêt oui|arret possible|arrêt possible/.test(t)) selectValue("liveCanPit","Oui",updates,"pit");
+  if(/drive through|drive-through/.test(t)) selectValue("livePenalty","Drive-through",updates,"pénalité"); else if(/stop and go|stop go/.test(t)) selectValue("livePenalty","Stop & Go",updates,"pénalité"); else if(/temps ajoute|temps ajouté|penalite temps/.test(t)) selectValue("livePenalty","Temps ajouté",updates,"pénalité"); else if(/pas de penalite|aucune penalite|penalite aucune/.test(t)) selectValue("livePenalty","Aucune",updates,"pénalité");
+  if(/difficulte legende|difficulté légende/.test(t)) selectValue("difficulty","Légende",updates,"difficulté"); else if(/difficulte pro|difficulté pro/.test(t)) selectValue("difficulty","Pro",updates,"difficulté"); else if(/difficulte facile|difficulté facile/.test(t)) selectValue("difficulty","Facile",updates,"difficulté"); else if(/difficulte inter|difficulté inter/.test(t)) selectValue("difficulty","Intermédiaire",updates,"difficulté");
+  return updates;
+}
+function isStrategyQuestion(raw){
+  const t = cleanVoiceText(raw);
+  return /\?|que faire|quoi faire|je fais quoi|qu est ce que je fais|qu est ce que je doit|qu est ce que je dois|dois je|est ce que|faut il|je rentre|rentrer|pit\?|stand\?|quel pneu|quelle gomme|quel melange|quel mélange|carburant|comment eviter|comment éviter|casse moteur|strategie|stratégie|conseil/.test(String(raw || "").toLowerCase()) || /que faire|quoi faire|je fais quoi|dois je|est ce que|faut il|je rentre|rentrer|quel pneu|quelle gomme|quel melange|carburant|comment eviter|casse moteur|strategie|conseil/.test(t);
+}
+function getLiveActionData(){
+  const live = lastPlan?.live; const rows = live?.rows || [];
+  const pitRow = rows.find(r => String(r[3] || "").toLowerCase().includes("pit") || String(r[3] || "").toLowerCase().includes("arrêt") || String(r[3] || "").toLowerCase().includes("servir"));
+  const current = rows[0] || [];
+  const target = pitRow || rows[1] || current;
+  return {live, rows, current, target, action:String(target[3] || current[3] || "continuer"), tyre:String(target[1] || current[1] || "pneu actuel"), mix:String(target[2] || current[2] || "Standard"), tip:live?.phrases?.[0] || "Garde un rythme propre."};
+}
+function answerStrategyQuestion(raw){
+  render();
+  const t = cleanVoiceText(raw); const i = lastPlan?.i || vals(); const data = getLiveActionData();
+  const actionLow = data.action.toLowerCase(); const pitOpen = i.liveCanPit !== "Non";
+  if(/melange|mélange|mix|carburant|essence/.test(t)){
+    if(i.liveFuelDelta.includes("-")) return "Mets mélange pauvre maintenant, short-shift, pas de riche avant de revenir à zéro carburant.";
+    if(i.liveEngine !== "OK") return "Moteur à protéger : mélange pauvre ou standard. Riche maximum un tour si dépassement vital.";
+    return `Mélange conseillé : ${data.mix}. Riche seulement pour attaque ou undercut, standard sinon.`;
+  }
+  if(/moteur|casse moteur|eviter la casse|éviter la casse/.test(t)){
+    if(i.liveEngine === "Critique") return "Moteur critique : mélange pauvre, short-shift, évite le rupteur et les vibreurs. Rentre si tu peux.";
+    if(i.liveEngine === "Chaud" || i.liveEngine === "Usé") return "Protège le moteur : standard ou pauvre, air propre, pas de riche prolongé, change de rapport plus tôt.";
+    return "Moteur OK : tu peux utiliser riche par petites séquences, mais jamais plusieurs tours d'affilée.";
+  }
+  if(/kers/.test(t)){
+    if(i.liveKers === "HS") return "KERS HS : défends avec la trajectoire et garde le mélange riche pour les lignes droites si le moteur va bien.";
+    if(i.liveKers.includes("Faible")) return "KERS faible : utilise de petites impulsions roues droites, pas en sortie lente.";
+    return "KERS utilisable : garde-le pour les lignes droites, attaque ou défense, jamais pendant que la voiture tourne sous la pluie.";
+  }
+  if(/aileron|degat|dégât|voiture|casse/.test(t)){
+    if(i.liveFrontWing !== "OK" || i.liveCarState !== "OK") return "Voiture abîmée : évite les vibreurs, freine plus tôt. Si perte forte ou aileron très abîmé, pit réparation dès que possible.";
+    return "Voiture OK : continue, pas de réparation nécessaire. Ajuste seulement l'aileron avant si sous-virage aux stands.";
+  }
+  if(/pneu|gomme|inter|pluie|slick|prime|option/.test(t)){
+    if(actionLow.includes("pit") && pitOpen) return `Rentre ${data.target[0] || "maintenant"} pour ${data.tyre}. Fais un tour de sortie propre, pneus froids.`;
+    if(!pitOpen && actionLow.includes("pit")) return `Il faudrait ${data.action}, mais pit fermé : reste en piste en mode survie jusqu'à ouverture.`;
+    return `Pneu conseillé : ${data.tyre}. Action : ${data.action}. ${data.tip}`;
+  }
+  if(/penalite|pénalité|drive|stop/.test(t)){
+    if(i.livePenalty === "Aucune") return "Aucune pénalité en cours : ne rentre que pour stratégie ou dégâts.";
+    return `Pénalité ${i.livePenalty} : sers-la dès que possible si l'entrée des stands est ouverte.`;
+  }
+  if(actionLow.includes("pit") && pitOpen) return `Rentre ${data.target[0] || "maintenant"} pour ${data.tyre}. Mélange ${data.mix}. ${data.tip}`;
+  if(actionLow.includes("pit") && !pitOpen) return `Pit conseillé mais impossible : reste dehors, mélange pauvre, évite risques, rentre dès que possible.`;
+  if(actionLow.includes("aller au bout")) return `Reste dehors. Tu peux aller au bout avec ${data.tyre}. Mélange ${data.mix}.`;
+  return `Action : ${data.action}. Pneu : ${data.tyre}. Mélange : ${data.mix}. ${data.tip}`;
+}
+function buildVoiceReply(updates, raw=""){
+  const question = isStrategyQuestion(raw);
+  if(question){
+    const answer = answerStrategyQuestion(raw);
+    return updates.length ? `Mis à jour : ${updates.join(", ")}. ${answer}` : answer;
+  }
+  if(!updates.length){ render(); return "rien ne change"; }
+  render();
+  const data = getLiveActionData();
+  return `Mis à jour : ${updates.join(", ")}. Action : ${data.action}. ${data.tip}`;
+}
+function addVoiceLog(raw, reply){
+  const log = q("voiceLog"); if(!log) return;
+  log.innerHTML = `<div class="voice-msg"><b>Toi :</b> ${raw || "silence"}</div><div class="voice-msg"><b>IA :</b> ${reply}</div>` + log.innerHTML;
+}
+function pickMaleFrenchVoice(){
+  if(!("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const maleHints = /(male|homme|paul|thomas|antoine|henri|mathieu|alexandre|daniel|google français|google francais)/i;
+  return voices.find(v=>/^fr/i.test(v.lang) && maleHints.test(v.name)) || voices.find(v=>/^fr/i.test(v.lang)) || voices[0] || null;
+}
+function speakVoice(text){
+  if(!q("voiceEnabled")?.checked || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.lang = "fr-FR"; utter.rate = 1.38; utter.pitch = 0.78; const voice = pickMaleFrenchVoice(); if(voice) utter.voice = voice; window.speechSynthesis.speak(utter);
+}
+function applyVoiceCommand(raw){
+  if(!q("voiceEnabled").checked){ q("voiceStatus").textContent = "Active l'IA vocale avant d'appliquer."; return; }
+  const updates = updateVoiceCommand(raw); const reply = buildVoiceReply(updates, raw); q("voiceStatus").textContent = updates.length ? "Commande appliquée." : "Rien ne change."; addVoiceLog(raw, reply); speakVoice(reply);
+}
+let voiceRecognition = null, voiceShouldListen = false, voiceIsRunning = false, voiceSilenceTimer = null, voiceBuffer = "";
+function processVoiceBuffer(){ const text = voiceBuffer.trim(); voiceBuffer = ""; applyVoiceCommand(text); }
+function startVoiceListen(){
+  if(!q("voiceEnabled").checked){ q("voiceStatus").textContent = "IA vocale désactivée."; return; }
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!Rec){ q("voiceStatus").textContent = "Reconnaissance vocale non supportée ici. Utilise le champ texte."; return; }
+  if(voiceShouldListen && voiceIsRunning){ q("voiceStatus").textContent = "J’écoute déjà en continu."; return; }
+  voiceShouldListen = true;
+  voiceRecognition = new Rec(); voiceRecognition.lang = "fr-FR"; voiceRecognition.interimResults = true; voiceRecognition.continuous = true; voiceRecognition.maxAlternatives = 3;
+  voiceRecognition.onstart = ()=>{ voiceIsRunning = true; q("voiceStatus").textContent = "J'écoute en continu... parle quand tu veux."; };
+  voiceRecognition.onerror = e=>{ q("voiceStatus").textContent = `Erreur micro : ${e.error || "inconnue"}`; };
+  voiceRecognition.onresult = e=>{
+    let interim = "";
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const txt = e.results[i][0].transcript;
+      if(e.results[i].isFinal) voiceBuffer += ` ${txt}`; else interim += ` ${txt}`;
+    }
+    const shown = `${voiceBuffer} ${interim}`.trim(); if(shown) q("voiceText").value = shown;
+    clearTimeout(voiceSilenceTimer); voiceSilenceTimer = setTimeout(()=>{ if(voiceBuffer.trim()) processVoiceBuffer(); else if(interim.trim()) applyVoiceCommand(interim.trim()); },2500);
+  };
+  voiceRecognition.onend = ()=>{ voiceIsRunning = false; if(voiceShouldListen){ setTimeout(startVoiceListen,350); } else { q("voiceStatus").textContent = "IA vocale arrêtée."; } };
+  try{ voiceRecognition.start(); }catch(e){ q("voiceStatus").textContent = "Micro déjà en écoute ou permission bloquée."; }
+}
+function stopVoiceListen(){ voiceShouldListen = false; voiceIsRunning = false; clearTimeout(voiceSilenceTimer); if(voiceRecognition){ try{ voiceRecognition.stop(); }catch(e){} } if("speechSynthesis" in window) window.speechSynthesis.cancel(); if(q("voiceEnabled")) q("voiceEnabled").checked = false; q("voiceStatus").textContent = "IA vocale arrêtée."; }
+
+const HELP_DATA = {
+  "Course": [
+    "Circuit : dans le menu du Grand Prix/Carrière, c'est le tracé sélectionné avant la session.",
+    "Distance : visible dans les paramètres de course avant de lancer l'événement : 25%, 50% ou 100%.",
+    "Objectif de course : choisis ton but réel : victoire, podium, points, remontée, finir sans risque. Le site adapte le niveau d'attaque et les arrêts.",
+    "Écurie / voiture : choisis l'une des 12 équipes F1 2012. Les top teams acceptent plus d'attaque; les petites équipes demandent plus de régularité."
+  ],
+  "Météo": [
+    "Météo départ : indiquée sur l'écran de session avant de sortir des stands ou au lancement de course.",
+    "État piste : observe la piste et le type de pneus conseillés. Sèche = slicks, humide = inters, détrempée = pluie.",
+    "Risque pluie / radar : dans F1 2012, l'ingénieur et l'écran météo donnent la tendance. Si tu n'es pas sûr, mets Variable / menaçant.",
+    "Tour changement : si l'ingénieur annonce la pluie dans 10 minutes, estime le tour avec ton temps moyen au tour."
+  ],
+  "Qualif": [
+    "Format qualif : Q1/Q2/Q3 si week-end complet, Session courte si qualif rapide.",
+    "Objectif qualif : pole, passer en sécurité ou préserver les pneus course selon ton niveau et ta voiture.",
+    "Météo qualif : elle peut être différente de la course, donc remplis-la séparément.",
+    "Live qualif : utilise-le si la pluie arrive, si la piste sèche ou si tu es proche de l'élimination."
+  ],
+  "Pneus": [
+    "Option / Prime : ce sont les deux gommes slick du week-end. Le jeu les affiche dans la stratégie pneus.",
+    "Usure observée : après quelques tours d'essais, si les temps chutent vite, mets Forte ou Très forte.",
+    "Usure avant/arrière : regarde le comportement. Sous-virage et blocage = avant; patinage/survirage sortie = arrière.",
+    "Pneu départ course : mets Auto si tu veux que le site choisisse selon météo et stratégie."
+  ],
+  "Setup": [
+    "Les valeurs générées sont à entrer dans le menu Réglages voiture : aérodynamique, freins, suspension, boîte, alignement.",
+    "Parc fermé : le setup qualif et course est le même. En course, considère seulement l'aileron avant ajustable aux stands.",
+    "Survirage : augmente si tu veux une voiture qui tourne plus vite, baisse si tu veux plus de stabilité.",
+    "Vitesse max ↔ Appui : vers vitesse max pour Monza/Spa/Canada; vers appui pour Monaco/Hongrie/Singapour."
+  ],
+  "Live & sauvegardes": [
+    "Live course : entre tour, pneu, âge, météo réelle, trafic, couleurs pneus/freins et état moteur pour recalculer le pit.",
+    "Couleurs : Vert OK, Jaune surveiller, Orange gérer, Rouge = pit ou mode survie.",
+    "Carburant : + tours = marge, - tours = mélange pauvre jusqu'à revenir à 0.",
+    "Moteur : si chaud/usé/critique, évite riche long, short-shift et cherche air propre.",
+    "Sauvegardes : onglet caché à droite. Rien à télécharger, l'historique reste dans ce navigateur."
+  ],
+  "IA vocale": [
+    "L'IA vocale est optionnelle : coche Activer IA vocale. L'écoute reste permanente jusqu'au bouton Stop.",
+    "Elle attend environ 2,5 secondes de silence avant de répondre, pour te laisser donner plusieurs infos dans une phrase longue.",
+    "Elle ne modifie que les infos clairement dites. Si tu dis seulement moteur chaud, seul le champ moteur change.",
+    "Si rien ne change, elle répond simplement : rien ne change.",
+    "Tu peux dire : tour 18, pneus orange, freins jaunes, moteur chaud, carburant moins un, KERS HS, pit oui.",
+    "Tu peux poser une question complète : je suis en prime tour 17, il commence à pleuvoir fort, que faire ? Elle mettra à jour prime/tour/pluie et répondra quoi faire.",
+    "Elle répond aussi aux questions sans changement : quel mélange, est-ce que je pit, comment éviter la casse moteur, quel pneu mettre.",
+    "Pour éviter la confusion : parle en blocs courts et évite deux valeurs opposées dans la même phrase, par exemple pneus rouges puis pneus verts.",
+    "La voix est réglée rapide et grave; le navigateur choisit la voix masculine disponible la plus proche."
+  ]
+};
+function renderHelp(tab="Course"){
+  const tabs = document.getElementById("helpTabs"), content = document.getElementById("helpContent");
+  tabs.innerHTML = Object.keys(HELP_DATA).map(name=>`<button class="help-tab ${name===tab?'active':''}" type="button" data-help="${name}">${name}</button>`).join("");
+  content.innerHTML = `<h3>${tab}</h3><ul>${HELP_DATA[tab].map(item=>`<li>${item}</li>`).join("")}</ul>`;
+}
+function openHelp(){ document.getElementById("helpModal").classList.remove("hidden"); document.getElementById("helpModal").setAttribute("aria-hidden","false"); renderHelp("Course"); }
+function closeHelp(){ document.getElementById("helpModal").classList.add("hidden"); document.getElementById("helpModal").setAttribute("aria-hidden","true"); }
+
+function setDefaultTyres(){ const c = circuits[q("circuit").value]; q("optionTyre").value = c.option; q("primeTyre").value = c.prime; }
+Object.keys(circuits).forEach(name=>{ const opt = document.createElement("option"); opt.value = name; opt.textContent = name; if(name === "Italie - Monza") opt.selected = true; q("circuit").appendChild(opt); });
+document.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",scheduleRender));
+q("circuit").addEventListener("change",()=>{ setDefaultTyres(); scheduleRender(); });
+q("saveStrategyBtn").addEventListener("click",saveCurrentStrategy);
+q("historyList").addEventListener("click",handleHistoryClick);
+document.getElementById("screenControls").addEventListener("click",event=>{ const btn = event.target.closest(".screen-btn"); if(btn && btn.dataset.screen) setScreenMode(btn.dataset.screen); });
+document.getElementById("detailTabs").addEventListener("click",event=>{ const btn = event.target.closest(".detail-tab"); if(btn) setDetailMode(btn.dataset.detail); });
+document.getElementById("helpOpen").addEventListener("click",openHelp);
+document.getElementById("helpClose").addEventListener("click",closeHelp);
+document.getElementById("helpTabs").addEventListener("click",event=>{ const btn = event.target.closest(".help-tab"); if(btn) renderHelp(btn.dataset.help); });
+document.getElementById("helpModal").addEventListener("click",event=>{ if(event.target.id === "helpModal") closeHelp(); });
+q("voiceListenBtn").addEventListener("click",startVoiceListen);
+q("voiceStopBtn").addEventListener("click",stopVoiceListen);
+q("voiceApplyBtn").addEventListener("click",()=>applyVoiceCommand(q("voiceText").value));
+q("voiceEnabled").addEventListener("change",()=>{ if(q("voiceEnabled").checked){ q("voiceStatus").textContent = "IA prête. Écoute permanente activée."; startVoiceListen(); } else if(voiceShouldListen){ q("voiceEnabled").checked = true; q("voiceStatus").textContent = "Utilise Stop pour désactiver l’écoute."; } else { q("voiceStatus").textContent = "IA inactive."; } });
+initScreenMode(); initDetailMode(); setDefaultTyres(); render(); renderHistory();
+</script>
+</body>
+</html>
