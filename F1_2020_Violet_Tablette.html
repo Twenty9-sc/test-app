@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>F1 2020 - Setup Violet - Tablette</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--violet:#7C3AED;--violet-dark:#5B21B6;--violet-light:#A78BFA;--bg:#0F0A1E;--card:#1E1640;--border:#6D28D9}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,sans-serif;background:radial-gradient(1200px 600px at 20% -10%,rgba(124,58,237,0.25),transparent),linear-gradient(180deg,#0F0A1E,#1A1540);color:#EDE9FE;min-height:100vh}
+header{padding:18px;background:linear-gradient(135deg,#1E1650,#5B21B6,#7C3AED);border-bottom:2px solid #A78BFA;position:sticky;top:0;z-index:10}
+h1{font-family:Orbitron;margin:0;font-size:22px;background:linear-gradient(90deg,#fff,#C4B5FD);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.container{padding:14px;max-width:1100px;margin:0 auto}
+.card{background:linear-gradient(135deg,rgba(30,22,64,0.96),rgba(46,32,96,0.92));border:1px solid rgba(139,92,246,0.35);border-left:4px solid var(--violet);border-radius:14px;padding:14px;margin:10px 0}
+.badge{background:linear-gradient(90deg,#7C3AED,#8B5CF6);color:#fff;padding:4px 10px;border-radius:999px;font-weight:800;font-size:11px;display:inline-block}
+label{display:block;font-weight:700;margin:12px 0 4px;color:#C4B5FD;font-size:13px}
+input[type=range]{width:100%;accent-color:#7C3AED;height:28px}
+select,button{width:100%;padding:12px;border-radius:10px;border:1px solid #6D28D9;background:#1E1650;color:#EDE9FE;font-weight:700;font-size:14px}
+button{background:linear-gradient(135deg,#6D28D9,#7C3AED,#8B5CF6);box-shadow:0 6px 18px rgba(124,58,237,0.4);margin-top:8px}
+button:active{transform:scale(0.98)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.value{font-size:20px;font-weight:800;color:#A78BFA}
+pre{background:#0F0A1E;border:1px solid #6D28D9;border-radius:10px;padding:12px;overflow:auto;font-size:11px;color:#C4B5FD}
+.tabs{display:flex;gap:6px;overflow:auto;padding:6px 0}
+.tab{padding:10px 14px;border-radius:999px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);white-space:nowrap;font-size:12px;font-weight:800}
+.tab.active{background:linear-gradient(90deg,#6D28D9,#7C3AED);color:#fff}
+.section{display:none}
+.section.active{display:block}
+</style>
+</head>
+<body>
+<header>
+<h1>🏎️ F1 2020 SETUP LAB <span style="font-size:11px;letter-spacing:0.2em;color:#C4B5FD">VIOLET EDITION</span></h1>
+<div style="font-size:11px;color:#EDE9FE;opacity:0.8;margin-top:4px">Offline Tablette - Tous paramètres F1 2020 - Sans serveur</div>
+</header>
+<div class="container">
+<div class="card">
+<div class="grid2">
+<div>
+<label>🏁 Circuit F1 2020</label>
+<select id="track"></select>
+<div id="trackInfo" style="margin-top:8px;font-size:12px"></div>
+</div>
+<div>
+<label>🎨 Preset Violet</label>
+<select id="preset"></select>
+<button onclick="applyPreset()">💜 Appliquer preset</button>
+</div>
+</div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div id="sections"></div>
+
+<div class="card">
+<h3 style="margin:0 0 8px;color:#C4B5FD">📋 Résumé Violet - Export</h3>
+<pre id="resume"></pre>
+<button onclick="downloadJSON()">💾 Télécharger JSON Violet</button>
+<button onclick="copyResume()" style="background:linear-gradient(90deg,#1E1650,#2A1F6B)">📋 Copier setup</button>
+</div>
+
+<div class="card" style="text-align:center">
+<span style="font-family:Orbitron;color:#C4B5FD;font-weight:800;letter-spacing:0.2em;font-size:11px">F1 2020 • VIOLET EDITION • TABLETTE OFFLINE</span>
+</div>
+</div>
+
+<script>
+const TRACKS={
+"🇦🇺 Australie - Melbourne":{code:"AUS",downforce:"Moyen-Élevé",usure:"Moyen",type:"Semi-urbain"},
+"🇧🇭 Bahreïn - Sakhir":{code:"BHR",downforce:"Faible-Moyen",usure:"Élevée",type:"Traction"},
+"🇻🇳 Vietnam - Hanoï":{code:"VNM",downforce:"Moyen",usure:"Faible",type:"Urbain"},
+"🇨🇳 Chine - Shanghai":{code:"CHN",downforce:"Moyen-Élevé",usure:"Élevée",type:"Technique"},
+"🇳🇱 Pays-Bas - Zandvoort":{code:"NLD",downforce:"Élevé",usure:"Moyenne",type:"Old-School"},
+"🇪🇸 Espagne - Barcelone":{code:"ESP",downforce:"Élevé",usure:"Très Élevée",type:"Complet"},
+"🇲🇨 Monaco - Monte-Carlo":{code:"MCO",downforce:"Très Élevé",usure:"Faible",type:"Urbain Extrême"},
+"🇦🇿 Azerbaïdjan - Bakou":{code:"AZE",downforce:"Très Faible",usure:"Faible",type:"Urbain Rapide"},
+"🇨🇦 Canada - Montréal":{code:"CAN",downforce:"Faible",usure:"Moyenne",type:"Semi-urbain"},
+"🇫🇷 France - Paul Ricard":{code:"FRA",downforce:"Moyen",usure:"Élevée",type:"Technique"},
+"🇦🇹 Autriche - Spielberg":{code:"AUT",downforce:"Moyen",usure:"Moyenne",type:"Rapide"},
+"🇬🇧 Grande-Bretagne - Silverstone":{code:"GBR",downforce:"Élevé",usure:"Très Élevée",type:"Rapide"},
+"🇭🇺 Hongrie - Hungaroring":{code:"HUN",downforce:"Très Élevé",usure:"Faible",type:"Technique"},
+"🇧🇪 Belgique - Spa":{code:"BEL",downforce:"Faible-Moyen",usure:"Élevée",type:"Légendaire"},
+"🇮🇹 Italie - Monza":{code:"ITA",downforce:"Minimal",usure:"Faible",type:"Temple Vitesse"},
+"🇸🇬 Singapour - Marina Bay":{code:"SGP",downforce:"Très Élevé",usure:"Moyenne",type:"Urbain Nuit"},
+"🇷🇺 Russie - Sotchi":{code:"RUS",downforce:"Moyen",usure:"Faible",type:"Semi-urbain"},
+"🇯🇵 Japon - Suzuka":{code:"JPN",downforce:"Élevé",usure:"Élevée",type:"Pilote"},
+"🇺🇸 USA - Austin":{code:"USA",downforce:"Moyen-Élevé",usure:"Élevée",type:"Complet"},
+"🇲🇽 Mexique - Mexico":{code:"MEX",downforce:"Très Élevé",usure:"Moyenne",type:"Altitude"},
+"🇧🇷 Brésil - Interlagos":{code:"BRA",downforce:"Élevé",usure:"Élevée",type:"Anti-horaire"},
+"🇦🇪 Abu Dhabi - Yas Marina":{code:"ABU",downforce:"Moyen",usure:"Moyenne",type:"Twillight"},
+};
+
+const PRESETS={
+"💜 Violet - Setup Signature":{aero_av:6,aero_ar:7,diff_on:70,diff_off:62,camber_av:-2.65,camber_ar:-1.25,toe_av:0.07,toe_ar:0.22,susp_av:4,susp_ar:3,arb_av:4,arb_ar:3,height_av:5,height_ar:6,brake_press:92,brake_bias:55,tyre_av:23.0,tyre_ar:21.0,ballast:6,desc:"Compromis idéal F1 2020"},
+"⚡ Qualif Sec - Attaque":{aero_av:4,aero_ar:5,diff_on:85,diff_off:75,camber_av:-2.8,camber_ar:-1.4,toe_av:0.1,toe_ar:0.3,susp_av:5,susp_ar:4,arb_av:6,arb_ar:5,height_av:4,height_ar:5,brake_press:95,brake_bias:56,tyre_av:23.5,tyre_ar:21.5,ballast:6,desc:"Agressif qualif"},
+"🏁 Course Sec - Equilibré":{aero_av:5,aero_ar:6,diff_on:75,diff_off:65,camber_av:-2.7,camber_ar:-1.3,toe_av:0.08,toe_ar:0.25,susp_av:4,susp_ar:3,arb_av:5,arb_ar:4,height_av:5,height_ar:6,brake_press:90,brake_bias:54,tyre_av:22.8,tyre_ar:20.8,ballast:6,desc:"Polyvalent course"},
+"🌧️ Pluie - Full Wet":{aero_av:8,aero_ar:9,diff_on:55,diff_off:50,camber_av:-2.5,camber_ar:-1.1,toe_av:0.05,toe_ar:0.2,susp_av:2,susp_ar:1,arb_av:2,arb_ar:1,height_av:8,height_ar:9,brake_press:80,brake_bias:52,tyre_av:22.0,tyre_ar:20.0,ballast:7,desc:"Max appui pluie"},
+"🚀 Monza / Bakou - Vitesse Max":{aero_av:1,aero_ar:1,diff_on:80,diff_off:70,camber_av:-2.9,camber_ar:-1.5,toe_av:0.12,toe_ar:0.35,susp_av:7,susp_ar:6,arb_av:8,arb_ar:7,height_av:3,height_ar:3,brake_press:100,brake_bias:58,tyre_av:24.5,tyre_ar:22.0,ballast:5,desc:"350+ km/h"},
+"🔄 Monaco / Hongrie - Appui Max":{aero_av:11,aero_ar:11,diff_on:65,diff_off:60,camber_av:-2.5,camber_ar:-1.2,toe_av:0.05,toe_ar:0.2,susp_av:3,susp_ar:2,arb_av:3,arb_ar:2,height_av:6,height_ar:7,brake_press:88,brake_bias:53,tyre_av:22.2,tyre_ar:20.2,ballast:8,desc:"Grip max"},
+};
+
+let setup={...PRESETS["💜 Violet - Setup Signature"]};
+
+const PARAMS=[
+{id:"aero_av",label:"Aileron Avant",min:1,max:11,step:1,tab:"Aéro"},
+{id:"aero_ar",label:"Aileron Arrière",min:1,max:11,step:1,tab:"Aéro"},
+{id:"diff_on",label:"Diff Accélération %",min:50,max:100,step:1,tab:"Transmission"},
+{id:"diff_off",label:"Diff Décélération %",min:50,max:100,step:1,tab:"Transmission"},
+{id:"camber_av",label:"Carrossage Avant °",min:-3.5,max:-2.5,step:0.05,tab:"Géométrie"},
+{id:"camber_ar",label:"Carrossage Arrière °",min:-2.0,max:-1.0,step:0.05,tab:"Géométrie"},
+{id:"toe_av",label:"Pincement Avant °",min:0.05,max:0.15,step:0.01,tab:"Géométrie"},
+{id:"toe_ar",label:"Pincement Arrière °",min:0.20,max:0.50,step:0.01,tab:"Géométrie"},
+{id:"susp_av",label:"Suspension Avant",min:1,max:11,step:1,tab:"Suspension"},
+{id:"susp_ar",label:"Suspension Arrière",min:1,max:11,step:1,tab:"Suspension"},
+{id:"arb_av",label:"Anti-Roulis Avant",min:1,max:11,step:1,tab:"Suspension"},
+{id:"arb_ar",label:"Anti-Roulis Arrière",min:1,max:11,step:1,tab:"Suspension"},
+{id:"height_av",label:"Hauteur Avant",min:1,max:11,step:1,tab:"Suspension"},
+{id:"height_ar",label:"Hauteur Arrière",min:1,max:11,step:1,tab:"Suspension"},
+{id:"brake_press",label:"Pression Freins %",min:70,max:100,step:1,tab:"Freins"},
+{id:"brake_bias",label:"Répartition Freins AV %",min:50,max:70,step:1,tab:"Freins"},
+{id:"tyre_av",label:"Pression Pneus AV PSI",min:21.0,max:25.0,step:0.1,tab:"Pneus"},
+{id:"tyre_ar",label:"Pression Pneus AR PSI",min:19.5,max:23.5,step:0.1,tab:"Pneus"},
+{id:"ballast",label:"Lest / Ballast",min:1,max:11,step:1,tab:"Pneus"},
+];
+
+const TABS=["Aéro","Transmission","Géométrie","Suspension","Freins","Pneus","Tous"];
+
+function init(){
+const trackSel=document.getElementById("track");
+Object.keys(TRACKS).forEach(k=>{
+let o=document.createElement("option");o.value=k;o.textContent=k;trackSel.appendChild(o);
+});
+trackSel.value="🇮🇹 Italie - Monza";
+trackSel.onchange=updateTrackInfo;
+const presetSel=document.getElementById("preset");
+Object.keys(PRESETS).forEach(k=>{
+let o=document.createElement("option");o.value=k;o.textContent=k;presetSel.appendChild(o);
+});
+presetSel.value="💜 Violet - Setup Signature";
+
+const tabsDiv=document.getElementById("tabs");
+TABS.forEach((t,i)=>{
+let d=document.createElement("div");d.className="tab"+(i===0?" active":"");d.textContent=t;d.onclick=()=>showTab(t);tabsDiv.appendChild(d);
+});
+
+const secDiv=document.getElementById("sections");
+TABS.forEach(t=>{
+let s=document.createElement("div");s.id="sec-"+t;s.className="section"+(t===TABS[0]?" active":"");
+let paramsToShow=t==="Tous"?PARAMS:PARAMS.filter(p=>p.tab===t);
+paramsToShow.forEach(p=>{
+let card=document.createElement("div");card.className="card";
+card.innerHTML=`<label>${p.label}</label><div style="display:flex;align-items:center;gap:10px"><input type="range" id="${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${setup[p.id]}"><span class="value" id="val-${p.id}">${setup[p.id]}</span></div>`;
+s.appendChild(card);
+});
+secDiv.appendChild(s);
+});
+
+PARAMS.forEach(p=>{
+document.getElementById(p.id).addEventListener("input",e=>{
+setup[p.id]=parseFloat(e.target.value);
+document.getElementById("val-"+p.id).textContent=setup[p.id];
+updateResume();
+});
+});
+
+updateTrackInfo();
+updateResume();
+}
+
+function showTab(name){
+document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.textContent===name));
+document.querySelectorAll(".section").forEach(s=>s.classList.toggle("active",s.id==="sec-"+name));
+}
+
+function updateTrackInfo(){
+const t=TRACKS[document.getElementById("track").value];
+document.getElementById("trackInfo").innerHTML=`<span class="badge">${t.code}</span> ${t.type} | Appui ${t.downforce} | Usure ${t.usure}`;
+updateResume();
+}
+
+function applyPreset(){
+const p=PRESETS[document.getElementById("preset").value];
+setup={...p};
+PARAMS.forEach(par=>{
+if(document.getElementById(par.id)){
+document.getElementById(par.id).value=setup[par.id];
+document.getElementById("val-"+par.id).textContent=setup[par.id];
+}
+});
+updateResume();
+}
+
+function updateResume(){
+const track=document.getElementById("track").value;
+const t=TRACKS[track];
+const vmax=340-(setup.aero_av+setup.aero_ar)*4;
+const balance=setup.aero_av-setup.aero_ar;
+let balText=balance<-2?"Sur-vireur":balance>2?"Sous-vireur":"Neutre";
+document.getElementById("resume").textContent=`F1 2020 VIOLET SETUP - ${track} [${t.code}]
+Date: ${new Date().toLocaleString()}
+Preset: ${document.getElementById("preset").value}
+
+AERODYNAMIQUE
+  Aileron Avant: ${setup.aero_av}
+  Aileron Arrière: ${setup.aero_ar} (Balance ${balance>0?"+":""}${balance} = ${balText})
+
+TRANSMISSION
+  Diff On-Throttle: ${setup.diff_on}%
+  Diff Off-Throttle: ${setup.diff_off}%
+
+GEOMETRIE SUSPENSION
+  Carrossage AV: ${setup.camber_av}°
+  Carrossage AR: ${setup.camber_ar}°
+  Pincement AV: ${setup.toe_av}°
+  Pincement AR: ${setup.toe_ar}°
+
+SUSPENSION
+  Suspension AV: ${setup.susp_av} | AR: ${setup.susp_ar}
+  Anti-Roulis AV: ${setup.arb_av} | AR: ${setup.arb_ar}
+  Hauteur AV: ${setup.height_av} | AR: ${setup.height_ar}
+
+FREINS
+  Pression: ${setup.brake_press}%
+  Bias AV: ${setup.brake_bias}% | AR: ${100-setup.brake_bias}%
+
+PNEUS
+  Pression AV: ${setup.tyre_av} PSI
+  Pression AR: ${setup.tyre_ar} PSI
+
+LEST
+  Ballast: ${setup.ballast}
+
+PERF ESTIMEE
+  Vmax: ${vmax} km/h
+  Type circuit: ${t.type} - Appui ${t.downforce}
+`;
+}
+
+function downloadJSON(){
+const track=document.getElementById("track").value;
+const t=TRACKS[track];
+const data={jeu:"F1 2020",edition:"Violet Tablette Offline",circuit:track,code:t.code,date:new Date().toISOString(),setup:setup};
+const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");a.href=url;a.download=`F1_2020_${t.code}_Violet.json`;a.click();
+URL.revokeObjectURL(url);
+}
+
+function copyResume(){
+navigator.clipboard.writeText(document.getElementById("resume").textContent).then(()=>alert("💜 Setup copié !"));
+}
+
+init();
+</script>
+</body>
+</html>
