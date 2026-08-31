@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#05070d" />
-  <meta name="description" content="Choisis ton ingénieur de course et ton calculateur de setup pour F1 2012 ou F1 2017." />
+  <meta name="description" content="Choisis ton ingénieur de course et ton calculateur de setup pour F1 2012, F1 2017 ou F1 2020." />
   <title>F1 Setup Hub — Choisir un jeu</title>
   <style>
     :root{
@@ -16,6 +16,7 @@
       --red-light:#ff514b;
       --blue:#008cff;
       --cyan:#55d6ff;
+      --purple:#7b2dff;
     }
     *{box-sizing:border-box}
     html{color-scheme:dark}
@@ -28,6 +29,7 @@
       background:
         radial-gradient(circle at 4% 12%,rgba(225,6,0,.19),transparent 28rem),
         radial-gradient(circle at 96% 20%,rgba(0,140,255,.22),transparent 30rem),
+        radial-gradient(circle at 50% 90%,rgba(123,45,255,.18),transparent 22rem),
         linear-gradient(135deg,#03050a 0%,#090d15 54%,#03060d 100%);
     }
     body:before{
@@ -49,7 +51,7 @@
       bottom:0;
       z-index:-1;
       height:5px;
-      background:linear-gradient(90deg,var(--red),#fff 48%,var(--blue));
+      background:linear-gradient(90deg,var(--red),#fff 48%,var(--blue),var(--purple));
       box-shadow:0 -8px 32px rgba(255,255,255,.14);
     }
     @keyframes trackMove{to{background-position:252px 0,0 0}}
@@ -68,7 +70,7 @@
     h1{max-width:950px;margin:0 auto;font-size:clamp(2.9rem,8.4vw,7.6rem);line-height:.83;letter-spacing:-.075em;font-style:italic;font-weight:1000;text-transform:uppercase}
     h1 span{display:block;margin-top:.12em;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.46);font-size:.58em;letter-spacing:-.045em}
     .lead{max-width:660px;margin:22px auto 0;color:#aeb6c5;font-size:clamp(.92rem,1.6vw,1.08rem);line-height:1.65}
-    .chooser{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:clamp(34px,5vw,62px);animation:enter .68s .13s ease both}
+    .chooser{position:relative;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-top:clamp(34px,5vw,62px);animation:enter .68s .13s ease both}
     .chooser:before{content:"VS";position:absolute;z-index:5;left:50%;top:50%;translate:-50% -50%;width:46px;height:46px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(255,255,255,.17);background:#090d14;color:#fff;font-size:.67rem;font-weight:1000;font-style:italic;box-shadow:0 8px 26px rgba(0,0,0,.4)}
     .game{
       --accent:var(--red);--glow:225,6,0;
@@ -91,6 +93,7 @@
       transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .3s,box-shadow .3s;
     }
     .game.blue{--accent:var(--blue);--glow:0,140,255}
+    .game.purple{--accent:var(--purple);--glow:123,45,255}
     .game:before{content:"";position:absolute;z-index:-1;right:-60px;top:-110px;width:330px;height:330px;border-radius:50%;border:66px solid rgba(var(--glow),.12);box-shadow:0 0 100px rgba(var(--glow),.15)}
     .game:after{content:"";position:absolute;z-index:2;top:-35%;bottom:-35%;left:-30%;width:18%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);animation:scan 6s 1s ease-in-out infinite}
     .game:hover,.game:focus-visible{transform:translateY(-8px);border-color:rgba(var(--glow),.58);box-shadow:0 30px 85px rgba(0,0,0,.46),0 0 52px rgba(var(--glow),.10);outline:none}
@@ -106,9 +109,9 @@
     .launch{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid rgba(255,255,255,.10);padding-top:19px;color:#fff;font-size:.77rem;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
     .arrow{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:var(--accent);font-size:1.3rem;box-shadow:0 8px 22px rgba(var(--glow),.30);transition:transform .25s}
     .game:hover .arrow,.game:focus-visible .arrow{transform:translateX(4px)}
-    .note{display:flex;align-items:center;justify-content:center;gap:10px;margin:22px 0 0;color:#747e8e;font-size:.72rem;font-weight:760;animation:enter .7s .2s ease both}.note:before{content:"";width:20px;height:2px;background:linear-gradient(90deg,var(--red),var(--blue))}
+    .note{display:flex;align-items:center;justify-content:center;gap:10px;margin:22px 0 0;color:#747e8e;font-size:.72rem;font-weight:760;animation:enter .7s .2s ease both}.note:before{content:"";width:20px;height:2px;background:linear-gradient(90deg,var(--red),var(--blue),var(--purple))}
     footer{display:flex;justify-content:space-between;gap:20px;margin-top:42px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);color:#626c7b;font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-    @media(max-width:760px){
+    @media(max-width:980px){
       .shell{width:min(100% - 20px,620px);padding-top:16px}.status{display:none}nav{margin-bottom:42px}.brand-mark{width:42px;height:42px}h1{font-size:clamp(2.8rem,15vw,5rem)}.lead{margin-top:17px}.chooser{grid-template-columns:1fr;gap:13px}.chooser:before{display:none}.game{min-height:360px;border-radius:23px}.year{font-size:6rem}.note{text-align:center}footer{flex-direction:column;align-items:center;text-align:center;margin-top:28px}
     }
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -121,17 +124,17 @@
         <span class="brand-mark">F1</span>
         <span class="brand-copy"><b>SETUP HUB</b><span>RACE ENGINEERING</span></span>
       </a>
-      <span class="status">2 ingénieurs disponibles</span>
+      <span class="status">3 ingénieurs disponibles</span>
     </nav>
 
     <main>
       <section class="intro" aria-labelledby="page-title">
         <p class="eyebrow">Sélection du championnat</p>
         <h1 id="page-title">Choisis ton jeu<span>Prépare ta course</span></h1>
-        <p class="lead">Deux générations, deux expériences entièrement adaptées. Sélectionne ton jeu pour ouvrir le calculateur de setup, météo, pneus et stratégie live correspondant.</p>
+        <p class="lead">Trois générations, trois expériences entièrement adaptées. Sélectionne ton jeu pour ouvrir le calculateur de setup, météo, pneus et stratégie live correspondant.</p>
       </section>
 
-      <section class="chooser" aria-label="Choisir entre F1 2012 et F1 2017">
+      <section class="chooser" aria-label="Choisir entre F1 2012, F1 2017 et F1 2020">
         <a class="game red" href="f1-2012.html" aria-label="Ouvrir le menu F1 2012">
           <div class="card-top">
             <div><div class="era">Moteurs V8 · KERS</div><div class="year">20<strong>12</strong></div></div>
@@ -155,6 +158,19 @@
             <p>Une interface bleue dédiée aux monoplaces larges 2017, aux trois gommes Pirelli, au différentiel, aux pressions et au lest.</p>
             <div class="features"><span>10 écuries</span><span>20 circuits</span><span>3 gommes</span><span>Power Unit & ERS</span></div>
             <div class="launch"><span>Entrer dans le paddock 2017</span><span class="arrow">›</span></div>
+          </div>
+        </a>
+
+        <a class="game purple" href="f1-2020.html" aria-label="Ouvrir le menu F1 2020">
+          <div class="card-top">
+            <div><div class="era">Turbo hybride · ERS C1-C5</div><div class="year">20<strong>20</strong></div></div>
+            <span class="chip">Nouveau · Violet</span>
+          </div>
+          <div class="details">
+            <h2>F1 2020 Setup</h2>
+            <p>Une interface violette pour les 22 circuits, les 10 écuries, les pressions pneus individuelles par roue, le différentiel, l'ERS et les Pirelli C1-C5.</p>
+            <div class="features"><span>10 écuries</span><span>22 circuits</span><span>Pneus individuels</span><span>ERS modes</span></div>
+            <div class="launch"><span>Entrer dans le paddock 2020</span><span class="arrow">›</span></div>
           </div>
         </a>
       </section>
