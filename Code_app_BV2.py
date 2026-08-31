@@ -3977,6 +3977,7 @@ with st.sidebar:
         "⚗️ Formulations d'atelier",
         "📐 Fiches Méthode",
         "⚖️ Comparaison",
+        "🏎️ F1 20 - Setup Violet",
     ]
 
     # Initialisation de la clé de navigation si absente
@@ -10990,6 +10991,181 @@ if G_ACTIF == "preparation_melanges":
                             for spec_nom, spec_valeur in specs_dyn.items():
                                 if str(spec_valeur).strip():
                                     st.write(f"• **{spec_nom} :** {spec_valeur}")
+
+# =============================================================================
+    # SECTION 7 — F1 2020 - SETUP VIOLET - NOUVELLE SECTION DEDIEE
+    # =============================================================================
+    elif choix_section == "🏎️ F1 20 - Setup Violet":
+        # Injection CSS Violet F1 2020
+        st.markdown("""
+        <style>
+        .f1-violet-header {
+            background: linear-gradient(135deg, #1E1650 0%, #5B21B6 50%, #7C3AED 100%);
+            padding: 22px 26px;
+            border-radius: 16px;
+            border: 2px solid #A78BFA;
+            box-shadow: 0 12px 32px rgba(124,58,237,0.4);
+            margin-bottom: 18px;
+        }
+        .f1-violet-card {
+            background: linear-gradient(135deg, rgba(30,22,64,0.96), rgba(46,32,96,0.92));
+            border: 1px solid rgba(139,92,246,0.35);
+            border-left: 4px solid #7C3AED;
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin: 10px 0;
+        }
+        .f1-violet-badge {
+            background: linear-gradient(90deg, #7C3AED, #8B5CF6);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 11px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        TRACKS_F1 = {
+            "🇦🇺 Australie": {"downforce": "Moyen-Élevé", "code": "AUS"},
+            "🇧🇭 Bahreïn": {"downforce": "Faible-Moyen", "code": "BHR"},
+            "🇻🇳 Vietnam": {"downforce": "Moyen", "code": "VNM"},
+            "🇲🇨 Monaco": {"downforce": "Très Élevé", "code": "MCO"},
+            "🇦🇿 Bakou": {"downforce": "Très Faible", "code": "AZE"},
+            "🇨🇦 Canada": {"downforce": "Faible", "code": "CAN"},
+            "🇫🇷 France": {"downforce": "Moyen", "code": "FRA"},
+            "🇦🇹 Autriche": {"downforce": "Moyen", "code": "AUT"},
+            "🇬🇧 Silverstone": {"downforce": "Élevé", "code": "GBR"},
+            "🇭🇺 Hongrie": {"downforce": "Très Élevé", "code": "HUN"},
+            "🇧🇪 Spa": {"downforce": "Faible-Moyen", "code": "BEL"},
+            "🇮🇹 Monza": {"downforce": "Minimal", "code": "ITA"},
+            "🇸🇬 Singapour": {"downforce": "Très Élevé", "code": "SGP"},
+            "🇷🇺 Russie": {"downforce": "Moyen", "code": "RUS"},
+            "🇯🇵 Suzuka": {"downforce": "Élevé", "code": "JPN"},
+            "🇺🇸 Austin": {"downforce": "Moyen-Élevé", "code": "USA"},
+            "🇲🇽 Mexique": {"downforce": "Très Élevé", "code": "MEX"},
+            "🇧🇷 Brésil": {"downforce": "Élevé", "code": "BRA"},
+            "🇦🇪 Abu Dhabi": {"downforce": "Moyen", "code": "ABU"},
+        }
+
+        PRESETS_F1_VIOLET = {
+            "💜 Violet Signature - Equilibré": {"aero_av": 6, "aero_ar": 7, "diff_on": 70, "diff_off": 62, "camber_av": -2.65, "camber_ar": -1.25, "toe_av": 0.07, "toe_ar": 0.22, "susp_av": 4, "susp_ar": 3, "arb_av": 4, "arb_ar": 3, "height_av": 5, "height_ar": 6, "brake_press": 92, "brake_bias": 55, "tyre_av": 23.0, "tyre_ar": 21.0, "ballast": 6},
+            "⚡ Qualif Sec": {"aero_av": 4, "aero_ar": 5, "diff_on": 85, "diff_off": 75, "camber_av": -2.80, "camber_ar": -1.40, "toe_av": 0.10, "toe_ar": 0.30, "susp_av": 5, "susp_ar": 4, "arb_av": 6, "arb_ar": 5, "height_av": 4, "height_ar": 5, "brake_press": 95, "brake_bias": 56, "tyre_av": 23.5, "tyre_ar": 21.5, "ballast": 6},
+            "🏁 Course Sec": {"aero_av": 5, "aero_ar": 6, "diff_on": 75, "diff_off": 65, "camber_av": -2.70, "camber_ar": -1.30, "toe_av": 0.08, "toe_ar": 0.25, "susp_av": 4, "susp_ar": 3, "arb_av": 5, "arb_ar": 4, "height_av": 5, "height_ar": 6, "brake_press": 90, "brake_bias": 54, "tyre_av": 22.8, "tyre_ar": 20.8, "ballast": 6},
+            "🌧️ Pluie": {"aero_av": 8, "aero_ar": 9, "diff_on": 55, "diff_off": 50, "camber_av": -2.50, "camber_ar": -1.10, "toe_av": 0.05, "toe_ar": 0.20, "susp_av": 2, "susp_ar": 1, "arb_av": 2, "arb_ar": 1, "height_av": 8, "height_ar": 9, "brake_press": 80, "brake_bias": 52, "tyre_av": 22.0, "tyre_ar": 20.0, "ballast": 7},
+            "🚀 Monza Vitesse Max": {"aero_av": 1, "aero_ar": 1, "diff_on": 80, "diff_off": 70, "camber_av": -2.90, "camber_ar": -1.50, "toe_av": 0.12, "toe_ar": 0.35, "susp_av": 7, "susp_ar": 6, "arb_av": 8, "arb_ar": 7, "height_av": 3, "height_ar": 3, "brake_press": 100, "brake_bias": 58, "tyre_av": 24.5, "tyre_ar": 22.0, "ballast": 5},
+            "🔄 Monaco Appui Max": {"aero_av": 11, "aero_ar": 11, "diff_on": 65, "diff_off": 60, "camber_av": -2.50, "camber_ar": -1.20, "toe_av": 0.05, "toe_ar": 0.20, "susp_av": 3, "susp_ar": 2, "arb_av": 3, "arb_ar": 2, "height_av": 6, "height_ar": 7, "brake_press": 88, "brake_bias": 53, "tyre_av": 22.2, "tyre_ar": 20.2, "ballast": 8},
+        }
+
+        if "f1_violet_setup" not in st.session_state:
+            st.session_state.f1_violet_setup = PRESETS_F1_VIOLET["💜 Violet Signature - Equilibré"].copy()
+        if "f1_violet_track" not in st.session_state:
+            st.session_state.f1_violet_track = "🇮🇹 Monza"
+        if "f1_violet_preset" not in st.session_state:
+            st.session_state.f1_violet_preset = "💜 Violet Signature - Equilibré"
+
+        st.markdown("""
+        <div class="f1-violet-header">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="font-size:38px;">🏎️</div>
+                <div>
+                    <div style="font-family:Orbitron; font-size:26px; font-weight:800; color:#EDE9FE;">F1 2020 - SETUP LAB</div>
+                    <div style="color:#C4B5FD; font-weight:800; letter-spacing:0.2em; font-size:12px;">EDITION VIOLETTE • TOUS PARAMÈTRES ADAPTÉS</div>
+                </div>
+                <div style="margin-left:auto; background:rgba(255,255,255,0.15); padding:6px 14px; border-radius:999px; color:white; font-weight:800; font-size:11px;">F1 20 • VIOLET</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_track, col_preset = st.columns([1, 1.2])
+        with col_track:
+            st.markdown('<div class="f1-violet-card">', unsafe_allow_html=True)
+            st.markdown("#### 🏁 Circuit F1 2020")
+            sel_track = st.selectbox("Circuit", list(TRACKS_F1.keys()), index=list(TRACKS_F1.keys()).index(st.session_state.f1_violet_track) if st.session_state.f1_violet_track in TRACKS_F1 else 11, key="f1_violet_track_sel")
+            st.session_state.f1_violet_track = sel_track
+            t_info = TRACKS_F1[sel_track]
+            st.markdown(f"<span class='f1-violet-badge'>{t_info['code']}</span> Appui conseillé: <b style='color:#A78BFA;'>{t_info['downforce']}</b>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        with col_preset:
+            st.markdown('<div class="f1-violet-card">', unsafe_allow_html=True)
+            st.markdown("#### 🎨 Preset Violet")
+            sel_preset = st.selectbox("Preset", list(PRESETS_F1_VIOLET.keys()), index=list(PRESETS_F1_VIOLET.keys()).index(st.session_state.f1_violet_preset) if st.session_state.f1_violet_preset in PRESETS_F1_VIOLET else 0, key="f1_violet_preset_sel")
+            if st.button("💜 Appliquer preset violet", use_container_width=True, key="btn_apply_violet_preset"):
+                st.session_state.f1_violet_setup = PRESETS_F1_VIOLET[sel_preset].copy()
+                st.session_state.f1_violet_preset = sel_preset
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        vs = st.session_state.f1_violet_setup
+
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["🌀 Aéro", "⚙️ Transmission", "📐 Géométrie", "🔧 Suspension", "🛑 Freins", "🛞 Pneus", "📋 Résumé Violet"])
+
+        with tab1:
+            c1, c2 = st.columns(2)
+            with c1:
+                vs["aero_av"] = st.slider("Aileron Avant (1-11)", 1, 11, vs["aero_av"], key="f1v_aero_av")
+            with c2:
+                vs["aero_ar"] = st.slider("Aileron Arrière (1-11)", 1, 11, vs["aero_ar"], key="f1v_aero_ar")
+            st.info(f"💜 Balance: {vs['aero_av']-vs['aero_ar']:+d} | {'Sur-vireur' if vs['aero_av']-vs['aero_ar']<-2 else 'Sous-vireur' if vs['aero_av']-vs['aero_ar']>2 else 'Neutre'}")
+        with tab2:
+            c1, c2 = st.columns(2)
+            with c1:
+                vs["diff_on"] = st.slider("Diff On-Throttle %", 50, 100, vs["diff_on"], key="f1v_diff_on")
+            with c2:
+                vs["diff_off"] = st.slider("Diff Off-Throttle %", 50, 100, vs["diff_off"], key="f1v_diff_off")
+        with tab3:
+            c1, c2 = st.columns(2)
+            with c1:
+                vs["camber_av"] = st.slider("Carrossage Avant", -3.5, -2.5, vs["camber_av"], step=0.05, key="f1v_camber_av")
+                vs["camber_ar"] = st.slider("Carrossage Arrière", -2.0, -1.0, vs["camber_ar"], step=0.05, key="f1v_camber_ar")
+            with c2:
+                vs["toe_av"] = st.slider("Pincement Avant", 0.05, 0.15, vs["toe_av"], step=0.01, key="f1v_toe_av")
+                vs["toe_ar"] = st.slider("Pincement Arrière", 0.20, 0.50, vs["toe_ar"], step=0.01, key="f1v_toe_ar")
+        with tab4:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                vs["susp_av"] = st.slider("Suspension AV", 1, 11, vs["susp_av"], key="f1v_susp_av")
+                vs["susp_ar"] = st.slider("Suspension AR", 1, 11, vs["susp_ar"], key="f1v_susp_ar")
+            with c2:
+                vs["arb_av"] = st.slider("Anti-Roulis AV", 1, 11, vs["arb_av"], key="f1v_arb_av")
+                vs["arb_ar"] = st.slider("Anti-Roulis AR", 1, 11, vs["arb_ar"], key="f1v_arb_ar")
+            with c3:
+                vs["height_av"] = st.slider("Hauteur AV", 1, 11, vs["height_av"], key="f1v_h_av")
+                vs["height_ar"] = st.slider("Hauteur AR", 1, 11, vs["height_ar"], key="f1v_h_ar")
+        with tab5:
+            c1, c2 = st.columns(2)
+            with c1:
+                vs["brake_press"] = st.slider("Pression Freins %", 70, 100, vs["brake_press"], key="f1v_brake_p")
+            with c2:
+                vs["brake_bias"] = st.slider("Répartition Freins AV %", 50, 70, vs["brake_bias"], key="f1v_brake_b")
+        with tab6:
+            c1, c2 = st.columns(2)
+            with c1:
+                vs["tyre_av"] = st.slider("Pression Pneus AV PSI", 21.0, 25.0, vs["tyre_av"], step=0.1, key="f1v_tyre_av")
+            with c2:
+                vs["tyre_ar"] = st.slider("Pression Pneus AR PSI", 19.5, 23.5, vs["tyre_ar"], step=0.1, key="f1v_tyre_ar")
+            vs["ballast"] = st.slider("Lest / Ballast (1-11)", 1, 11, vs["ballast"], key="f1v_ballast")
+        with tab7:
+            st.markdown(f"""
+            <div class="f1-violet-card">
+                <h3 style="color:#C4B5FD;">💜 Setup Violet - {sel_track}</h3>
+                <p style="color:#A78BFA;">Tous les paramètres F1 2020 adaptés - Edition Violet</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.code(f"""F1 2020 VIOLET SETUP - {sel_track} [{t_info['code']}]
+Aero AV: {vs['aero_av']} | Aero AR: {vs['aero_ar']}
+Diff ON: {vs['diff_on']}% | OFF: {vs['diff_off']}%
+Camber AV: {vs['camber_av']} | AR: {vs['camber_ar']}
+Toe AV: {vs['toe_av']} | AR: {vs['toe_ar']}
+Susp AV: {vs['susp_av']} | AR: {vs['susp_ar']} | ARB AV: {vs['arb_av']} | AR: {vs['arb_ar']}
+Height AV: {vs['height_av']} | AR: {vs['height_ar']}
+Brake Press: {vs['brake_press']}% | Bias: {vs['brake_bias']}%
+Tyre AV: {vs['tyre_av']} PSI | AR: {vs['tyre_ar']} PSI
+Ballast: {vs['ballast']}
+Vmax Est: {340 - (vs['aero_av']+vs['aero_ar'])*4} km/h
+            """, language="yaml")
+            st.download_button("💾 Télécharger Setup Violet JSON", data=json.dumps({"circuit": sel_track, "setup": vs, "edition": "violet", "jeu": "F1 2020"}, indent=2, ensure_ascii=False), file_name=f"F1_2020_{t_info['code']}_Violet_Setup.json", mime="application/json", use_container_width=True, key="dl_f1_violet")
+            st.success("💜 Section F1 20 Violet active - Tous paramètres adaptés F1 2020!")
 
 # =============================================================================
 # MODULE 2 — CORBEILLE ET HISTORIQUE DES SUPPRESSIONS
