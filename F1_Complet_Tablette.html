@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 Setup Complet 2012-2017-2020 | Rouge Bleu Violet</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--red:#EF4444;--blue:#3B82F6;--violet:#7C3AED;--bg:#0A0E1A}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,sans-serif;background:radial-gradient(1000px 500px at 10% 0%,rgba(239,68,68,0.15),transparent),radial-gradient(1000px 500px at 50% 0%,rgba(59,130,246,0.15),transparent),radial-gradient(1000px 500px at 90% 0%,rgba(124,58,237,0.18),transparent),#0A0E1A;color:#E2E8F0}
+header{padding:16px;background:linear-gradient(135deg,#1A0A0A,#1E1B4B,#1E1640);border-bottom:2px solid #2A2A4A;position:sticky;top:0;z-index:20}
+h1{font-family:Orbitron;margin:0;font-size:20px}
+.container{max-width:1200px;margin:0 auto;padding:12px}
+.year-tabs{display:flex;gap:8px;margin:12px 0;overflow:auto}
+.ytab{flex:1;min-width:110px;padding:14px;border-radius:14px;text-align:center;font-weight:800;cursor:pointer;border:2px solid transparent}
+.ytab.active{border-color:white;transform:scale(1.02)}
+.ytab-2012{background:linear-gradient(135deg,#450A0A,#B91C1C,#EF4444);color:white;box-shadow:0 6px 18px rgba(239,68,68,0.35)}
+.ytab-2017{background:linear-gradient(135deg,#1E1B4B,#1E40AF,#3B82F6);color:white;box-shadow:0 6px 18px rgba(59,130,246,0.35)}
+.ytab-2020{background:linear-gradient(135deg,#1E1640,#5B21B6,#7C3AED);color:white;box-shadow:0 6px 18px rgba(124,58,237,0.35)}
+.card{border-radius:12px;padding:12px;margin:8px 0;border-left:4px solid}
+.card-red{background:linear-gradient(135deg,rgba(69,10,10,0.9),rgba(127,29,29,0.7));border-color:#EF4444}
+.card-blue{background:linear-gradient(135deg,rgba(30,27,75,0.9),rgba(30,64,175,0.7));border-color:#3B82F6}
+.card-violet{background:linear-gradient(135deg,rgba(30,22,64,0.9),rgba(91,33,182,0.7));border-color:#7C3AED}
+.badge{padding:3px 9px;border-radius:999px;font-weight:800;font-size:11px;color:white;display:inline-block}
+.badge-red{background:#EF4444}.badge-blue{background:#3B82F6}.badge-violet{background:#7C3AED}
+label{font-size:12px;font-weight:700;color:#CBD5E1;margin:10px 0 4px;display:block}
+input[type=range]{width:100%;height:30px}
+select,button{width:100%;padding:12px;border-radius:10px;border:1px solid #334155;background:#1E293B;color:white;font-weight:700}
+button{margin-top:8px}
+.btn-red{background:linear-gradient(135deg,#B91C1C,#EF4444)}.btn-blue{background:linear-gradient(135deg,#1E40AF,#3B82F6)}.btn-violet{background:linear-gradient(135deg,#5B21B6,#7C3AED)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.tabs{display:flex;gap:6px;overflow:auto;margin:8px 0}
+.tab{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,0.08);font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer}
+.tab.active{background:white;color:black}
+.section{display:none}.section.active{display:block}
+pre{background:#0F172A;border:1px solid #334155;border-radius:10px;padding:10px;font-size:10px;overflow:auto;max-height:300px}
+.value{color:#F8FAFC;font-weight:800;font-size:18px}
+</style>
+</head>
+<body>
+<header>
+<h1>🏁 F1 SETUP LAB <span style="font-size:11px;letter-spacing:0.2em;opacity:0.7">2012 • 2017 • 2020</span></h1>
+<div style="font-size:11px;opacity:0.6">Rouge 2012 • Bleu 2017 • Violet 2020 • Pack Complet Tablette Offline</div>
+</header>
+<div class="container">
+<div class="year-tabs">
+<div class="ytab ytab-2012" id="ytab-2012" onclick="setYear('2012')">🔴<br>2012<br><small>ROUGE</small><br><small>20 GP</small></div>
+<div class="ytab ytab-2017" id="ytab-2017" onclick="setYear('2017')">🔵<br>2017<br><small>BLEU</small><br><small>20 GP</small></div>
+<div class="ytab ytab-2020 active" id="ytab-2020" onclick="setYear('2020')">💜<br>2020<br><small>VIOLET</small><br><small>22 GP</small></div>
+</div>
+
+<div id="yearContent"></div>
+
+<div class="card card-violet" style="text-align:center">
+<span style="font-family:Orbitron;font-weight:800;letter-spacing:0.15em;background:linear-gradient(90deg,#EF4444,#3B82F6,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent">2012 ROUGE • 2017 BLEU • 2020 VIOLET • PACK COMPLET</span>
+</div>
+</div>
+
+<script>
+const DATA={
+"2012":{
+color:"red",hex:"#EF4444",icon:"🔴",title:"F1 2012 - Rouge",
+circuits:{
+"🇦🇺 Australie - Melbourne":{code:"AUS",type:"Semi-urbain",strat:"1-2 arrêts, KERS ligne droite"},
+"🇲🇾 Malaisie - Sepang":{code:"MYS",type:"Chaud",strat:"2-3 arrêts, température"},
+"🇨🇳 Chine - Shanghai":{code:"CHN",type:"Technique",strat:"1-2 arrêts, graining"},
+"🇧🇭 Bahreïn - Sakhir":{code:"BHR",type:"Traction",strat:"2 arrêts, freins"},
+"🇪🇸 Espagne - Barcelone":{code:"ESP",type:"Aéro",strat:"2-3 arrêts"},
+"🇲🇨 Monaco - Monte-Carlo":{code:"MCO",type:"Urbain",strat:"1 arrêt, qualif 100%"},
+"🇨🇦 Canada - Montréal":{code:"CAN",type:"Freinage",strat:"1-2 arrêts"},
+"🇪🇺 Europe - Valence":{code:"EUR",type:"Urbain",strat:"1-2 arrêts"},
+"🇬🇧 GB - Silverstone":{code:"GBR",type:"Rapide",strat:"2 arrêts"},
+"🇩🇪 Allemagne - Hockenheim":{code:"GER",type:"Stadium",strat:"2 arrêts"},
+"🇭🇺 Hongrie - Hungaroring":{code:"HUN",type:"Technique",strat:"2 arrêts"},
+"🇧🇪 Belgique - Spa":{code:"BEL",type:"Légendaire",strat:"1-2 arrêts"},
+"🇮🇹 Italie - Monza":{code:"ITA",type:"Vitesse",strat:"1 arrêt, ailerons 1-1"},
+"🇸🇬 Singapour - Marina Bay":{code:"SGP",type:"Nuit",strat:"2-3 arrêts, SC"},
+"🇯🇵 Japon - Suzuka":{code:"JPN",type:"Pilote",strat:"2 arrêts"},
+"🇰🇷 Corée - Yeongam":{code:"KOR",type:"Mixte",strat:"2 arrêts"},
+"🇮🇳 Inde - Buddh":{code:"IND",type:"Fluide",strat:"1-2 arrêts"},
+"🇦🇪 Abu Dhabi - Yas Marina":{code:"ABU",type:"Twillight",strat:"1-2 arrêts"},
+"🇺🇸 USA - Austin":{code:"USA",type:"Moderne",strat:"1-2 arrêts"},
+"🇧🇷 Brésil - Interlagos":{code:"BRA",type:"Anti-horaire",strat:"2 arrêts, pluie 50%"},
+},
+strategies:["🔋 KERS 2012: 6s/tour, bouton KERS en sortie virage lent","⛽ Essence: Lean/Standard/Rich - Rich +0.4s mais +20% conso","🛞 Pneus: Prime dur / Option tendre - Option 1.2s plus rapide, 10 tours max","🏁 DRS: 1 zone seulement, si <1s","🔧 Méta 2012: Ailerons 7-8, ressorts durs, pas d'ERS"],
+presets:{
+"🔴 2012 Rouge Equilibré":{aero_av:7,aero_ar:7,diff_on:75,diff_off:65,camber_av:-2.5,camber_ar:-1.2,toe_av:0.08,toe_ar:0.25,susp_av:6,susp_ar:5,arb_av:6,arb_ar:5,height_av:4,height_ar:5,brake_press:92,brake_bias:56,tyre_av:22.5,tyre_ar:20.5,ballast:6},
+"🚀 2012 Monza Mini":{aero_av:1,aero_ar:1,diff_on:80,diff_off:70,camber_av:-2.2,camber_ar:-1.0,toe_av:0.12,toe_ar:0.35,susp_av:8,susp_ar:7,arb_av:8,arb_ar:7,height_av:2,height_ar:2,brake_press:98,brake_bias:58,tyre_av:24.0,tyre_ar:22.0,ballast:5},
+"🔄 2012 Monaco Max":{aero_av:11,aero_ar:11,diff_on:65,diff_off:60,camber_av:-2.8,camber_ar:-1.4,toe_av:0.05,toe_ar:0.20,susp_av:3,susp_ar:2,arb_av:3,arb_ar:2,height_av:6,height_ar:7,brake_press:88,brake_bias:54,tyre_av:21.5,tyre_ar:19.5,ballast:7},
+}
+},
+"2017":{
+color:"blue",hex:"#3B82F6",icon:"🔵",title:"F1 2017 - Bleu",
+circuits:{
+"🇦🇺 Australie - Melbourne":{code:"AUS",type:"Semi-urbain",strat:"1 arrêt US-SS"},
+"🇨🇳 Chine - Shanghai":{code:"CHN",type:"Avant limité",strat:"2 arrêts, S1 graining"},
+"🇧🇭 Bahreïn - Sakhir":{code:"BHR",type:"Arrière limité",strat:"2 arrêts SS-S-SS"},
+"🇷🇺 Russie - Sotchi":{code:"RUS",type:"Lisse",strat:"1 arrêt US-S"},
+"🇪🇸 Espagne - Barcelone":{code:"ESP",type:"Complet",strat:"2 arrêts, T3 usure"},
+"🇲🇨 Monaco - Monte-Carlo":{code:"MCO",type:"Urbain",strat:"1 arrêt US-US, HyperSoft"},
+"🇨🇦 Canada - Montréal":{code:"CAN",type:"Freinage",strat:"1 arrêt US-SS"},
+"🇦🇿 Azerbaïdjan - Bakou":{code:"AZE",type:"Urbain rapide",strat:"1 arrêt, SC 80%"},
+"🇦🇹 Autriche - Spielberg":{code:"AUT",type:"Court",strat:"1 arrêt US-SS"},
+"🇬🇧 GB - Silverstone":{code:"GBR",type:"Rapide",strat:"2 arrêts"},
+"🇭🇺 Hongrie - Hungaroring":{code:"HUN",type:"Lent",strat:"1 arrêt"},
+"🇧🇪 Belgique - Spa":{code:"BEL",type:"Légendaire",strat:"1-2 arrêts, ERS High"},
+"🇮🇹 Italie - Monza":{code:"ITA",type:"Vitesse",strat:"1 arrêt US-S"},
+"🇸🇬 Singapour - Marina Bay":{code:"SGP",type:"Nuit",strat:"2 arrêts, 61 tours"},
+"🇲🇾 Malaisie - Sepang":{code:"MYS",type:"Chaud",strat:"2 arrêts, pluie 60%"},
+"🇯🇵 Japon - Suzuka":{code:"JPN",type:"Pilote",strat:"2 arrêts"},
+"🇺🇸 USA - Austin":{code:"USA",type:"Moderne",strat:"1 arrêt"},
+"🇲🇽 Mexique - Mexico":{code:"MEX",type:"Altitude",strat:"1 arrêt"},
+"🇧🇷 Brésil - Interlagos":{code:"BRA",type:"Court",strat:"2 arrêts, pluie"},
+"🇦🇪 Abu Dhabi - Yas Marina":{code:"ABU",type:"Twillight",strat:"1 arrêt US-S"},
+},
+strategies:["⚡ ERS 2017: Low/Med/High/Overtake/Hotlap - Hotlap +0.6s mais batterie vide 1 tour","⛽ 105kg max, Lean -0.3s / Rich +0.3s","🛞 HyperSoft/Ultra/Super/Soft/Med/Hard - Hyper 1.5s plus rapide, 8 tours","🏁 DRS 2-3 zones, 85% efficacité","🔧 Méta: Susp 5/4, aéro 5-6, diff 75%"],
+presets:{
+"🔵 2017 Bleu Equilibré":{aero_av:5,aero_ar:6,diff_on:75,diff_off:68,camber_av:-2.70,camber_ar:-1.35,toe_av:0.09,toe_ar:0.28,susp_av:5,susp_ar:4,arb_av:5,arb_ar:4,height_av:5,height_ar:6,brake_press:90,brake_bias:55,tyre_av:22.8,tyre_ar:21.0,ballast:6},
+"🚀 2017 Monza Vitesse":{aero_av:2,aero_ar:2,diff_on:80,diff_off:72,camber_av:-2.80,camber_ar:-1.45,toe_av:0.11,toe_ar:0.32,susp_av:6,susp_ar:5,arb_av:7,arb_ar:6,height_av:3,height_ar:3,brake_press:95,brake_bias:57,tyre_av:23.8,tyre_ar:21.8,ballast:5},
+"🔄 2017 Monaco Appui":{aero_av:10,aero_ar:11,diff_on:65,diff_off:60,camber_av:-2.50,camber_ar:-1.20,toe_av:0.06,toe_ar:0.22,susp_av:3,susp_ar:2,arb_av:3,arb_ar:2,height_av:6,height_ar:7,brake_press:86,brake_bias:53,tyre_av:21.8,tyre_ar:20.0,ballast:8},
+}
+},
+"2020":{
+color:"violet",hex:"#7C3AED",icon:"💜",title:"F1 2020 - Violet",
+circuits:{
+"🇦🇺 Australie - Melbourne":{code:"AUS",type:"Semi-urbain",strat:"1 arrêt M-H, DRS 3 zones"},
+"🇧🇭 Bahreïn - Sakhir":{code:"BHR",type:"Traction",strat:"2 arrêts M-H-M, ERS High"},
+"🇻🇳 Vietnam - Hanoï":{code:"VNM",type:"Urbain",strat:"1 arrêt M-H, nouveau 2020"},
+"🇨🇳 Chine - Shanghai":{code:"CHN",type:"Avant limité",strat:"2 arrêts, graining"},
+"🇳🇱 Pays-Bas - Zandvoort":{code:"NLD",type:"Old-School",strat:"1 arrêt, banking, nouveau 2020"},
+"🇪🇸 Espagne - Barcelone":{code:"ESP",type:"Complet",strat:"2 arrêts M-H-M, usure extrême"},
+"🇲🇨 Monaco - Monte-Carlo":{code:"MCO",type:"Urbain Extrême",strat:"1 arrêt M-H, qualif 100%"},
+"🇦🇿 Azerbaïdjan - Bakou":{code:"AZE",type:"Urbain Rapide",strat:"1 arrêt, SC 70%, 350km/h"},
+"🇨🇦 Canada - Montréal":{code:"CAN",type:"Freinage",strat:"1 arrêt M-H"},
+"🇫🇷 France - Paul Ricard":{code:"FRA",type:"Technique",strat:"1 arrêt, Mistral DRS"},
+"🇦🇹 Autriche - Spielberg":{code:"AUT",type:"Court",strat:"1 arrêt M-H, 71 tours"},
+"🇬🇧 GB - Silverstone":{code:"GBR",type:"Rapide",strat:"2 arrêts, C1 dur"},
+"🇭🇺 Hongrie - Hungaroring":{code:"HUN",type:"Lent",strat:"1 arrêt, pas dépassement"},
+"🇧🇪 Belgique - Spa":{code:"BEL",type:"Légendaire",strat:"1-2 arrêts, Kemmel DRS"},
+"🇮🇹 Italie - Monza":{code:"ITA",type:"Temple Vitesse",strat:"1 arrêt M-H, 1-1, 360km/h"},
+"🇸🇬 Singapour - Marina Bay":{code:"SGP",type:"Nuit",strat:"2 arrêts, SC 100%"},
+"🇷🇺 Russie - Sotchi":{code:"RUS",type:"Lisse",strat:"1 arrêt M-H"},
+"🇯🇵 Japon - Suzuka":{code:"JPN",type:"Pilote",strat:"2 arrêts, 130R"},
+"🇺🇸 USA - Austin":{code:"USA",type:"Complet",strat:"1 arrêt, T1 aveugle"},
+"🇲🇽 Mexique - Mexico":{code:"MEX",type:"Altitude",strat:"1 arrêt, 2250m"},
+"🇧🇷 Brésil - Interlagos":{code:"BRA",type:"Anti-horaire",strat:"2 arrêts, pluie 70%"},
+"🇦🇪 Abu Dhabi - Yas Marina":{code:"ABU",type:"Twillight",strat:"1 arrêt M-H"},
+},
+strategies:["⚡ ERS 2020: Auto + Overtake +0.7s / Hotlap qualif","⛽ 110kg, Lean -0.4s / Rich +0.5s","🛞 C1-C5 (C1 dur, C5 tendre) + Inter/Wet - C5 1.8s rapide, 6 tours, 85-105°C","🏁 DRS 1-3 zones +12-15km/h, +ERS = +25km/h","🔧 Méta 2020: Aéro 4-6, diff 70-75%, camber -2.7/-1.3, My Team R&D","🌧️ Pluie: Inter 0-80% eau, Wet 60-100%, hauteur +3, aéro +3"],
+presets:{
+"💜 2020 Violet Signature":{aero_av:6,aero_ar:7,diff_on:70,diff_off:62,camber_av:-2.65,camber_ar:-1.25,toe_av:0.07,toe_ar:0.22,susp_av:4,susp_ar:3,arb_av:4,arb_ar:3,height_av:5,height_ar:6,brake_press:92,brake_bias:55,tyre_av:23.0,tyre_ar:21.0,ballast:6},
+"⚡ 2020 Qualif Sec":{aero_av:4,aero_ar:5,diff_on:85,diff_off:75,camber_av:-2.80,camber_ar:-1.40,toe_av:0.10,toe_ar:0.30,susp_av:5,susp_ar:4,arb_av:6,arb_ar:5,height_av:4,height_ar:5,brake_press:95,brake_bias:56,tyre_av:23.5,tyre_ar:21.5,ballast:6},
+"🏁 2020 Course":{aero_av:5,aero_ar:6,diff_on:75,diff_off:65,camber_av:-2.70,camber_ar:-1.30,toe_av:0.08,toe_ar:0.25,susp_av:4,susp_ar:3,arb_av:5,arb_ar:4,height_av:5,height_ar:6,brake_press:90,brake_bias:54,tyre_av:22.8,tyre_ar:20.8,ballast:6},
+"🌧️ 2020 Pluie":{aero_av:8,aero_ar:9,diff_on:55,diff_off:50,camber_av:-2.50,camber_ar:-1.10,toe_av:0.05,toe_ar:0.20,susp_av:2,susp_ar:1,arb_av:2,arb_ar:1,height_av:8,height_ar:9,brake_press:80,brake_bias:52,tyre_av:22.0,tyre_ar:20.0,ballast:7},
+"🚀 2020 Monza Vitesse":{aero_av:1,aero_ar:1,diff_on:80,diff_off:70,camber_av:-2.90,camber_ar:-1.50,toe_av:0.12,toe_ar:0.35,susp_av:7,susp_ar:6,arb_av:8,arb_ar:7,height_av:3,height_ar:3,brake_press:100,brake_bias:58,tyre_av:24.5,tyre_ar:22.0,ballast:5},
+"🔄 2020 Monaco Appui":{aero_av:11,aero_ar:11,diff_on:65,diff_off:60,camber_av:-2.50,camber_ar:-1.20,toe_av:0.05,toe_ar:0.20,susp_av:3,susp_ar:2,arb_av:3,arb_ar:2,height_av:6,height_ar:7,brake_press:88,brake_bias:53,tyre_av:22.2,tyre_ar:20.2,ballast:8},
+}
+}
+};
+
+let currentYear="2020";
+let setups={
+"2012":{...DATA["2012"].presets["🔴 2012 Rouge Equilibré"]},
+"2017":{...DATA["2017"].presets["🔵 2017 Bleu Equilibré"]},
+"2020":{...DATA["2020"].presets["💜 2020 Violet Signature"]},
+};
+let tracks={"2012":"🇮🇹 Italie - Monza","2017":"🇮🇹 Italie - Monza","2020":"🇮🇹 Italie - Monza"};
+let currentTab="Aéro";
+
+const PARAMS=[
+{id:"aero_av",label:"Aileron Avant 1-11",min:1,max:11,step:1,tab:"Aéro"},
+{id:"aero_ar",label:"Aileron Arrière 1-11",min:1,max:11,step:1,tab:"Aéro"},
+{id:"diff_on",label:"Diff On %",min:50,max:100,step:1,tab:"Trans"},
+{id:"diff_off",label:"Diff Off %",min:50,max:100,step:1,tab:"Trans"},
+{id:"camber_av",label:"Carrossage AV",min:-3.5,max:-2.0,step:0.05,tab:"Géo"},
+{id:"camber_ar",label:"Carrossage AR",min:-2.0,max:-1.0,step:0.05,tab:"Géo"},
+{id:"toe_av",label:"Pincement AV",min:0.05,max:0.15,step:0.01,tab:"Géo"},
+{id:"toe_ar",label:"Pincement AR",min:0.20,max:0.50,step:0.01,tab:"Géo"},
+{id:"susp_av",label:"Suspension AV",min:1,max:11,step:1,tab:"Susp"},
+{id:"susp_ar",label:"Suspension AR",min:1,max:11,step:1,tab:"Susp"},
+{id:"arb_av",label:"Anti-Roulis AV",min:1,max:11,step:1,tab:"Susp"},
+{id:"arb_ar",label:"Anti-Roulis AR",min:1,max:11,step:1,tab:"Susp"},
+{id:"height_av",label:"Hauteur AV",min:1,max:11,step:1,tab:"Susp"},
+{id:"height_ar",label:"Hauteur AR",min:1,max:11,step:1,tab:"Susp"},
+{id:"brake_press",label:"Pression Freins %",min:70,max:100,step:1,tab:"Freins"},
+{id:"brake_bias",label:"Bias AV %",min:50,max:70,step:1,tab:"Freins"},
+{id:"tyre_av",label:"Pression AV PSI",min:21,max:25,step:0.1,tab:"Pneus"},
+{id:"tyre_ar",label:"Pression AR PSI",min:19.5,max:23.5,step:0.1,tab:"Pneus"},
+{id:"ballast",label:"Ballast 1-11",min:1,max:11,step:1,tab:"Pneus"},
+];
+
+function setYear(y){
+currentYear=y;
+document.querySelectorAll(".ytab").forEach(e=>e.classList.remove("active"));
+document.getElementById("ytab-"+y).classList.add("active");
+render();
+}
+
+function render(){
+const y=DATA[currentYear];
+const setup=setups[currentYear];
+const track=tracks[currentYear];
+const tinfo=y.circuits[track];
+const color=y.color;
+const div=document.getElementById("yearContent");
+let html=`
+<div class="card card-${color}">
+<div style="display:flex;align-items:center;gap:10px">
+<div style="font-size:28px">${y.icon}</div>
+<div><div style="font-family:Orbitron;font-weight:800;font-size:18px">${y.title}</div><div style="font-size:11px;opacity:0.8">${track} [${tinfo.code}] • ${tinfo.type}</div></div>
+<div style="margin-left:auto"><span class="badge badge-${color}">${currentYear} ${y.circuits[track].code}</span></div>
+</div>
+</div>
+
+<div class="grid2">
+<div class="card card-${color}">
+<label>🏁 Circuit ${currentYear} (${Object.keys(y.circuits).length} dispo)</label>
+<select id="trackSel" onchange="changeTrack(this.value)">${Object.keys(y.circuits).map(k=>`<option value="${k}" ${k===track?"selected":""}>${k}</option>`).join("")}</select>
+<div style="margin-top:8px;font-size:12px"><span class="badge badge-${color}">${tinfo.code}</span> ${tinfo.type}<br><small>${tinfo.strat}</small></div>
+</div>
+<div class="card card-${color}">
+<label>🎨 Preset ${currentYear}</label>
+<select id="presetSel">${Object.keys(y.presets).map(k=>`<option value="${k}">${k}</option>`).join("")}</select>
+<button class="btn-${color}" onclick="applyPreset()"> ${y.icon} Appliquer ${currentYear}</button>
+</div>
+</div>
+
+<div class="card card-${color}">
+<h4 style="margin:0 0 6px">🧠 Stratégies ${currentYear} adaptées</h4>
+${y.strategies.map(s=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08)">${s}</div>`).join("")}
+</div>
+
+<div class="tabs">
+${["Aéro","Trans","Géo","Susp","Freins","Pneus","Tous","Résumé"].map(t=>`<div class="tab ${t===currentTab?"active":""}" onclick="setTab('${t}')">${t}</div>`).join("")}
+</div>
+
+<div id="paramsArea"></div>
+
+<div class="card card-${color}">
+<h4 style="margin:0 0 6px">📋 Résumé ${currentYear} ${y.icon}</h4>
+<pre id="resume"></pre>
+<button class="btn-${color}" onclick="downloadJSON()">💾 Télécharger JSON ${currentYear}</button>
+<button style="background:#1E293B" onclick="copyResume()">📋 Copier</button>
+</div>
+`;
+div.innerHTML=html;
+renderParams();
+updateResume();
+}
+
+function setTab(t){currentTab=t;render();}
+
+function renderParams(){
+const y=DATA[currentYear];
+const setup=setups[currentYear];
+const area=document.getElementById("paramsArea");
+if(!area)return;
+if(currentTab==="Résumé"){area.innerHTML="";return;}
+let toShow=currentTab==="Tous"?PARAMS:PARAMS.filter(p=>p.tab===currentTab|| (currentTab==="Aéro"&&p.tab==="Aéro")|| (currentTab==="Trans"&&p.tab==="Trans")|| (currentTab==="Géo"&&p.tab==="Géo")|| (currentTab==="Susp"&&p.tab==="Susp")|| (currentTab==="Freins"&&p.tab==="Freins")|| (currentTab==="Pneus"&&p.tab==="Pneus"));
+let html=`<div class="grid2">`;
+toShow.forEach(p=>{
+html+=`<div class="card card-${y.color}"><label>${p.label}</label><div style="display:flex;gap:8px;align-items:center"><input type="range" id="${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${setup[p.id]}" oninput="updateParam('${p.id}',this.value)"><span class="value" id="val-${p.id}">${setup[p.id]}</span></div></div>`;
+});
+html+=`</div>`;
+area.innerHTML=html;
+}
+
+function updateParam(id,val){
+setups[currentYear][id]=parseFloat(val);
+document.getElementById("val-"+id).textContent=val;
+updateResume();
+}
+
+function changeTrack(v){tracks[currentYear]=v;render();}
+
+function applyPreset(){
+const y=DATA[currentYear];
+const sel=document.getElementById("presetSel").value;
+setups[currentYear]={...y.presets[sel]};
+render();
+}
+
+function updateResume(){
+const y=DATA[currentYear];
+const setup=setups[currentYear];
+const track=tracks[currentYear];
+const tinfo=y.circuits[track];
+const vmax=340-(setup.aero_av+setup.aero_ar)*4;
+const bal=setup.aero_av-setup.aero_ar;
+const balText=bal<-2?"Sur-vireur":bal>2?"Sous-vireur":"Neutre";
+const el=document.getElementById("resume");
+if(!el)return;
+el.textContent=`F1 ${currentYear} ${y.icon} SETUP - ${track} [${tinfo.code}]
+${y.title} - ${y.color.toUpperCase()}
+
+AERO AV:${setup.aero_av} AR:${setup.aero_ar} BAL:${bal>0?"+":""}${bal} (${balText})
+DIFF ON:${setup.diff_on}% OFF:${setup.diff_off}%
+CAMBER AV:${setup.camber_av} AR:${setup.camber_ar} TOE AV:${setup.toe_av} AR:${setup.toe_ar}
+SUSP AV:${setup.susp_av} AR:${setup.susp_ar} ARB AV:${setup.arb_av} AR:${setup.arb_ar} H AV:${setup.height_av} AR:${setup.height_ar}
+BRAKE ${setup.brake_press}% BIAS ${setup.brake_bias}%
+TYRE AV:${setup.tyre_av} AR:${setup.tyre_ar} BALLAST:${setup.ballast}
+VMAX EST: ${vmax} km/h
+CIRCUIT TYPE: ${tinfo.type}
+STRATEGIE: ${tinfo.strat}
+
+STRATEGIES ${currentYear}:
+${y.strategies.join("\n")}
+`;
+}
+
+function downloadJSON(){
+const y=DATA[currentYear];
+const data={jeu:`F1 ${currentYear}`,edition:y.color,circuit:tracks[currentYear],code:y.circuits[tracks[currentYear]].code,setup:setups[currentYear],strategie:y.circuits[tracks[currentYear]].strat,date:new Date().toISOString()};
+const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");a.href=url;a.download=`F1_${currentYear}_${data.code}_${y.color}.json`;a.click();
+URL.revokeObjectURL(url);
+}
+
+function copyResume(){
+navigator.clipboard.writeText(document.getElementById("resume").textContent).then(()=>alert("💜 Setup copié "+currentYear));
+}
+
+render();
+</script>
+</body>
+</html>
