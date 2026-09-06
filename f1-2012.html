@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="theme-color" content="#05070d"/>
+<title>F1 2012 — Setup Optimal Rouge Officiel</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+--f1-red:#e10600;--f1-red-2:#ff2a1a;--f1-black:#05070d;--f1-carbon:#14131b;
+--f1-muted:rgba(255,255,255,.68);--line:rgba(255,255,255,.12);
+--shadow:0 20px 60px rgba(0,0,0,.40);--radius:22px;
+--accent:#e10600;--accent2:#ff2a1a;
+}
+*{box-sizing:border-box}html{color-scheme:dark;scroll-behavior:smooth}
+body{
+margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;color:#fff;
+background:
+radial-gradient(circle at 8% -6%,rgba(225,6,0,.30),transparent 30rem),
+radial-gradient(circle at 88% 0%,rgba(255,42,26,.16),transparent 28rem),
+linear-gradient(135deg,#05060a 0%,#0c0a0e 48%,#1a1112 100%);
+overflow-x:hidden;min-height:100vh;
+}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.14;
+background:linear-gradient(120deg,transparent 0 46%,rgba(255,255,255,.08) 46.4% 46.8%,transparent 47.2%),linear-gradient(90deg,rgba(225,6,0,.10),transparent 42%);
+background-size:190px 190px,100% 100%;
+}
+header,main{position:relative;z-index:1}
+header{max-width:1440px;margin:18px auto 14px;padding:0 16px}
+.hero{
+position:relative;overflow:hidden;border-radius:28px;padding:28px 30px;color:#fff;
+background:linear-gradient(135deg,rgba(8,8,12,.98),rgba(20,14,14,.96) 56%,rgba(225,6,0,.88));
+border:1px solid rgba(255,255,255,.14);box-shadow:var(--shadow);
+}
+.hero:before{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,transparent,#e10600,#ff2a1a,#e10600,transparent)}
+.title-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo-mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#fff,#e10600 58%,#1a0e0e);display:grid;place-items:center;color:#0a0606;font-weight:1000;letter-spacing:-.08em}
+h1{margin:0;font-family:Orbitron;font-size:clamp(1.9rem,4.2vw,3.8rem);letter-spacing:-.06em;line-height:.92;font-weight:1000;font-style:italic}
+.h1-sub{display:block;margin-top:4px;font-family:Inter;font-size:.86rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.72);font-style:normal;font-weight:900}
+.hero p{margin:14px 0 0;max-width:1080px;color:rgba(255,255,255,.78);line-height:1.55;font-size:.98rem}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.badge{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);font-size:.70rem;font-weight:900}
+.screen-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;padding:10px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+.screen-label{font-size:.72rem;font-weight:1000;color:rgba(255,255,255,.66);text-transform:uppercase}
+.screen-btn{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:8px 10px;font-weight:900;cursor:pointer;font-size:.78rem}
+.screen-btn.active{background:#fff;color:#0a0606;border-color:#fff}
+.screen-btn small{display:block;font-size:.58rem;opacity:.7}
+main{max-width:1440px;margin:0 auto 42px;padding:0 16px;display:grid;grid-template-columns:390px 1fr;gap:16px}
+aside,.card{color:#fff;background:linear-gradient(145deg,rgba(20,14,14,.94),rgba(26,18,18,.88));border:1px solid rgba(255,255,255,.11);box-shadow:var(--shadow);backdrop-filter:blur(8px);overflow:hidden;position:relative}
+aside{border-radius:26px;padding:16px;position:sticky;top:12px;align-self:start;max-height:calc(100vh - 24px);overflow:auto;scrollbar-width:thin}
+.card{border-radius:var(--radius);padding:16px}
+.card:before,aside:before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,transparent,rgba(225,6,0,.88),transparent)}
+.aside-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.aside-head h2{margin:0;font-size:1.18rem;font-family:Orbitron}
+.live-dot{display:inline-flex;align-items:center;gap:6px;font-size:.70rem;font-weight:1000;color:var(--accent2)}
+.live-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px rgba(225,6,0,.6)}
+fieldset{border:0;border-top:1px solid rgba(255,255,255,.10);margin:14px 0 0;padding:14px 0 0}
+legend{font-weight:1000;padding-right:8px;color:#fff;font-family:Orbitron;font-size:.78rem}
+label{display:block;font-size:.76rem;font-weight:900;margin:10px 0 5px;color:#e8d5d2}
+.hint{font-size:.70rem;color:var(--f1-muted);margin-top:5px;line-height:1.35}
+select,textarea,input[type=number],input[type=text],input[type=range]{width:100%;border:1px solid rgba(255,255,255,.14);background:#0c0a0a;color:#fff;border-radius:12px;padding:10px 11px;outline:none}
+select:focus,input:focus{border-color:rgba(225,6,0,.70);box-shadow:0 0 0 3px rgba(225,6,0,.18)}
+input[type=range]{padding:0;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.checkline{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-weight:700;color:#d9c4c2;font-size:.82rem}
+.content{display:grid;gap:14px}
+.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.metric{min-height:108px}
+.metric .k{font-size:.70rem;color:var(--f1-muted);font-weight:1000;text-transform:uppercase}
+.metric .v{font-size:2rem;line-height:1;margin-top:8px;color:var(--accent2);font-weight:1000}
+.metric .s{font-size:.76rem;color:var(--f1-muted);margin-top:5px;font-weight:800}
+h2.section-title{display:flex;align-items:center;gap:10px;margin:2px 0 12px;font-size:1.15rem;font-family:Orbitron}
+.slash{height:22px;width:6px;border-radius:99px;background:var(--accent);transform:skewX(-18deg)}
+.summary{border-radius:18px;padding:14px 16px;background:linear-gradient(135deg,rgba(26,18,18,.96),rgba(48,22,22,.82));border:1px solid rgba(255,255,255,.12);line-height:1.5;font-size:.92rem}
+.summary b{color:var(--accent2)}
+.two-col{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,.10);font-size:.86rem}
+th{background:#0c0a0a;color:#fff;text-align:left;padding:10px 11px;font-size:.72rem;text-transform:uppercase;border-bottom:1px solid rgba(225,6,0,.35)}
+td{background:#161212;color:#fff;padding:10px 11px;border-top:1px solid rgba(255,255,255,.06)}
+td:last-child{font-weight:800}
+.section-cell{font-weight:1000;color:var(--accent2)}
+.gear-list{display:grid;gap:8px}
+.gear-line{display:grid;grid-template-columns:70px 1fr 1.2fr;gap:10px;align-items:center;padding:11px 12px;border-radius:14px;background:#151212;border:1px solid rgba(255,255,255,.10)}
+.gear-line .rapport{font-size:.76rem;color:var(--f1-muted);font-weight:1000}
+.gear-line b{font-size:1.22rem;color:var(--accent2)}
+.gear-line small{color:var(--f1-muted);font-weight:800;font-size:.80rem}
+.box{border-radius:14px;padding:11px 13px;margin:7px 0;line-height:1.45;border:1px solid transparent;font-size:.88rem}
+.ok{background:linear-gradient(135deg,rgba(32,217,148,.14),#151212);border-left:4px solid #20d994;color:#fff}
+.warn{background:linear-gradient(135deg,rgba(255,215,90,.14),#151212);border-left:4px solid #ffd75a;color:#fff}
+.danger{background:linear-gradient(135deg,rgba(225,6,0,.18),#151212);border-left:4px solid var(--accent);color:#fff}
+.info{background:linear-gradient(135deg,rgba(255,42,26,.14),#151212);border-left:4px solid var(--accent2);color:#fff}
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#151212;border:1px solid rgba(255,255,255,.10);font-size:.76rem;font-weight:900;color:#fff}
+.phrase-list{display:grid;gap:8px}
+.phrase{padding:11px 12px;border-radius:14px;background:#151212;border:1px solid rgba(255,255,255,.10);font-size:.88rem}
+.mini-title{font-size:.80rem;color:var(--f1-muted);font-weight:1000;text-transform:uppercase;margin:12px 0 8px}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.btn{border:0;border-radius:12px;padding:10px 13px;background:#0c0a0a;color:#fff;font-weight:1000;cursor:pointer;border:1px solid rgba(255,255,255,.12)}
+.btn-red{background:var(--accent);border-color:var(--accent)}
+.live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.footer{color:var(--f1-muted);font-size:.78rem;padding:4px}
+@media(max-width:1120px){main{grid-template-columns:1fr}aside{position:static;max-height:none}.metrics{grid-template-columns:repeat(2,1fr)}.two-col,.three-col{grid-template-columns:1fr}.live-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){main{padding:0 10px}header{padding:0 10px}.metrics{grid-template-columns:1fr}.row2,.row3,.live-grid{grid-template-columns:1fr}.hero{padding:20px 16px}}
+</style>
+</head>
+<body>
+<header>
+<div class="hero">
+<div class="title-line"><div class="logo-mark">F1</div><div><h1>F1 2012 — ROUGE OFFICIEL<span class="h1-sub">V8 • KERS • 12 écuries • 20 GP • Prime/Option</span></h1></div></div>
+<p>Calculateur officiel F1 2012 rouge #E10600 : circuits 2012 (Valence, Buddh, Austin), KERS 6s/tour, pneus Prime/Option, boîte 7 rapports. Style F1 officiel.</p>
+<div class="badges"><span class="badge">V8 Atmosphérique</span><span class="badge">KERS 80ch</span><span class="badge">20 circuits 2012</span><span class="badge">Prime/Option</span><span class="badge">DRS 1 zone</span><span class="badge">12 écuries</span></div>
+<div class="screen-controls" id="screenControls">
+<a class="screen-btn" href="index.html">← Hub<small>3 ères</small></a>
+<a class="screen-btn" href="f1-2017.html" style="border-color:rgba(0,140,255,.5);background:rgba(0,112,255,.18)">F1 2017<small>bleu</small></a>
+<a class="screen-btn" href="f1-2020.html" style="border-color:rgba(124,58,237,.5);background:rgba(124,58,237,.18)">F1 2020<small>violet</small></a>
+<span class="screen-label">Mode</span>
+<button class="screen-btn active" data-screen="auto">Auto</button>
+<button class="screen-btn" data-screen="tablet">Tablette</button>
+<button class="screen-btn" data-screen="phone">Téléphone</button>
+</div>
+</div>
+</header>
+<main>
+<aside>
+<div class="aside-head"><h2>Paramètres 2012</h2><span class="live-dot">LIVE ROUGE</span></div>
+
+<fieldset><legend>1. Course 2012</legend>
+<label for="circuit">Circuit</label><select id="circuit"></select>
+<div class="row2"><div><label for="distance">Distance</label><select id="distance"><option value="25">25%</option><option value="50" selected>50%</option><option value="100">100%</option></select></div><div><label for="session">Session</label><select id="session"><option>Course</option><option>Qualif + Course</option><option>Carrière</option><option>En ligne</option></select></div></div>
+<div class="row2"><div><label for="team">Écurie 2012</label><select id="team"></select></div><div><label for="ai">IA</label><input id="ai" type="number" min="0" max="110" value="70"></div></div>
+</fieldset>
+
+<fieldset><legend>2. Météo 2012</legend>
+<label for="weather">Météo départ</label><select id="weather"><option>Sec ensoleillé</option><option>Sec couvert</option><option>Variable / menaçant</option><option>Bruine</option><option>Pluie légère</option><option>Pluie moyenne</option><option>Pluie forte</option></select>
+<label for="trackState">Piste</label><select id="trackState"><option>Sèche</option><option>Verte / froide</option><option>Humide hors trajectoire</option><option>Humide</option><option>Très humide</option><option>Détrempée</option></select>
+<div class="row3"><div><label for="rain">Risque pluie %</label><input id="rain" type="number" min="0" max="100" value="20"></div><div><label for="air">Air °C</label><input id="air" type="number" min="5" max="45" value="25"></div><div><label for="track">Piste °C</label><input id="track" type="number" min="10" max="62" value="34"></div></div>
+</fieldset>
+
+<fieldset><legend>3. Pneus 2012</legend>
+<div class="row2"><div><label for="optionTyre">Option</label><select id="optionTyre"><option>Super-tendres</option><option>Tendres</option><option>Médiums</option><option>Durs</option></select></div><div><label for="primeTyre">Prime</label><select id="primeTyre"><option>Tendres</option><option>Médiums</option><option>Durs</option></select></div></div>
+<div class="row2"><div><label for="startTyre">Départ</label><select id="startTyre"><option selected>Auto</option><option>Option</option><option>Prime</option><option>Intermédiaires</option><option>Pluie</option></select></div><div><label for="wear">Usure</label><select id="wear"><option>Faible</option><option selected>Normale</option><option>Forte</option><option>Très forte</option></select></div></div>
+</fieldset>
+
+<fieldset><legend>4. Style 2012</legend>
+<label for="over">Survirage : <span id="overLabel"></span></label><input id="over" type="range" min="-3" max="3" value="1">
+<label for="aeroBias">Vitesse ↔ Appui : <span id="aeroLabel"></span></label><input id="aeroBias" type="range" min="-5" max="5" value="0">
+<label for="aggr">Agressivité : <span id="aggrLabel"></span></label><input id="aggr" type="range" min="0" max="10" value="6">
+<label class="checkline"><input id="stableBraking" type="checkbox" checked> Stable au freinage</label>
+<label class="checkline"><input id="tc" type="checkbox" checked> Contrôle traction</label>
+</fieldset>
+
+<fieldset><legend>5. Live course</legend>
+<div class="row2"><div><label for="liveLap">Tour actuel</label><input id="liveLap" type="number" min="1" value="1"></div><div><label for="livePosition">Position</label><input id="livePosition" type="number" min="1" max="24" value="10"></div></div>
+<div class="row2"><div><label for="liveTyre">Pneu actuel</label><select id="liveTyre"><option>Auto</option><option>Option</option><option>Prime</option><option>Intermédiaires</option><option>Pluie</option></select></div><div><label for="liveTyreColor">Couleur pneus</label><select id="liveTyreColor"><option>Vert</option><option>Jaune</option><option>Orange</option><option>Rouge</option></select></div></div>
+</fieldset>
+</aside>
+
+<section class="content">
+<div class="metrics" id="metrics"></div>
+<div class="summary" id="summary"></div>
+<div class="two-col">
+<div class="card"><h2 class="section-title"><span class="slash"></span>Setup précis 2012</h2><div id="setupTable"></div><div class="pill-row" id="setupPills"></div></div>
+<div class="card"><h2 class="section-title"><span class="slash"></span>Boîte & KERS</h2><div id="gearBox"></div><div id="kersBox" style="margin-top:12px"></div></div>
+</div>
+<div class="three-col">
+<div class="card"><h2 class="section-title"><span class="slash"></span>Stratégie course</h2><div id="strategyTable"></div><div class="mini-title">Conseils</div><div id="racePhrases" class="phrase-list"></div></div>
+<div class="card"><h2 class="section-title"><span class="slash"></span>Météo</h2><div id="weatherAdvice"></div></div>
+<div class="card"><h2 class="section-title"><span class="slash"></span>Live 2012</h2><div id="liveStrategy"></div><div class="mini-title">Plan rapide</div><div id="quickPlan"></div></div>
+</div>
+<div class="footer">F1 2012 rouge officiel — V8, KERS, 12 écuries, 20 GP. Setup optimal officiel.</div>
+</section>
+</main>
+<script>
+const circuits={
+"Australie - Melbourne":{laps:58,profile:"mixte",fw:6,rw:7,top:322,stress:3,front:3,rear:3,brake:3,bump:2,kerb:2,over:2,pit:22,option:"Tendres",prime:"Médiums",notes:"stop-and-go, traction"},
+"Malaisie - Sepang":{laps:56,profile:"aéro chaud",fw:7,rw:7,top:326,stress:5,front:4,rear:4,brake:3,bump:2,kerb:2,over:3,pit:22.5,option:"Médiums",prime:"Durs",notes:"très chaud"},
+"Chine - Shanghai":{laps:56,profile:"mixte",fw:6,rw:6,top:331,stress:3,front:4,rear:3,brake:3,bump:1,kerb:1,over:3,pit:21.5,option:"Tendres",prime:"Médiums",notes:"longue ligne droite"},
+"Bahreïn - Sakhir":{laps:57,profile:"traction",fw:6,rw:6,top:328,stress:4,front:3,rear:4,brake:4,bump:2,kerb:2,over:3,pit:22,option:"Tendres",prime:"Médiums",notes:"traction arrière"},
+"Espagne - Catalunya":{laps:66,profile:"aéro",fw:8,rw:8,top:320,stress:4,front:5,rear:3,brake:3,bump:1,kerb:2,over:1,pit:21,option:"Tendres",prime:"Durs",notes:"appui, usure avant"},
+"Monaco - Monte-Carlo":{laps:78,profile:"urbain lent",fw:11,rw:11,top:292,stress:2,front:2,rear:3,brake:3,bump:5,kerb:5,over:1,pit:24,option:"Super-tendres",prime:"Tendres",notes:"appui max"},
+"Canada - Montréal":{laps:70,profile:"vitesse freinage",fw:4,rw:3,top:344,stress:3,front:2,rear:3,brake:5,bump:4,kerb:4,over:3,pit:20,option:"Super-tendres",prime:"Tendres",notes:"faible appui, freinages"},
+"Europe - Valencia":{laps:57,profile:"urbain rapide",fw:7,rw:7,top:323,stress:3,front:3,rear:3,brake:3,bump:3,kerb:3,over:1,pit:23,option:"Tendres",prime:"Médiums",notes:"peu d'adhérence"},
+"Grande-Bretagne - Silverstone":{laps:52,profile:"haute vitesse",fw:8,rw:8,top:326,stress:4,front:5,rear:3,brake:2,bump:2,kerb:2,over:2,pit:22,option:"Tendres",prime:"Durs",notes:"courbes rapides"},
+"Allemagne - Hockenheim":{laps:67,profile:"mixte vitesse",fw:5,rw:5,top:338,stress:3,front:3,rear:3,brake:4,bump:2,kerb:2,over:3,pit:20.5,option:"Tendres",prime:"Médiums",notes:"compromis"},
+"Hongrie - Hungaroring":{laps:70,profile:"aéro lent",fw:10,rw:10,top:306,stress:3,front:3,rear:4,brake:3,bump:2,kerb:3,over:1,pit:22.5,option:"Tendres",prime:"Médiums",notes:"appui"},
+"Belgique - Spa":{laps:44,profile:"haute vitesse",fw:5,rw:5,top:347,stress:4,front:4,rear:3,brake:3,bump:3,kerb:3,over:3,pit:21,option:"Médiums",prime:"Durs",notes:"Kemmel"},
+"Italie - Monza":{laps:53,profile:"vitesse pure",fw:2,rw:1,top:356,stress:3,front:2,rear:3,brake:5,bump:3,kerb:4,over:3,pit:19.5,option:"Médiums",prime:"Durs",notes:"vitesse max"},
+"Singapour - Marina Bay":{laps:61,profile:"urbain traction",fw:10,rw:11,top:302,stress:4,front:3,rear:5,brake:4,bump:4,kerb:4,over:1,pit:25,option:"Super-tendres",prime:"Tendres",notes:"chaud, traction"},
+"Japon - Suzuka":{laps:53,profile:"aéro technique",fw:8,rw:8,top:330,stress:4,front:5,rear:3,brake:3,bump:2,kerb:2,over:2,pit:21.5,option:"Tendres",prime:"Durs",notes:"S rapides"},
+"Corée - Yeongam":{laps:55,profile:"mixte",fw:6,rw:6,top:332,stress:3,front:3,rear:3,brake:4,bump:2,kerb:2,over:2,pit:21.5,option:"Super-tendres",prime:"Tendres",notes:"sinueux"},
+"Inde - Buddh":{laps:60,profile:"vitesse aéro",fw:5,rw:5,top:340,stress:3,front:4,rear:3,brake:3,bump:1,kerb:2,over:2,pit:21,option:"Tendres",prime:"Durs",notes:"rapide"},
+"Abu Dhabi - Yas Marina":{laps:55,profile:"traction mixte",fw:6,rw:7,top:328,stress:3,front:3,rear:4,brake:4,bump:2,kerb:2,over:3,pit:21,option:"Tendres",prime:"Médiums",notes:"traction"},
+"États-Unis - Austin":{laps:56,profile:"aéro mixte",fw:7,rw:7,top:330,stress:4,front:4,rear:3,brake:3,bump:2,kerb:3,over:2,pit:22,option:"Médiums",prime:"Durs",notes:"rapide + épingles"},
+"Brésil - Interlagos":{laps:71,profile:"mixte bosselé",fw:7,rw:7,top:322,stress:4,front:4,rear:4,brake:3,bump:4,kerb:3,over:2,pit:21,option:"Médiums",prime:"Durs",notes:"bosses"}
+};
+const teams={"Red Bull Racing":{level:5,top:2,wear:-0.45,label:"top car"},"McLaren":{level:5,top:3,wear:-0.25,label:"rapide ligne droite"},"Ferrari":{level:5,top:1,wear:-0.20,label:"équilibrée"},"Mercedes AMG":{level:4,top:3,wear:0.05,label:"bonne vitesse"},"Lotus F1 Team":{level:4,top:1,wear:-0.35,label:"gestion pneus"},"Force India":{level:3,top:2,wear:0.05,label:"milieu rapide"},"Sauber":{level:3,top:1,wear:-0.10,label:"efficace"},"Toro Rosso":{level:2,top:0,wear:0.15,label:"opportuniste"},"Williams":{level:3,top:2,wear:0.10,label:"vitesse"},"Caterham":{level:1,top:-1,wear:0.35,label:"bas grille"},"HRT":{level:1,top:-2,wear:0.50,label:"survie"},"Marussia":{level:1,top:-1,wear:0.45,label:"profiter SC"}};
+const q=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const cInt=v=>Math.round(clamp(v,1,11));
+function vals(){
+return {
+circuit:q("circuit").value,distance:Number(q("distance").value),team:q("team").value,ai:Number(q("ai").value),
+weather:q("weather").value,trackState:q("trackState").value,rain:Number(q("rain").value),air:Number(q("air").value),track:Number(q("track").value),
+option:q("optionTyre").value,prime:q("primeTyre").value,startTyre:q("startTyre").value,wear:q("wear").value,
+over:Number(q("over").value),aero:Number(q("aeroBias").value),aggr:Number(q("aggr").value),stableBraking:q("stableBraking").checked,tc:q("tc").checked,
+liveLap:Number(q("liveLap").value),livePosition:Number(q("livePosition").value),liveTyre:q("liveTyre").value,liveTyreColor:q("liveTyreColor").value
+};
+}
+function wetness(i){
+let wb={"Sec ensoleillé":0,"Sec couvert":0.05,"Variable / menaçant":0.35,"Bruine":0.7,"Pluie légère":1.0,"Pluie moyenne":1.45,"Pluie forte":2.0}[i.weather]||0;
+let sb={"Sèche":0,"Verte / froide":0.05,"Humide hors trajectoire":0.55,"Humide":1.0,"Très humide":1.45,"Détrempée":2.0}[i.trackState]||0;
+return clamp(Math.max(wb,sb),0,2.4);
+}
+function raceLaps(n,d){return Math.max(3,Math.round(circuits[n].laps*d/100));}
+function overText(v){return {"-3":"très stable","-2":"stable","-1":"légèrement stable","0":"neutre","1":"léger survirage","2":"survirage marqué","3":"très survireuse"}[String(v)]||"neutre";}
+function aeroText(v){if(v<=-4)return"vitesse max";if(v<=-2)return"priorité vitesse";if(v===0)return"compromis";if(v<=2)return"priorité appui";return"appui max";}
+function calcSetup(i){
+const c=circuits[i.circuit]; const wet=wetness(i); const shift=Math.round(i.aero/2.2);
+let fw=c.fw+shift+(wet>=.75?1:0), rw=c.rw+shift+(wet>=.75?1:0)+(wet>=.85?1:0);
+if(i.over>0){fw+=Math.ceil(i.over/2); rw-=Math.max(0,Math.floor(i.over/2));}
+if(i.over<0){fw-=Math.max(0,Math.floor(Math.abs(i.over)/2)); rw+=Math.ceil(Math.abs(i.over)/2);}
+fw=cInt(fw); rw=cInt(rw);
+let top=Math.round(clamp(c.top - ((fw+rw)-(c.fw+c.rw))*2.7 - wet*6 + Math.max(0,-i.aero)*1.8,286,360)) + (teams[i.team]?.top||0);
+let arbF=cInt(6 + (c.bump<=2?1:0) - (wet>=.85?1:0) - Math.round(i.over/2));
+let arbR=cInt(6 - (wet>=.85?1:0) + Math.round(i.over/2));
+let hF=cInt(2 + (c.bump>=3?1:0) + (c.kerb>=4?1:0) + (wet>=.85?1:0));
+let hR=cInt(hF+1);
+let sF=cInt(6 - (wet>=.85?2:0)), sR=cInt(6 - (c.profile.includes("traction")?1:0) - (wet>=.85?2:0));
+let brakeFront=clamp(Math.round(49 + (c.brake>=4?1:0) + (wet>=.85?1:0) + (i.stableBraking?1:0) - (i.over>=2?1:0)),48,52);
+let camF=(-3.18 - .045*((fw+rw)/2 + c.front*.45 -7)).toFixed(2);
+let camR=(-1.18 - .04*(c.rear-3)).toFixed(2);
+return {fw,rw,top,arbF,arbR,hF,hR,sF,sR,brakeFront,brakeRear:100-brakeFront,brakePressure:wet>=1.55?"Faible":wet>=.85?"Moyenne":"Élevée",brakeSize:(c.brake>=4||i.track>=40)?"Grande":"Standard",camF,camR,toeF:".10",toeR:".32",gears:[.40,.51,.62,.72,.815,.905,1].map(r=>Math.round(clamp(top*r,110,365))),wet};
+}
+function tyreLife(i){
+const c=circuits[i.circuit]; let stress=c.stress + (teams[i.team]?.wear||0) + ({"Faible":-1,"Normale":0,"Forte":1,"Très forte":2}[i.wear]||0) + (i.track>=42?1:0);
+stress=Math.round(clamp(stress,1,6)); const base={1:25,2:23,3:20,4:17,5:14,6:12}[stress]; const scale={25:.38,50:.62,100:1}[i.distance]; const dur={"Super-tendres":-3,"Tendres":-1,"Médiums":1,"Durs":4};
+const opt=Math.max(4,Math.round((base+(dur[i.option]||0))*scale)); const pri=Math.max(opt+2,Math.round((base+8+(dur[i.prime]||1))*scale));
+return {stress,opt,pri,inter:Math.max(5,Math.round(18*scale)),wet:Math.max(6,Math.round(22*scale))};
+}
+function strategy(i,life){
+const total=raceLaps(i.circuit,i.distance); const wet=wetness(i);
+if(wet>=1.55) return {mode:"pluie",stints:[{relai:1,tours:`1-${total}`,pneu:"Pluie",fenetre:"Arrivée",consigne:"Full Wet, KERS roues droites"}],summary:"Pluie"};
+if(wet>=.62) return {mode:"inter",stints:[{relai:1,tours:`1-${total}`,pneu:"Intermédiaires",fenetre:"Arrivée",consigne:"Inters"}],summary:"Inters"};
+let seq=i.startTyre==="Prime"?["Prime","Option"]:["Option","Prime"];
+if(life.opt+life.pri<total) seq=i.startTyre==="Prime"?["Prime","Option","Prime"]:["Option","Prime","Option"];
+const lives={Option:life.opt,Prime:life.pri}; const sum=seq.reduce((s,t)=>s+lives[t],0);
+const raw=seq.map(t=>total*lives[t]/sum); let len=raw.map(v=>Math.max(2,Math.round(v))); let diff=total-len.reduce((a,b)=>a+b,0);
+let g=0; while(diff!==0&&g++<100){if(diff>0){len[0]++; diff--;}else{let idx=len.findIndex(v=>v>2); if(idx<0)break; len[idx]--; diff++;}}
+let stints=[],start=1; seq.forEach((tyre,idx)=>{const end=start+len[idx]-1; stints.push({relai:idx+1,tours:`${start}-${end}`,pneu:`${tyre} (${tyre==="Option"?i.option:i.prime})`,fenetre:idx===seq.length-1?"Arrivée":`fin T${end} ±1`,consigne:idx===0?"Départ propre, KERS 2 impulsions":"Attaque"}); start=end+1;});
+return {mode:"sec",stints,summary:`${stints.length-1} arrêt(s)`};
+}
+function renderTable(rows,heads){return `<table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((x,idx)=>`<td class="${idx===0?'section-cell':''}">${x}</td>`).join("")}</tr>`).join("")}</tbody></table>`;}
+function render(){
+const i=vals(); const c=circuits[i.circuit]; const setup=calcSetup(i); const life=tyreLife(i); const strat=strategy(i,life);
+q("overLabel").textContent=overText(i.over); q("aeroLabel").textContent=aeroText(i.aero); q("aggrLabel").textContent=i.aggr<=3?"prudente":i.aggr>=8?"attaque":"équilibrée";
+q("metrics").innerHTML=[["Circuit",raceLaps(i.circuit,i.distance),c.profile],["Ailerons",`${setup.fw}/${setup.rw}`,`Vmax ${setup.top} km/h`],["Pneus",`${life.opt}/${life.pri}`,`${i.option}/${i.prime}`],["Stratégie",`${strat.stints.length-1} arrêt(s)`,strat.mode],["Écurie",i.team.split(" ")[0],teams[i.team]?.label]].map(m=>`<div class="card metric"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="s">${m[2]}</div></div>`).join("");
+q("summary").innerHTML=`<b>F1 2012 rouge — ${i.circuit}</b> • ${c.notes}. <b>Écurie:</b> ${i.team} (${teams[i.team]?.label}). <b>Distance:</b> ${i.distance}% • <b>Météo:</b> ${strat.mode}. <div class="box info"><b>KERS 2012:</b> 80ch, 6s/tour, recharge au freinage. Utilise en 2 impulsions : traction puis ligne droite.</div>`;
+q("setupTable").innerHTML=renderTable([["Aéro","Aileron AV",setup.fw],["Aéro","Aileron AR",setup.rw],["Freins","Répartition",`${setup.brakeFront}% AV`],["Freins","Pression",setup.brakePressure],["Freins","Taille",setup.brakeSize],["Balance","Barre AV",setup.arbF],["Balance","Barre AR",setup.arbR],["Suspension","Hauteur AV",setup.hF],["Suspension","Hauteur AR",setup.hR],["Suspension","Ressorts AV",setup.sF],["Suspension","Ressorts AR",setup.sR],["Alignement","Carrossage AV",`${setup.camF}°`],["Alignement","Carrossage AR",`${setup.camR}°`]],["Section","Réglage","Valeur"]);
+q("setupPills").innerHTML=`<span class="pill">Vmax ${setup.top} km/h</span><span class="pill">${overText(i.over)}</span><span class="pill">${aeroText(i.aero)}</span>`;
+q("gearBox").innerHTML=`<div class="gear-list">${setup.gears.map((g,idx)=>`<div class="gear-line"><span class="rapport">${idx+1}ère</span><b>${g} km/h</b><small>${idx<=1?"traction":idx<=4?"relance":"vitesse"}</small></div>`).join("")}</div>`;
+q("kersBox").innerHTML=`<div class="box ok"><b>KERS:</b> utilise 6s/tour max, bouton KERS en sortie virage lent et ligne droite. Ne pas utiliser sous pluie en courbe.</div><div class="box warn"><b>DRS 2012:</b> 1 zone, activable seulement si <1s derrière. Ouvre volant droit.</div>`;
+q("strategyTable").innerHTML=renderTable(strat.stints.map(s=>[s.relai,s.tours,s.pneu,s.fenetre,s.consigne]),["Relais","Tours","Pneu","Arrêt","Consigne"]);
+q("racePhrases").innerHTML=[`Voiture: ${i.team} — ${teams[i.team]?.label}.`,`Départ: KERS 2 impulsions, évite patinage.`].map(p=>`<div class="phrase">${p}</div>`).join("");
+q("weatherAdvice").innerHTML=`<div class="box ${strat.mode==="sec"?"ok":"danger"}">${strat.mode==="sec"?"✅ Sec":"🌧️ "+strat.mode} — ${strat.summary}</div>`;
+let liveRows=[[ `T${i.liveLap}`, i.liveTyre==="Auto"?strat.stints[0].pneu:i.liveTyre, "Standard", `${i.liveTyreColor}`, "Reste propre"]];
+q("liveStrategy").innerHTML=renderTable(liveRows,["Moment","Pneu","Mélange","État","Conseil"]);
+q("quickPlan").innerHTML=`<div class="box ok"><b>Pneus:</b> Option ${life.opt}T, Prime ${life.pri}T, Inters ${life.inter}T, Pluie ${life.wet}T.</div>`;
+}
+function init(){
+const sel=q("circuit"); Object.keys(circuits).forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;if(n==="Italie - Monza")o.selected=true; sel.appendChild(o);});
+const ts=q("team"); Object.keys(teams).forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;if(n==="Red Bull Racing")o.selected=true; ts.appendChild(o);});
+document.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",render));
+document.getElementById("screenControls").addEventListener("click",e=>{const b=e.target.closest(".screen-btn"); if(b&&b.dataset.screen){document.body.classList.remove("screen-tablet","screen-phone"); if(b.dataset.screen!=="auto") document.body.classList.add(`screen-${b.dataset.screen}`); document.querySelectorAll("#screenControls .screen-btn").forEach(x=>x.classList.toggle("active",x.dataset.screen===b.dataset.screen));}});
+render();
+}
+init();
+</script>
+</body>
+</html>
