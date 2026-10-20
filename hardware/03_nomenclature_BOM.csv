@@ -1,0 +1,25 @@
+Ref,Designation,Composant suggere,Fabricant,Package,Qte par unite,Prix unitaire indicatif (EUR),Commentaire
+U1,Microcontrôleur + BLE,nRF52840-QIAA,Nordic Semiconductor,QFN48,1,6,50,BLE 5.2 + Cortex-M4F, faible conso
+U2,Accéléromètre 3 axes,LIS2DH12TR,STMicroelectronics,LGA-14,1,1,80,±16 g, wake-on-motion, I2C/SPI
+U3,Gyroscope 3 axes,BMI270,Bosch Sensortec,LGA-14,1,2,50,Faible conso, I2C/SPI
+U4,Température + humidité,SHT31-DIS,Sensirion,DFN-8,1,2,20,±0,3 °C, ±2 % HR, I2C
+U5,Mémoire Flash SPI 2 Mo,W25Q16JVSIQ,Winbond,SOP-8,1,0,90,Sommeil 1 µA, stockage local
+U6,Chargeur Li-Po,MCP73831T-2ACI/OT,Microchip,SOT-23-5,1,0,45,Courant programmable, termination auto
+U7,Protection batterie,DW01A + 2× MOSFET (ou S-8261),ABLIC / Divers,SOT-23,1,0,80,Surtension/sous-tension/surintensité
+U8,Régulateur 3,3 V (LDO),TPS7A02 / MCP1700,TI / Microchip,SOT-23-5,1,0,35,Faible bruit, faible perte
+BAT1,Batterie Li-Po souple,3,7 V / 300 mAh, ~45×30×4 mm,Fabricant cellule à choisir,Poche souple,1,12,00,Autonomie cible 8–12 h, zone protégée de la semelle
+COIL1,Bobine réceptrice induction,Module Qi-like 5 W (RX),À définir,Module,1,4,00,Recharge sans contact, étanchéité
+NTC1,Thermistance NTC,10 kΩ, B=3435, Divers,0603,1,0,10,Surveillance température batterie pendant charge
+ANT1,Antenne BLE 2,4 GHz,Piste PCB ou chip antenna,À définir,— ,1,0,50,Radio BLE vers smartphone
+BTN1,Bouton ON/OFF,Bouton-poussoir caché,À définir,— ,1,0,30,Marche/arrêt physique
+LED1,LED verte,0603,À définir,0603,1,0,05,État allumé / charge
+LED2,LED rouge,0603,À définir,0603,1,0,05,Erreur / batterie faible
+X1,Cristal 32 MHz,À définir,À définir,— ,2,0,25,Horloge nRF52840
+X2,Cristal 32,768 kHz,À définir,À définir,— ,2,0,20,RTC / veille
+C1-C8,Condensateurs découplage,100 nF + 10 µF,À définir,0603/0805,8,0,15,Stabilité rails d'alimentation
+R1-R4,Pull-up I2C,4,7 kΩ,À définir,0603,4,0,05,Bus capteurs I2C
+R9-R12,Diviseurs pression FSR,10 kΩ (calibrage),À définir,0603,4,0,05,Lecture FSR sur ADC
+SENS_P1-P4,Capteurs pression,FSR406 (ou cellule piézoresistive custom),Interlink / Custom,— ,4,1,50,Zones talon, métatarse, orteils, médio-pied
+PCB,PCB rigide-flex 2-4 couches,À fabriquer,Atelier PCB,— ,1,25,00,Île rigide médio-pied + ailes flexibles, < 1,2 mm rigide
+BOÎTIER,Encapsulation TPU / silicone IP68,À définir,À définir,— ,1,8,00,Étanchéité sueur/humidité, protection chocs
+TOTAL INDICATIF (hors assemblage et NRE),— ,—, —, —, —, —, ~68,00,Prix prototype unitaire, volumes à affiner
